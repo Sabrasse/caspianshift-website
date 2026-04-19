@@ -698,6 +698,12 @@
 
     <button type="submit" class="btn-pill" style="width:100%;font-size:1.1rem;padding:.85rem;border-radius:999px;justify-content:center;">Get in Touch →</button>
   </form>
+
+  <div id="form-success" style="display:none; text-align:center; padding: 3rem 1rem;">
+    <div style="font-size:2.5rem; margin-bottom:1rem;">🧭</div>
+    <h3 style="font-family:'Boogaloo',cursive; font-size:2rem; color:var(--teal); margin-bottom:.75rem;">Message received!</h3>
+    <p style="color:rgba(250,240,202,.75); font-size:1rem; line-height:1.7;">We'll be in touch shortly.<br>In the meantime, feel free to explore the rest of the page.</p>
+  </div>
 </div>
 
 
@@ -727,6 +733,16 @@
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
   }, { threshold: 0.1 });
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // ── Netlify form inline success ──
+  const form = document.querySelector('.contact-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(form);
+    await fetch('/', { method: 'POST', body: data });
+    form.style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  });
 </script>
 
 </body>
