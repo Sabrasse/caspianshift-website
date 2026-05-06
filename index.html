@@ -63,6 +63,42 @@
     }
     .nav-logo:hover svg { transform: rotate(45deg); }
 
+    /* ─── NAV RIGHT SIDE ─── */
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 1.6rem;
+    }
+    .nav-link {
+      font-family: 'Boogaloo', cursive;
+      color: var(--cream);
+      text-decoration: none;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      transition: color .2s;
+    }
+    .nav-link:hover { color: var(--teal); }
+    .nav-link .nav-link-tag {
+      background: var(--teal);
+      color: var(--bg);
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 0.1rem 0.4rem;
+      margin-left: 0.4rem;
+      border-radius: 2px;
+      vertical-align: middle;
+      transform: translateY(-1px);
+      display: inline-block;
+    }
+    @media (max-width: 720px) {
+      .nav-right { gap: 0.9rem; }
+      .nav-link .nav-link-tag { display: none; }
+    }
+    @media (max-width: 480px) {
+      .nav-link { display: none; }
+    }
+
     .btn-pill {
       background: var(--red);
       color: var(--white);
@@ -444,7 +480,10 @@
     </svg>
     Caspian Shift
   </a>
-  <a href="#contact" class="btn-pill">Get in Touch</a>
+  <div class="nav-right">
+    <a href="/budget" class="nav-link">Budget Tool<span class="nav-link-tag">Free</span></a>
+    <a href="#contact" class="btn-pill">Get in Touch</a>
+  </div>
 </nav>
 
 
@@ -591,6 +630,33 @@
 </div>
 
 
+<!-- ════════ BUDGET TOOL CTA ════════ -->
+<div class="section-wrap" id="budget-cta" style="padding-top:3rem;padding-bottom:3rem;">
+  <div style="border:3px solid var(--teal);box-shadow:6px 6px 0 var(--teal);background:rgba(23,190,187,.04);padding:2.5rem 2rem;display:grid;grid-template-columns:1fr auto;gap:2.5rem;align-items:center;">
+    <div>
+      <span class="section-label" style="margin-bottom:.4rem;">Free funding analysis</span>
+      <h2 style="font-family:'Boogaloo',cursive;color:var(--white);font-size:clamp(1.6rem,3.5vw,2.4rem);line-height:1.1;letter-spacing:.02em;margin-bottom:.6rem;">
+        Try the <span style="color:var(--teal);">Budget Tool</span> — get a directional analysis in 60 seconds.
+      </h2>
+      <p style="color:rgba(250,240,202,.72);font-size:1rem;line-height:1.65;max-width:640px;">
+        Three steps. Three outputs: revised budget, revenue simulation, and a personalized funding strategy.
+        Built from the same playbook we run for paying clients — directional, but specific to your game.
+      </p>
+    </div>
+    <div style="white-space:nowrap;">
+      <a href="/budget" class="btn-pill" style="font-size:1.1rem;padding:.65rem 1.7rem;">Start free analysis →</a>
+    </div>
+  </div>
+</div>
+
+<style>
+  @media (max-width: 720px) {
+    #budget-cta > div { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
+    #budget-cta a.btn-pill { display: inline-block; }
+  }
+</style>
+
+
 <!-- ════════ TESTIMONIALS ════════ -->
 <div class="section-wrap" id="testimonials">
   <span class="section-label">What studios say</span>
@@ -695,56 +761,4 @@
     <div class="form-group">
       <label for="message">What's your biggest challenge right now? <span style="font-family:'Nunito',sans-serif;font-size:.75rem;opacity:.45;letter-spacing:0;">optional</span></label>
       <textarea id="message" name="message" placeholder="Funding, publisher outreach, Steam page, launch — anything goes."></textarea>
-    </div>
-
-    <button type="submit" class="btn-pill" style="width:100%;font-size:1.1rem;padding:.85rem;border-radius:999px;justify-content:center;">Get in Touch →</button>
-  </form>
-
-  <div id="form-success" style="display:none; text-align:center; padding: 3rem 1rem;">
-    <div style="font-size:2.5rem; margin-bottom:1rem;">🧭</div>
-    <h3 style="font-family:'Boogaloo',cursive; font-size:2rem; color:var(--teal); margin-bottom:.75rem;">Message received!</h3>
-    <p style="color:rgba(250,240,202,.75); font-size:1rem; line-height:1.7;">We'll be in touch shortly.<br>In the meantime, feel free to explore the rest of the page.</p>
-  </div>
-</div>
-
-
-<!-- ════════ FOOTER ════════ -->
-<footer>
-  <a href="#" class="nav-logo" style="text-decoration:none;">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-    </svg>
-    Caspian Shift
-  </a>
-  <span class="footer-copy">© 2026 Caspian Shift. All rights reserved.</span>
-  <a href="#contact" class="footer-links" style="color:rgba(250,240,202,.45);text-decoration:none;font-size:.85rem;transition:color .2s;">Get in touch →</a>
-</footer>
-
-
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  // ── Scroll reveal ──
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-  // ── Netlify form inline success ──
-  const form = document.querySelector('.contact-form');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const data = new FormData(form);
-    await fetch('/', { method: 'POST', body: data });
-    form.style.display = 'none';
-    document.getElementById('form-success').style.display = 'block';
-  });
-</script>
-
-</body>
-</html>
+    </div

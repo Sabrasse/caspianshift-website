@@ -1,0 +1,3401 @@
+diff --git a/.env.example b/.env.example
+new file mode 100755
+index 0000000..c072e7b
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,18 @@
++# Copy to .env for local `netlify dev`. In production, set these in Netlify dashboard
++# (Site settings → Environment variables). Every var is OPTIONAL — leaving any blank
++# makes the corresponding integration fall back to a mock so the rest still works.
++
++# Notion CRM (Game Case Studies database)
++NOTION_API_KEY=
++NOTION_DB_ID=34abb949947480b2b326c2fe922f384c
++
++# Anthropic (Claude analysis)
++ANTHROPIC_API_KEY=
++ANTHROPIC_MODEL=claude-sonnet-4-6
++
++# Transactional email (Resend)
++EMAIL_API_KEY=
++EMAIL_FROM=Caspian Shift <hello@caspianshift.com>
++
++# Internal token used by step3 → analyse-background. Generate any random string.
++INTERNAL_TOKEN=
+diff --git a/.gitignore b/.gitignore
+new file mode 100755
+index 0000000..331ea7e
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,7 @@
++node_modules
++.netlify
++.env
++.env.local
++.env.production
++.DS_Store
++*.log
+diff --git a/budget.html b/budget.html
+new file mode 100755
+index 0000000..ebcbfc2
+--- /dev/null
++++ b/budget.html
+@@ -0,0 +1,1474 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++  <meta charset="UTF-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <title>Budget Tool — Caspian Shift</title>
++  <meta name="description" content="Free funding analysis for indie game studios. Get a revised budget, revenue simulation, and personalized funding strategy in 60 seconds.">
++  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='6' fill='%230D0112'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' font-weight='bold' text-anchor='middle' fill='%2317BEBB'>CS</text></svg>">
++  <link rel="preconnect" href="https://fonts.googleapis.com">
++  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
++  <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
++  <style>
++    :root {
++      --bg:     #0D0112;
++      --teal:   #17BEBB;
++      --orange: #FC7A1E;
++      --red:    #D52941;
++      --cream:  #FAF0CA;
++      --white:  #FFFFFF;
++    }
++    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
++    html { scroll-behavior: smooth; }
++    body {
++      background: var(--bg);
++      color: var(--cream);
++      font-family: 'Nunito', sans-serif;
++      overflow-x: hidden;
++    }
++    h1, h2, h3, h4 {
++      font-family: 'Boogaloo', cursive;
++      letter-spacing: 0.02em;
++      font-weight: 400;
++    }
++
++    /* Animations shared with index.html */
++    @keyframes twinkle { 0%,100%{opacity:.25} 50%{opacity:1} }
++    .star-layer {
++      position: absolute; border-radius: 50%;
++      animation: twinkle 4s ease-in-out infinite;
++    }
++    @keyframes wave-drift { from { transform: translateX(0) } to { transform: translateX(-50%) } }
++    .wave-wrap { position: absolute; bottom: 0; width: 200%; height: 100%; }
++    .wave-1 { animation: wave-drift 9s linear infinite; opacity: .55; }
++    .wave-2 { animation: wave-drift 14s linear infinite reverse; opacity: .3; }
++    @keyframes spin-slow { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
++    @media (prefers-reduced-motion: reduce) {
++      .star-layer, .wave-wrap, .wave-1, .wave-2, .spin-slow { animation: none !important; }
++    }
++
++    /* Scrollbar */
++    ::-webkit-scrollbar { width: 8px; }
++    ::-webkit-scrollbar-track { background: var(--bg); }
++    ::-webkit-scrollbar-thumb { background: rgba(23,190,187,.3); }
++    ::-webkit-scrollbar-thumb:hover { background: rgba(23,190,187,.5); }
++
++    /* Inputs */
++    input:focus, select:focus, textarea:focus, button.cs-select-trigger:focus {
++      border-color: var(--teal) !important;
++    }
++    input[type=number]::-webkit-inner-spin-button,
++    input[type=number]::-webkit-outer-spin-button { opacity: 0.3; }
++    input[type=month]::-webkit-calendar-picker-indicator {
++      filter: invert(0.7) sepia(1) saturate(3) hue-rotate(140deg);
++    }
++
++    /* Nav */
++    nav.cs-nav {
++      position: fixed; inset: 0 0 auto 0; z-index: 200;
++      display: flex; align-items: center; justify-content: space-between;
++      padding: 1rem 2.5rem;
++      background: rgba(13,1,18,0.88);
++      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
++      border-bottom: 2px solid rgba(23,190,187,0.18);
++      transition: box-shadow 0.2s;
++    }
++    nav.cs-nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
++    .cs-nav-logo {
++      font-family: 'Boogaloo', cursive; font-size: 1.45rem; color: var(--white);
++      text-decoration: none; letter-spacing: 0.08em;
++      display: flex; align-items: center; gap: 0.6rem;
++    }
++    .cs-nav-logo svg { width: 24px; height: 24px; flex-shrink: 0; transition: transform .5s ease; }
++    .cs-nav-logo:hover svg { transform: rotate(45deg); }
++    .cs-nav-right { display: flex; align-items: center; gap: 2rem; }
++    .cs-nav-tag {
++      font-family: 'Boogaloo', cursive; font-size: 0.82rem;
++      color: var(--teal); letter-spacing: 0.22em; text-transform: uppercase;
++    }
++    .btn-pill {
++      background: var(--red); color: var(--white); border: 2px solid var(--red);
++      padding: 0.45rem 1.35rem; font-family: 'Boogaloo', cursive;
++      font-size: 1rem; letter-spacing: 0.04em; cursor: pointer;
++      text-decoration: none; border-radius: 999px;
++      transition: background .18s, color .18s;
++      display: inline-block;
++    }
++    .btn-pill:hover { background: transparent; color: var(--red); }
++
++    .btn-outline {
++      background: transparent; color: var(--teal); border: 2px solid var(--teal);
++      padding: 0.55rem 1.5rem; font-family: 'Boogaloo', cursive;
++      font-size: 1rem; letter-spacing: 0.04em; cursor: pointer;
++      border-radius: 999px;
++      transition: background .18s, color .18s;
++    }
++    .btn-outline:hover { background: rgba(23,190,187,.1); }
++
++    /* Form primitives — match the design */
++    .cs-label {
++      font-family: 'Boogaloo', cursive; font-size: 0.82rem;
++      color: var(--teal); letter-spacing: 0.12em; text-transform: uppercase;
++      margin-bottom: 0.35rem; display: block;
++    }
++    .cs-input {
++      width: 100%; box-sizing: border-box;
++      background: rgba(250,240,202,.04);
++      border: 2px solid rgba(23,190,187,.35);
++      color: var(--cream);
++      padding: 0.75rem 1rem;
++      font-family: 'Nunito', sans-serif; font-size: 0.95rem;
++      outline: none; border-radius: 0;
++    }
++    .cs-input.small { padding: 0.5rem 0.6rem; font-size: 0.85rem; }
++    .cs-helper {
++      font-family: 'Nunito', sans-serif; font-size: 0.78rem;
++      color: rgba(250,240,202,.45); margin-top: 0.3rem; line-height: 1.4;
++    }
++    .cs-error {
++      font-family: 'Nunito', sans-serif; font-size: 0.78rem;
++      color: var(--red); margin-top: 0.3rem;
++    }
++    .cs-field { margin-bottom: 1.2rem; }
++
++    /* Custom select */
++    .cs-select { position: relative; }
++    .cs-select-trigger {
++      width: 100%; box-sizing: border-box;
++      background: rgba(250,240,202,.04);
++      border: 2px solid rgba(23,190,187,.35);
++      color: var(--cream);
++      padding: 0.75rem 1rem;
++      font-family: 'Nunito', sans-serif; font-size: 0.95rem;
++      cursor: pointer; text-align: left; border-radius: 0;
++      display: flex; align-items: center; justify-content: space-between;
++    }
++    .cs-select-trigger.placeholder { color: rgba(250,240,202,.4); }
++    .cs-select-trigger.open { border-color: var(--teal); }
++    .cs-select-arrow { transition: transform 0.2s; }
++    .cs-select-trigger.open .cs-select-arrow { transform: rotate(180deg); }
++    .cs-select-menu {
++      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
++      background: #15041C; border: 2px solid var(--teal);
++      max-height: 260px; overflow-y: auto; z-index: 50;
++      box-shadow: 4px 4px 0 rgba(23,190,187,.25);
++    }
++    .cs-select-option {
++      display: block; width: 100%; text-align: left;
++      background: transparent; border: none;
++      border-left: 3px solid transparent;
++      color: var(--cream); padding: 0.6rem 0.85rem;
++      font-family: 'Nunito', sans-serif; font-size: 0.9rem;
++      cursor: pointer; transition: background 0.12s;
++    }
++    .cs-select-option:hover { background: rgba(23,190,187,.08); }
++    .cs-select-option.selected {
++      background: rgba(23,190,187,.18);
++      border-left-color: var(--teal); color: var(--teal);
++    }
++
++    /* Multi-select chips */
++    .cs-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
++    .cs-chip {
++      background: rgba(250,240,202,.04);
++      border: 2px solid rgba(23,190,187,.2);
++      color: rgba(250,240,202,.5);
++      padding: 0.35rem 0.75rem; font-family: 'Nunito', sans-serif;
++      font-size: 0.82rem; cursor: pointer; border-radius: 0;
++      transition: all 0.15s;
++    }
++    .cs-chip.selected {
++      background: rgba(23,190,187,.2);
++      border-color: var(--teal); color: var(--teal);
++    }
++
++    /* Currency input */
++    .cs-currency { position: relative; }
++    .cs-currency::before {
++      content: '$'; position: absolute;
++      left: 0.75rem; top: 50%; transform: translateY(-50%);
++      color: rgba(250,240,202,.4);
++      font-family: 'Nunito', sans-serif; font-size: 0.95rem;
++      pointer-events: none;
++    }
++    .cs-currency input { padding-left: 1.8rem; }
++
++    /* Step indicator */
++    .cs-stepind { display: flex; gap: 0.5rem; margin-bottom: 2.5rem; justify-content: center; }
++    .cs-stepind-row { display: flex; align-items: center; gap: 0.5rem; }
++    .cs-stepind-dot {
++      width: 28px; height: 28px; border-radius: 999px;
++      background: rgba(23,190,187,.15); color: rgba(250,240,202,.4);
++      font-family: 'Boogaloo', cursive; font-size: 0.85rem;
++      display: flex; align-items: center; justify-content: center;
++      transition: background 0.3s, color 0.3s;
++    }
++    .cs-stepind-dot.active { background: var(--teal); color: var(--bg); }
++    .cs-stepind-label {
++      font-family: 'Nunito', sans-serif; font-size: 0.82rem;
++      color: rgba(250,240,202,.35); transition: color 0.3s;
++    }
++    .cs-stepind-label.active { color: var(--cream); }
++    .cs-stepind-bar {
++      width: 40px; height: 2px;
++      background: rgba(23,190,187,.15);
++      transition: background 0.3s;
++    }
++    .cs-stepind-bar.active { background: var(--teal); }
++
++    /* Cards (results) */
++    .cs-card {
++      background: rgba(23,190,187,.03);
++      border: 3px solid var(--teal);
++      box-shadow: 6px 6px 0 var(--teal);
++      position: relative; margin-bottom: 2.5rem;
++    }
++    .cs-card.orange { border-color: var(--orange); box-shadow: 6px 6px 0 var(--orange); background: rgba(252,122,30,.03); }
++    .cs-card.red    { border-color: var(--red);    box-shadow: 6px 6px 0 var(--red);    background: rgba(213,41,65,.03); }
++    .cs-card-tag {
++      position: absolute; top: -1px; right: 1.5rem;
++      background: var(--teal); color: var(--bg);
++      font-family: 'Boogaloo', cursive; font-size: 0.78rem;
++      padding: 0.2rem 0.8rem; letter-spacing: 0.05em;
++    }
++    .cs-card.orange .cs-card-tag { background: var(--orange); color: var(--bg); }
++    .cs-card.red    .cs-card-tag { background: var(--red);    color: var(--white); }
++
++    /* What's-next mini cards (link cards) */
++    .cs-link-card {
++      border: 3px solid var(--teal); background: rgba(23,190,187,.03);
++      padding: 1.5rem 1.25rem; position: relative; text-decoration: none;
++      box-shadow: 6px 6px 0 var(--teal);
++      transition: transform 0.15s, box-shadow 0.15s;
++      display: block;
++    }
++    .cs-link-card:hover { transform: translate(-3px,-3px); box-shadow: 9px 9px 0 var(--teal); }
++    .cs-link-card.orange { border-color: var(--orange); box-shadow: 6px 6px 0 var(--orange); background: rgba(252,122,30,.03); }
++    .cs-link-card.orange:hover { box-shadow: 9px 9px 0 var(--orange); }
++    .cs-link-card.red    { border-color: var(--red);    box-shadow: 6px 6px 0 var(--red);    background: rgba(213,41,65,.03); }
++    .cs-link-card.red:hover    { box-shadow: 9px 9px 0 var(--red); }
++
++    /* Mobile tweaks */
++    @media (max-width: 720px) {
++      nav.cs-nav { padding: 0.85rem 1rem; }
++      .cs-nav-tag { display: none; }
++      .cs-nav-right { gap: 1rem; }
++      .grid-2 { grid-template-columns: 1fr !important; }
++      .grid-3 { grid-template-columns: 1fr !important; }
++      .grid-results-2 { grid-template-columns: 1fr !important; }
++      .grid-results-2 .cs-flaws-panel { border-left: none !important; padding-left: 0 !important; border-top: 1px solid rgba(23,190,187,.12); padding-top: 1.5rem !important; margin-top: 0.5rem; }
++      .grid-revsim-row { grid-template-columns: 110px repeat(3, 1fr) !important; font-size: 0.78rem; }
++      .cs-results { padding: 6rem 1rem 3rem !important; }
++      .cs-card-inner { padding: 2rem 1.25rem 1.5rem !important; }
++      .cs-revsim-cell { font-size: 0.78rem !important; }
++      .cs-email-capture { flex-direction: column; align-items: stretch !important; }
++      .cs-email-capture-inputs { flex-direction: column; }
++      .cs-email-capture-inputs input { width: 100% !important; }
++    }
++  </style>
++</head>
++<body>
++
++<!-- ─── NAV ─── -->
++<nav class="cs-nav" id="cs-nav">
++  <a href="/" class="cs-nav-logo">
++    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
++      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
++      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
++      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
++      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
++      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
++      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
++      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
++      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
++    </svg>
++    Caspian Shift
++  </a>
++  <div class="cs-nav-right">
++    <span class="cs-nav-tag">Budget Tool</span>
++    <a href="/#contact" class="btn-pill">Get in Touch</a>
++  </div>
++</nav>
++
++<!-- App root — pages mount/unmount here -->
++<main id="cs-app" role="main"></main>
++
++<!-- ─── FOOTER ─── -->
++<footer style="max-width:1100px;margin:0 auto;padding:2rem 2rem 3rem;border-top:1px solid rgba(23,190,187,.12);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
++  <div style="font-family:'Boogaloo',cursive;font-size:1.2rem;color:var(--teal);">Caspian Shift</div>
++  <div style="font-size:0.78rem;color:rgba(250,240,202,.35);font-family:'Nunito',sans-serif;">© 2026 Caspian Shift. All rights reserved.</div>
++</footer>
++
++<script>
++'use strict';
++/* ─────────────────────────────────────────────────────────────────────
++   Caspian Shift — Budget Tool
++   Vanilla JS port of the React design. No framework. No build step.
++   Pages: landing → wizard → loading → results.
++   API endpoints: /api/step1, /api/step2, /api/step3, /api/results, /api/capture-email
++   On localhost / file://, calls fall through gracefully; results always render.
++   ───────────────────────────────────────────────────────────────────── */
++
++// ────────────────── CONSTANTS (mirrors budget-data.jsx + spec) ──────────────────
++const COUNTRIES = [
++  'United States','Canada','United Kingdom','France','Germany','Spain','Italy',
++  'Netherlands','Sweden','Finland','Poland','Czechia','Slovenia','Brazil','Japan'
++];
++const COUNTRY_SALARIES = {
++  'United States':9500,'Canada':7200,'United Kingdom':6800,'France':5500,'Germany':6200,
++  'Spain':4200,'Italy':4000,'Netherlands':6500,'Sweden':6300,'Finland':6000,
++  'Poland':3800,'Czechia':3500,'Slovenia':3000,'Brazil':2800,'Japan':5000,'Other':4500
++};
++const STATUSES = ['Concept','Prototype','Vertical Slice','Demo','In Development','Alpha','Beta'];
++const GENRES = [
++  'Action','Adventure','RPG','Strategy','Simulation','Puzzle','Platformer','Horror',
++  'Survival','Roguelike','Visual Novel','Metroidvania','City Builder','Tower Defense',
++  'Racing','Fighting','Shooter','Stealth','Sandbox','Card Game','Narrative','Rhythm'
++];
++const FUNDING_TYPES = ['Self-Funded','Crowdfunding','Publisher','Grant'];
++
++const PROV_ICONS = {
++  provided:  { symbol: '✓', color: '#17BEBB', label: 'You provided' },
++  estimated: { symbol: '·', color: '#FAF0CA', label: 'We estimated' },
++  adjusted:  { symbol: '⟳', color: '#FC7A1E', label: 'We adjusted' },
++};
++const BUDGET_LABELS = {
++  dev: 'Development & QA', art: 'Art & Illustrations', music: 'Music & Sound',
++  loc: 'Localization', marketing: 'Marketing', overhead: 'Overhead', preRelease: 'Pre-Release',
++};
++
++// ────────────────── DOM HELPERS (mini React-like h() factory) ──────────────────
++/**
++ * h(tag, attrs?, ...children) — create an HTMLElement.
++ * `attrs` keys: style (string|object), className/class, dataset object,
++ * onclick / onchange / on* (event handlers), html (innerHTML), or any DOM attr.
++ * children: strings → text nodes; arrays → flattened; null/undefined skipped.
++ */
++function h(tag, attrs, ...children) {
++  const el = document.createElement(tag);
++  if (attrs && typeof attrs === 'object' && !(attrs instanceof Node) && !Array.isArray(attrs)) {
++    for (const k in attrs) {
++      const v = attrs[k];
++      if (v == null || v === false) continue;
++      if (k === 'style') {
++        if (typeof v === 'string') el.style.cssText = v;
++        else Object.assign(el.style, v);
++      } else if (k === 'className' || k === 'class') {
++        el.className = v;
++      } else if (k === 'dataset') {
++        for (const dk in v) el.dataset[dk] = v[dk];
++      } else if (k === 'html') {
++        el.innerHTML = v;
++      } else if (k.startsWith('on') && typeof v === 'function') {
++        el.addEventListener(k.slice(2).toLowerCase(), v);
++      } else if (k === 'ref' && typeof v === 'function') {
++        v(el);
++      } else if (k === 'checked' || k === 'disabled' || k === 'selected') {
++        if (v) el.setAttribute(k, '');
++      } else {
++        el.setAttribute(k, v);
++      }
++    }
++  } else if (attrs != null) {
++    children.unshift(attrs);
++  }
++  appendChildren(el, children);
++  return el;
++}
++function appendChildren(el, kids) {
++  for (const c of kids) {
++    if (c == null || c === false || c === true) continue;
++    if (Array.isArray(c)) appendChildren(el, c);
++    else if (c instanceof Node) el.appendChild(c);
++    else el.appendChild(document.createTextNode(String(c)));
++  }
++}
++
++// Format helpers
++const fmt = (v) => '$' + (v || 0).toLocaleString();
++const fmtCommas = (v) => (v || 0).toLocaleString();
++
++// ────────────────── STATE ──────────────────
++const STORAGE_KEY = 'cs_budget_tool_v1';
++const SUBMISSION_KEY = 'cs_budget_submission_v1';
++let state = {
++  page: 'landing',           // landing | wizard | loading | results
++  step: 0,                   // 0 | 1 | 2 (within wizard)
++  submissionId: null,        // received from /api/step1
++  data: defaultFormData(),
++  results: null,             // populated when /api/results returns ready
++  pollTimer: null,
++};
++
++function defaultFormData() {
++  return {
++    steamUrl: '', gameName: '', studioName: '', status: '', genre: [],
++    studioSize: '', studioCountry: '', releaseDate: '', pricePoint: null,
++    fundingType: '', devTime: '',
++    devBudget: null, artBudget: null, musicBudget: null, locBudget: null, marketingBudget: null,
++    wishlists: '',
++    socials: { twitter: 0, tiktok: 0, youtube: 0, discord: 0, reddit: 0 },
++    primaryChannel: '',
++    nextFest: false,
++    comparables: [{ name: '', url: '' }, { name: '', url: '' }, { name: '', url: '' }],
++  };
++}
++
++function saveState() {
++  try {
++    localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: state.data, step: state.step, page: state.page }));
++    if (state.submissionId) localStorage.setItem(SUBMISSION_KEY, state.submissionId);
++  } catch (e) { /* private mode — ignore */ }
++}
++function loadState() {
++  try {
++    const raw = localStorage.getItem(STORAGE_KEY);
++    if (raw) {
++      const parsed = JSON.parse(raw);
++      if (parsed && parsed.data) {
++        state.data = Object.assign(defaultFormData(), parsed.data);
++        state.data.socials = Object.assign({ twitter:0,tiktok:0,youtube:0,discord:0,reddit:0 }, parsed.data.socials || {});
++        state.data.comparables = (parsed.data.comparables && parsed.data.comparables.length)
++          ? parsed.data.comparables : defaultFormData().comparables;
++      }
++    }
++    const sid = localStorage.getItem(SUBMISSION_KEY);
++    if (sid) state.submissionId = sid;
++  } catch (e) { /* ignore */ }
++}
++function clearStoredFlow() {
++  try {
++    localStorage.removeItem(STORAGE_KEY);
++    localStorage.removeItem(SUBMISSION_KEY);
++  } catch (e) { /* ignore */ }
++}
++
++// ────────────────── API CLIENT ──────────────────
++async function postJSON(path, body) {
++  try {
++    const res = await fetch(path, {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify(body),
++    });
++    if (!res.ok) {
++      const text = await res.text().catch(() => '');
++      console.warn('[budget] POST', path, res.status, text.slice(0, 200));
++      return { ok: false, status: res.status, body: text };
++    }
++    const json = await res.json();
++    return { ok: true, status: res.status, body: json };
++  } catch (e) {
++    console.warn('[budget] POST', path, 'failed', e.message);
++    return { ok: false, status: 0, body: null, error: e.message };
++  }
++}
++async function getJSON(path) {
++  try {
++    const res = await fetch(path);
++    if (!res.ok) return { ok: false, status: res.status };
++    const json = await res.json();
++    return { ok: true, status: res.status, body: json };
++  } catch (e) {
++    return { ok: false, status: 0, error: e.message };
++  }
++}
++
++// ────────────────── BUDGET / REVENUE — local fallback ──────────────────
++/**
++ * Local mock used when /api/results returns nothing (or running on file://).
++ * Mirrors the spec's derivation rules. The real analysis runs server-side via Anthropic.
++ */
++function calcBudgetLocal(input) {
++  const country = input.studioCountry || 'Other';
++  const salary = COUNTRY_SALARIES[country] || COUNTRY_SALARIES['Other'];
++  const studioSize = parseInt(input.studioSize) || 1;
++  const devTime = parseInt(input.devTime) || 12;
++  const devEst = salary * studioSize * devTime;
++
++  const lines = {};
++  // Dev & QA
++  if (input.devBudget) {
++    const ratio = input.devBudget / devEst;
++    if (ratio > 1.3 || ratio < 0.7) {
++      lines.dev = { val: Math.round((input.devBudget + devEst) / 2),
++        prov: 'adjusted',
++        rationale: `Your $${input.devBudget.toLocaleString()} is ${ratio > 1 ? 'above' : 'below'} the ${country} salary benchmark for ${studioSize} dev${studioSize===1?'':'s'} × ${devTime}mo. We averaged toward the country-typical figure.` };
++    } else {
++      lines.dev = { val: input.devBudget, prov: 'provided',
++        rationale: `Within range of ${country} salary benchmarks for your team size and dev time.` };
++    }
++  } else {
++    lines.dev = { val: devEst, prov: 'estimated',
++      rationale: `Based on ${country} median salary ($${salary.toLocaleString()}/mo) × ${studioSize} dev${studioSize===1?'':'s'} × ${devTime} months.` };
++  }
++  // Art — genre-typical share of dev cost
++  const narrativeHeavy = (input.genre || []).some(g => ['RPG','Visual Novel','Adventure','Narrative'].includes(g));
++  const mechanical = (input.genre || []).some(g => ['Strategy','Roguelike','Card Game','Puzzle'].includes(g));
++  const artShare = narrativeHeavy ? 0.25 : mechanical ? 0.10 : 0.18;
++  if (input.artBudget) {
++    lines.art = { val: input.artBudget, prov: 'provided',
++      rationale: `Within the typical range for your genre profile.` };
++  } else {
++    lines.art = { val: Math.round(devEst * artShare), prov: 'estimated',
++      rationale: `Genre-typical share of dev cost (${Math.round(artShare*100)}% for your genre profile).` };
++  }
++  // Music
++  if (input.musicBudget) {
++    lines.music = { val: input.musicBudget, prov: 'provided', rationale: 'As provided.' };
++  } else {
++    lines.music = { val: 8000, prov: 'estimated', rationale: 'Comparables median; fallback $8,000.' };
++  }
++  // Localization
++  if (input.locBudget != null && input.locBudget !== '' && input.locBudget !== undefined) {
++    lines.loc = { val: input.locBudget, prov: 'provided',
++      rationale: input.locBudget === 0 ? 'English-only — no localization budget.' : 'As provided.' };
++  } else {
++    const prodSoFar = lines.dev.val + lines.art.val + lines.music.val;
++    lines.loc = { val: Math.round(prodSoFar * 0.07), prov: 'estimated',
++      rationale: '7% of production sub-total (industry typical for 4-6 languages).' };
++  }
++  // Marketing — at least 10% of production
++  const productionSubtotal = lines.dev.val + lines.art.val + lines.music.val + lines.loc.val;
++  const marketingFloor = Math.round(productionSubtotal * 0.10);
++  if (input.marketingBudget) {
++    if (input.marketingBudget < marketingFloor) {
++      lines.marketing = { val: marketingFloor, prov: 'adjusted',
++        rationale: `Your $${input.marketingBudget.toLocaleString()} is below the 10% production minimum. We raised it to the floor.` };
++    } else {
++      lines.marketing = { val: input.marketingBudget, prov: 'provided', rationale: 'Above the 10% production minimum.' };
++    }
++  } else {
++    lines.marketing = { val: marketingFloor, prov: 'estimated',
++      rationale: 'Industry minimum: 10% of production sub-total.' };
++  }
++  // Overhead = 10% of (production + marketing). Always its own line.
++  lines.overhead = { val: Math.round((productionSubtotal + lines.marketing.val) * 0.10),
++    prov: 'estimated', rationale: '10% of production + marketing.' };
++  // Pre-Release = 5% of (production + marketing). Always estimated.
++  lines.preRelease = { val: Math.round((productionSubtotal + lines.marketing.val) * 0.05),
++    prov: 'estimated', rationale: '5% of production + marketing. Always estimated.' };
++
++  const total = Object.values(lines).reduce((s, l) => s + l.val, 0);
++  const rounded = total > 200000 ? Math.round(total / 10000) * 10000 : Math.round(total / 5000) * 5000;
++  return { lines, total: rounded };
++}
++
++function classifyCompleteness(input) {
++  const filled = ['devBudget','artBudget','musicBudget','locBudget','marketingBudget']
++    .filter(k => input[k] != null && input[k] !== '' && input[k] !== 0).length;
++  if (filled <= 1) return 'blank';
++  if (filled <= 3) return 'partial';
++  return 'full';
++}
++
++function getFlawsLocal(input, completeness) {
++  const country = input.studioCountry || 'your country';
++  if (completeness === 'blank') {
++    return [
++      { title: 'Pin down dev costs first', body: "Without a dev budget, the entire analysis is a rough estimate. Track hours for two sprints and extrapolate.", fix: 'We can run a detailed cost model in a Funding Analysis session.' },
++      { title: 'Art scope undefined', body: 'Art budgets span a 5× range depending on asset count and fidelity. Most of your spend hides here.', fix: "List your asset types (tilesets, portraits, VFX) and we'll benchmark each." },
++      { title: 'Marketing is not optional', body: 'The 10% production minimum is an industry floor. Most successful launches spend 15–25%.', fix: 'A Funding Ready Pack includes a marketing budget model sized to your wishlist target.' },
++    ];
++  }
++  if (completeness === 'partial') {
++    return [
++      { title: 'Budget gaps still material', body: "You filled some lines but skipped others. The estimates we plugged in are directional, not contractual.", fix: 'Track your actual monthly burn for two months and update the missing lines.' },
++      { title: 'Localization undefined', body: 'If you plan non-English markets, budget 7% of production for localization. English-only is fine — we just need to know.', fix: 'We benchmark loc costs per target language in the Funding Ready Pack.' },
++      { title: 'Marketing below floor', body: "We applied the 10% minimum, but pre-launch indies with sub-10k wishlists often need 15%+ to break through.", fix: "Let's model your wishlist-to-launch conversion and size marketing accordingly." },
++    ];
++  }
++  return [
++    { title: 'Budget consistency', body: `Your dev budget sits within the ${country} benchmark for your team size — but verify it reflects actual contracts, not aspirational hiring.`, fix: 'We audit line-by-line in the Funding Analysis to separate committed vs. projected spend.' },
++    { title: 'Unplanned expenses', body: 'No contingency buffer. Hardware failures, scope creep, and contractor overruns typically add 10-15% to indie budgets.', fix: 'We build a risk-adjusted budget in the Funding Ready Pack.' },
++    { title: 'Marketing tied to outcomes?', body: "Your marketing spend is at the industry floor. Validate it against your wishlist growth target — not a percentage rule.", fix: 'A marketing audit ties spend to specific acquisition channels.' },
++  ];
++}
++
++function calcConfidence(input) {
++  let signals = 0;
++  if (input.wishlists != null && input.wishlists !== '' && parseInt(input.wishlists) > 0) signals += 1;
++  for (const k of Object.keys(input.socials || {})) {
++    if ((input.socials[k] || 0) > 0) signals += 1;
++  }
++  signals = Math.min(signals, 4);
++  if (signals >= 3) return 'High';
++  if (signals >= 1) return 'Medium';
++  return 'Low';
++}
++
++function calcRevenueLocal(budget, price, fundingType) {
++  const netPerSale = price * (1 - 0.30);
++  // Conservative / realistic / optimistic copy projections — design's mock numbers,
++  // matched roughly to comparables-ratio in the spec.
++  const baseScenarios = {
++    conservative: { copies: 4200,  label: 'Conservative' },
++    realistic:    { copies: 11500, label: 'Realistic' },
++    optimistic:   { copies: 28000, label: 'Optimistic' },
++  };
++  const result = {};
++  for (const [key, s] of Object.entries(baseScenarios)) {
++    const gross = price * s.copies;
++    const steam = gross * 0.30;
++    const net = gross - steam;
++    if (fundingType === 'Self-Funded') {
++      result[key] = { ...s, price, gross, steam, studioShare: net };
++    } else if (fundingType === 'Publisher') {
++      const recoup = budget;
++      const postRecoup = Math.max(net - recoup, 0);
++      result[key] = { ...s, price, gross, steam, recoup,
++        pubShare: postRecoup * 0.30,
++        studioShare: net <= recoup ? 0 : postRecoup * 0.70 };
++    } else if (fundingType === 'Crowdfunding') {
++      const ksGoal = budget;
++      const fees = ksGoal * 0.10;
++      const fulfil = ksGoal * 0.12;
++      const netRaised = ksGoal - fees - fulfil;
++      const backersNeeded = Math.ceil(ksGoal / 25.50);
++      result[key] = { ...s, price, gross, steam, studioShare: net,
++        ksGoal, fees, fulfil, netRaised, backersNeeded };
++    } else { // Grant
++      const grantAmount = budget;
++      result[key] = { ...s, price, gross, steam, studioShare: net,
++        grantAmount, gap: 0 };
++    }
++  }
++  const breakEven = Math.ceil(budget / netPerSale);
++  const profitTarget = Math.ceil((budget * 2) / netPerSale);
++  return { scenarios: result, breakEven, profitTarget, netPerSale };
++}
++
++// ────────────────── VALIDATION ──────────────────
++function validateStep1(d) {
++  const errs = {};
++  if (!d.gameName || !d.gameName.trim()) errs.gameName = 'Required.';
++  if (d.gameName && d.gameName.length > 280) errs.gameName = 'Max 280 characters.';
++  if (!d.studioName || !d.studioName.trim()) errs.studioName = 'Required.';
++  if (!d.status) errs.status = 'Required.';
++  if (!d.fundingType) errs.fundingType = 'Required.';
++  if (!d.genre || !d.genre.length) errs.genre = 'Pick at least one.';
++  if (!d.studioSize || parseInt(d.studioSize) < 1) errs.studioSize = 'Headcount required (≥ 1).';
++  if (!d.studioCountry) errs.studioCountry = 'Required.';
++  if (!d.releaseDate) errs.releaseDate = 'Required.';
++  if (d.steamUrl && d.steamUrl.trim() && !/^https?:\/\/(store\.)?steampowered\.com\/app\//i.test(d.steamUrl.trim())) {
++    errs.steamUrl = "Doesn't look like a Steam app URL — leave blank if you don't have one yet.";
++  }
++  if (d.pricePoint != null && d.pricePoint !== '' && (Number(d.pricePoint) <= 0 || Number(d.pricePoint) > 100)) {
++    errs.pricePoint = 'Must be between $0.01 and $100, or leave blank.';
++  }
++  return errs;
++}
++function validateStep2(d) {
++  const errs = {};
++  if (!d.devTime || parseInt(d.devTime) < 1) errs.devTime = 'Required.';
++  if (d.devTime && parseInt(d.devTime) > 160) errs.devTime = 'Cap is 160 months — try 60-72 if you mean a long project.';
++  return errs;
++}
++function validateStep3(_d) { return {}; /* all fields optional */ }
++
++// ────────────────── COMPONENTS — primitives ──────────────────
++function Field(props, ...children) {
++  const { label, helper, error, required } = props || {};
++  return h('div', { class: 'cs-field' },
++    label ? h('label', { class: 'cs-label' }, label, required ? ' *' : '') : null,
++    children,
++    !error && helper ? h('div', { class: 'cs-helper' }, helper) : null,
++    error ? h('div', { class: 'cs-error' }, error) : null
++  );
++}
++function CurrencyInput({ value, onInput, placeholder }) {
++  const display = (value != null && value !== '' && !Number.isNaN(Number(value))) ? Number(value).toLocaleString('en-US') : '';
++  return h('div', { class: 'cs-currency' },
++    h('input', {
++      type: 'text', inputmode: 'numeric',
++      class: 'cs-input',
++      value: display,
++      placeholder: placeholder || 'Leave blank if unsure',
++      oninput: (e) => {
++        const raw = e.target.value.replace(/[^0-9]/g, '');
++        const n = raw ? parseInt(raw, 10) : null;
++        // re-format the visible value on the fly
++        e.target.value = n != null ? n.toLocaleString('en-US') : '';
++        onInput(n);
++      },
++    })
++  );
++}
++function Select({ value, options, placeholder, onChange }) {
++  const wrap = h('div', { class: 'cs-select' });
++  let open = false;
++  function trigger() {
++    const t = h('button', {
++      type: 'button', class: 'cs-select-trigger' + (value ? '' : ' placeholder') + (open ? ' open' : ''),
++      onclick: (e) => { e.stopPropagation(); open = !open; render(); },
++    }, h('span', null, value || placeholder || 'Select…'),
++       h('svg', { class: 'cs-select-arrow', width: 12, height: 12, viewBox: '0 0 12 12', html: '<path d="M2 4l4 4 4-4" stroke="#17BEBB" fill="none" stroke-width="1.5"/>' }));
++    return t;
++  }
++  function menu() {
++    const m = h('div', { class: 'cs-select-menu' });
++    options.forEach(o => {
++      const sel = value === o;
++      m.appendChild(h('button', {
++        type: 'button',
++        class: 'cs-select-option' + (sel ? ' selected' : ''),
++        onclick: () => { onChange(o); open = false; render(); },
++      }, o));
++    });
++    return m;
++  }
++  function render() {
++    wrap.innerHTML = '';
++    wrap.appendChild(trigger());
++    if (open) wrap.appendChild(menu());
++  }
++  render();
++  // Close on outside click
++  document.addEventListener('mousedown', function handler(e) {
++    if (!wrap.isConnected) { document.removeEventListener('mousedown', handler); return; }
++    if (open && !wrap.contains(e.target)) { open = false; render(); }
++  });
++  return wrap;
++}
++function MultiSelect({ value, options, onChange }) {
++  return h('div', { class: 'cs-chips' },
++    options.map(o => {
++      const sel = value && value.includes(o);
++      return h('button', {
++        type: 'button',
++        class: 'cs-chip' + (sel ? ' selected' : ''),
++        onclick: () => onChange(sel ? value.filter(v => v !== o) : [...(value || []), o]),
++      }, o);
++    })
++  );
++}
++
++// ────────────────── PAGE: LANDING ──────────────────
++function PageLanding() {
++  const stars = [];
++  for (let i = 0; i < 60; i++) {
++    const sz = i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1;
++    stars.push(h('div', { class: 'star-layer', style: {
++      width: sz + 'px', height: sz + 'px',
++      left: ((i * 137.5) % 100) + '%',
++      top: ((i * 97.3) % 100) + '%',
++      background: '#FAF0CA',
++      animationDelay: ((i * 0.13) % 4) + 's',
++      opacity: 0.4,
++    }}));
++  }
++
++  const previewCards = [
++    { label: 'Budget Revised',     color: '#17BEBB', desc: 'Line-by-line review with rationale' },
++    { label: 'Revenue Simulation', color: '#FC7A1E', desc: '3 scenarios tailored to your path' },
++    { label: 'Caspian Shift Edge', color: '#D52941', desc: 'Personalized funding strategy' },
++  ];
++
++  return h('section', {
++    style: 'min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 1.5rem 5rem;position:relative;overflow:hidden;'
++  },
++    // glow
++    h('div', { style: {
++      position:'absolute', inset:0, pointerEvents:'none',
++      background: 'radial-gradient(ellipse at 50% 25%, rgba(23,190,187,.14) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(252,122,30,.08) 0%, transparent 50%)',
++    }}),
++    // stars
++    h('div', { style: 'position:absolute;inset:0;pointer-events:none;' }, stars),
++    // content
++    h('div', { style: 'position:relative;z-index:2;max-width:820px;' },
++      // pixel icon
++      h('div', { style: 'margin-bottom:1.5rem;', html: `
++        <svg width="80" height="80" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
++          <rect x="3" y="2" width="10" height="1" fill="#17BEBB"/>
++          <rect x="2" y="3" width="12" height="1" fill="#17BEBB"/>
++          <rect x="1" y="4" width="14" height="1" fill="#17BEBB"/>
++          <rect x="1" y="5" width="14" height="1" fill="#17BEBB"/>
++          <rect x="1" y="6" width="14" height="1" fill="#0D9E9B"/>
++          <rect x="7" y="6" width="2"  height="1" fill="#FAF0CA"/>
++          <rect x="1" y="7" width="14" height="7" fill="#0D0112"/>
++          <rect x="1" y="7" width="14" height="1" fill="#0D9E9B"/>
++          <rect x="1" y="13" width="14" height="1" fill="#0D9E9B"/>
++          <rect x="1" y="7" width="1" height="7" fill="#0D9E9B"/>
++          <rect x="14" y="7" width="1" height="7" fill="#0D9E9B"/>
++          <rect x="6" y="9"  width="4" height="3" fill="#FC7A1E"/>
++          <rect x="7" y="8"  width="2" height="1" fill="#FC7A1E"/>
++          <rect x="7" y="10" width="2" height="1" fill="#0D0112"/>
++          <rect x="3" y="10" width="2" height="2" fill="#FC7A1E"/>
++          <rect x="11" y="10" width="2" height="2" fill="#FC7A1E"/>
++        </svg>` }),
++      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:1rem;" }, 'Free funding analysis'),
++      h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1.05;color:#fff;margin-bottom:1.5rem;letter-spacing:0.02em;",
++        html: 'Is your game <span style="color:#FC7A1E;">funded right?</span><br><span style="color:#17BEBB;">Find out in 60 seconds.</span>' }),
++      h('p', { style: "font-family:'Nunito',sans-serif;font-size:clamp(.95rem,2.2vw,1.12rem);color:rgba(250,240,202,.78);line-height:1.75;max-width:520px;margin:0 auto 2.5rem;font-weight:600;" },
++        "We'll return a revised budget, revenue simulation, and a personalized funding strategy."),
++      h('button', { class: 'btn-pill', style: 'padding:0.85rem 2.5rem;font-size:1.2rem;',
++        onclick: () => { state.page = 'wizard'; state.step = 0; saveState(); render(); window.scrollTo(0,0); }
++      }, 'Start your analysis →'),
++      h('div', {
++        class: 'grid-3',
++        style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:4rem;max-width:680px;margin-left:auto;margin-right:auto;'
++      }, previewCards.map(c => h('div', {
++        style: `border:2px solid ${c.color};background:${c.color}08;padding:1.2rem 1rem;text-align:left;box-shadow:4px 4px 0 ${c.color};`
++      },
++        h('div', { style: `font-family:'Boogaloo',cursive;font-size:0.72rem;color:${c.color};letter-spacing:0.05em;margin-bottom:0.4rem;text-transform:uppercase;` }, c.label),
++        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.6);line-height:1.5;" }, c.desc)
++      )))
++    ),
++    // waves
++    h('div', { style: 'position:absolute;bottom:0;left:0;right:0;height:130px;pointer-events:none;' },
++      h('div', { class: 'wave-wrap wave-1', html: '<svg viewBox="0 0 1440 130" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="M0,65 C240,110 480,20 720,65 C960,110 1200,20 1440,65 L1440,130 L0,130 Z" fill="rgba(23,190,187,0.25)"/></svg>' }),
++      h('div', { class: 'wave-wrap wave-2', html: '<svg viewBox="0 0 1440 130" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="M0,45 C360,100 720,10 1080,55 C1260,75 1380,35 1440,45 L1440,130 L0,130 Z" fill="rgba(23,190,187,0.15)"/></svg>' })
++    )
++  );
++}
++
++// ────────────────── PAGE: WIZARD ──────────────────
++function StepIndicator(current) {
++  const labels = ['Game & Studio', 'Budget', 'Traction'];
++  const wrap = h('div', { class: 'cs-stepind' });
++  labels.forEach((s, i) => {
++    const row = h('div', { class: 'cs-stepind-row' },
++      h('div', { class: 'cs-stepind-dot' + (i <= current ? ' active' : '') }, String(i + 1)),
++      h('span', { class: 'cs-stepind-label' + (i <= current ? ' active' : '') }, s),
++      i < 2 ? h('div', { class: 'cs-stepind-bar' + (i < current ? ' active' : '') }) : null,
++    );
++    wrap.appendChild(row);
++  });
++  return wrap;
++}
++
++function WizardStep1(errors) {
++  const d = state.data;
++  const noSteam = !d.steamUrl;
++  return h('div', null,
++    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Game & Studio'),
++    h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
++      'Tell us about your game — everything here helps calibrate the analysis.'),
++    Field({ label: 'Steam page URL', helper: 'store.steampowered.com/app/...', error: errors.steamUrl },
++      h('input', { class: 'cs-input', value: d.steamUrl || '',
++        placeholder: 'https://store.steampowered.com/app/...',
++        oninput: (e) => { state.data.steamUrl = e.target.value; saveState(); }
++      })),
++    h('div', { style: "margin-bottom:1.2rem;font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.5);line-height:1.5;" },
++      'No Steam page yet? Leave the field above blank and continue.'),
++    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
++      Field({ label: 'Game name', required: true, error: errors.gameName },
++        h('input', { class: 'cs-input', value: d.gameName, placeholder: 'Ember Frontier', maxlength: 280,
++          oninput: (e) => { state.data.gameName = e.target.value; saveState(); } })),
++      Field({ label: 'Studio name', required: true, error: errors.studioName },
++        h('input', { class: 'cs-input', value: d.studioName, placeholder: 'Ironvale Games', maxlength: 280,
++          oninput: (e) => { state.data.studioName = e.target.value; saveState(); } }))
++    ),
++    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
++      Field({ label: 'Status', required: true, error: errors.status },
++        Select({ value: d.status, placeholder: 'Select…', options: STATUSES,
++          onChange: (v) => { state.data.status = v; saveState(); render(); } })),
++      Field({ label: 'Funding type', required: true, error: errors.fundingType },
++        Select({ value: d.fundingType, placeholder: 'Select…', options: FUNDING_TYPES,
++          onChange: (v) => { state.data.fundingType = v; saveState(); render(); } }))
++    ),
++    Field({ label: 'Genre', required: true, error: errors.genre, helper: 'Pick all that apply.' },
++      MultiSelect({ value: d.genre, options: GENRES,
++        onChange: (g) => { state.data.genre = g; saveState(); render(); } })),
++    h('div', { class: 'grid-3', style: 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;' },
++      Field({ label: 'Studio size', required: true, helper: 'Headcount', error: errors.studioSize },
++        h('input', { class: 'cs-input', type: 'number', min: 1, value: d.studioSize || '', placeholder: '4',
++          oninput: (e) => { state.data.studioSize = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
++      Field({ label: 'Country', required: true, error: errors.studioCountry },
++        Select({ value: d.studioCountry, placeholder: 'Select…', options: [...COUNTRIES, 'Other'],
++          onChange: (v) => { state.data.studioCountry = v; saveState(); render(); } })),
++      Field({ label: 'Release date', required: true, error: errors.releaseDate },
++        h('input', { class: 'cs-input', type: 'month', value: d.releaseDate || '',
++          oninput: (e) => { state.data.releaseDate = e.target.value; saveState(); } }))
++    ),
++    Field({ label: 'Price point ($)', helper: "Skip if you haven't priced the game yet — we'll project from comparables.", error: errors.pricePoint },
++      CurrencyInput({ value: d.pricePoint, placeholder: 'e.g. 19.99 (or leave blank)',
++        onInput: (n) => { state.data.pricePoint = n; saveState(); } }))
++  );
++}
++
++function WizardStep2(errors) {
++  const d = state.data;
++  const lines = [
++    { key: 'devBudget',       label: 'Dev & QA budget',       helper: "Leave blank if you're not sure — we'll estimate from your dev time and country." },
++    { key: 'artBudget',       label: 'Art budget',            helper: "Leave blank — we'll estimate from comparable games in your genre." },
++    { key: 'musicBudget',     label: 'Music & sound budget',  helper: "Leave blank — we'll estimate from comparables." },
++    { key: 'locBudget',       label: 'Localization budget',   helper: "0 if English-only, blank if you don't know." },
++    { key: 'marketingBudget', label: 'Marketing budget',      helper: "Industry minimum is 10% of production — we'll apply it if blank." },
++  ];
++  const total = lines.reduce((s, l) => s + (parseInt(d[l.key]) || 0), 0);
++  return h('div', null,
++    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Budget'),
++    h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
++      "Fill in what you know. Blank fields are fine — we'll estimate from comparable games."),
++    Field({ label: 'Dev time (months)', required: true, helper: 'Total months of active development. Past + remaining if mid-flight.', error: errors.devTime },
++      h('input', { class: 'cs-input', type: 'number', min: 1, max: 160, value: d.devTime || '', placeholder: '24',
++        oninput: (e) => { state.data.devTime = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
++    ...lines.map(l => Field({ label: l.label, helper: l.helper },
++      CurrencyInput({ value: d[l.key], onInput: (n) => { state.data[l.key] = n; saveState(); rerenderTotal(); } }))),
++    h('div', { id: 'cs-budget-total', style: "border:2px solid rgba(23,190,187,.2);padding:1.2rem 1.5rem;display:flex;justify-content:space-between;align-items:center;margin-top:1rem;" },
++      h('span', { style: "font-family:'Boogaloo',cursive;color:#17BEBB;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;" }, 'Total budget'),
++      h('span', { style: "font-family:'Nunito',sans-serif;font-weight:700;color:#FAF0CA;font-size:1.2rem;" }, total > 0 ? '$' + total.toLocaleString() : '—'))
++  );
++}
++function rerenderTotal() {
++  const el = document.getElementById('cs-budget-total');
++  if (!el) return;
++  const total = ['devBudget','artBudget','musicBudget','locBudget','marketingBudget']
++    .reduce((s, k) => s + (parseInt(state.data[k]) || 0), 0);
++  el.children[1].textContent = total > 0 ? '$' + total.toLocaleString() : '—';
++}
++
++function WizardStep3(_errors) {
++  const d = state.data;
++  function updateSocial(ch, val) {
++    state.data.socials = Object.assign({}, state.data.socials, { [ch]: parseInt(val) || 0 });
++    saveState();
++  }
++  return h('div', null,
++    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Traction'),
++    h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
++      "Traction data sharpens the revenue simulation. Share what you're comfortable with."),
++    Field({ label: 'Current wishlists', helper: "Leave blank if you'd rather not share — confidence drops, but the analysis still runs." },
++      h('input', { class: 'cs-input', type: 'number', min: 0, value: d.wishlists === '' ? '' : d.wishlists, placeholder: '8,200',
++        oninput: (e) => { state.data.wishlists = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
++    h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;" }, 'Social followers'),
++    h('div', { class: 'grid-3', style: 'display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:1.5rem;' },
++      ['twitter','tiktok','youtube','discord','reddit'].map(ch => h('div', null,
++        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:capitalize;margin-bottom:0.25rem;" }, ch === 'twitter' ? 'X / Twitter' : ch),
++        h('input', { class: 'cs-input small', type: 'number', min: 0, value: d.socials[ch] || '',
++          oninput: (e) => updateSocial(ch, e.target.value) })
++      ))
++    ),
++    Field({ label: 'Next Fest plans' },
++      h('label', { style: 'display:flex;align-items:center;gap:0.6rem;cursor:pointer;' },
++        h('input', { type: 'checkbox', checked: !!d.nextFest, style: 'width:18px;height:18px;accent-color:#17BEBB;',
++          onchange: (e) => { state.data.nextFest = e.target.checked; saveState(); } }),
++        h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.9rem;color:#FAF0CA;" }, 'We plan to participate in Steam Next Fest')
++      )
++    ),
++    h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;margin-top:1rem;" }, 'Comparables (up to 3)'),
++    [0,1,2].map(i => h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1.5fr;gap:0.75rem;margin-bottom:0.6rem;' },
++      h('input', { class: 'cs-input small', placeholder: `Game name ${i+1}`,
++        value: (d.comparables[i] || {}).name || '',
++        oninput: (e) => { const c = [...d.comparables]; c[i] = Object.assign({}, c[i], { name: e.target.value }); state.data.comparables = c; saveState(); } }),
++      h('input', { class: 'cs-input small', placeholder: 'Steam URL (optional)',
++        value: (d.comparables[i] || {}).url || '',
++        oninput: (e) => { const c = [...d.comparables]; c[i] = Object.assign({}, c[i], { url: e.target.value }); state.data.comparables = c; saveState(); } })
++    )),
++    // Honeypot — hidden from users; bots fill it
++    h('input', { type: 'text', name: 'company', tabindex: -1, autocomplete: 'off',
++      style: 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0;', value: '',
++      oninput: (e) => { state.data._hp = e.target.value; } })
++  );
++}
++
++function PageWizard() {
++  const errors = window.__cs_errors || {};
++  const stepEl = state.step === 0 ? WizardStep1(errors) : state.step === 1 ? WizardStep2(errors) : WizardStep3(errors);
++  return h('section', {
++    style: 'max-width:720px;margin:0 auto;padding:7rem 2rem 4rem;min-height:100vh;'
++  },
++    StepIndicator(state.step),
++    h('div', { style: 'border:3px solid #17BEBB;box-shadow:6px 6px 0 #17BEBB;background:rgba(23,190,187,.03);padding:2.5rem 2.5rem 2rem;' },
++      stepEl,
++      h('div', { style: 'display:flex;justify-content:space-between;margin-top:2rem;gap:1rem;' },
++        state.step > 0
++          ? h('button', { class: 'btn-outline', onclick: () => { state.step--; saveState(); window.__cs_errors = {}; render(); } }, '← Back')
++          : h('div'),
++        h('button', { class: 'btn-pill', style: 'padding:0.55rem 2rem;', onclick: onWizardNext },
++          state.step < 2 ? 'Continue →' : 'Run analysis →')
++      )
++    )
++  );
++}
++
++async function onWizardNext() {
++  const validators = [validateStep1, validateStep2, validateStep3];
++  const errs = validators[state.step](state.data);
++  window.__cs_errors = errs;
++  if (Object.keys(errs).length) {
++    render();
++    // Scroll to first error
++    setTimeout(() => {
++      const firstErr = document.querySelector('.cs-error');
++      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
++    }, 60);
++    return;
++  }
++  // Persist this step server-side, then advance
++  if (state.step === 0) {
++    const body = {
++      steamUrl: state.data.steamUrl || undefined,
++      gameName: state.data.gameName.trim(),
++      status: state.data.status,
++      genre: state.data.genre,
++      studioName: state.data.studioName.trim(),
++      studioSize: parseInt(state.data.studioSize),
++      studioCountry: state.data.studioCountry,
++      releaseDate: state.data.releaseDate,
++      pricePoint: state.data.pricePoint != null && state.data.pricePoint !== '' ? Number(state.data.pricePoint) : undefined,
++      fundingType: state.data.fundingType,
++    };
++    const res = await postJSON('/api/step1', body);
++    if (res.ok && res.body && res.body.submissionId) {
++      state.submissionId = res.body.submissionId;
++      saveState();
++    }
++    state.step = 1;
++    saveState(); render(); window.scrollTo(0, 0);
++    return;
++  }
++  if (state.step === 1) {
++    const body = {
++      submissionId: state.submissionId,
++      devTimeMonths: parseInt(state.data.devTime),
++      devQaBudget: state.data.devBudget || undefined,
++      artBudget: state.data.artBudget || undefined,
++      musicBudget: state.data.musicBudget || undefined,
++      localizationBudget: state.data.locBudget != null ? state.data.locBudget : undefined,
++      marketingBudget: state.data.marketingBudget || undefined,
++    };
++    await postJSON('/api/step2', body);
++    state.step = 2;
++    saveState(); render(); window.scrollTo(0, 0);
++    return;
++  }
++  // step 3 — final submit
++  const body = {
++    submissionId: state.submissionId,
++    currentWishlists: state.data.wishlists !== '' ? parseInt(state.data.wishlists) : undefined,
++    socials: state.data.socials,
++    nextFestPlanned: !!state.data.nextFest,
++    primaryMarketingChannel: state.data.primaryChannel || undefined,
++    comparables: (state.data.comparables || []).filter(c => c && (c.name || c.url)).slice(0, 3),
++    _hp: state.data._hp || '',
++  };
++  await postJSON('/api/step3', body); // kicks off /api/analyse-background server-side
++  state.page = 'loading';
++  render(); window.scrollTo(0, 0);
++  startResultsPolling();
++}
++
++// ────────────────── PAGE: LOADING ──────────────────
++function PageLoading() {
++  const phases = [
++    'Matching comparables from our database…',
++    'Running budget analysis…',
++    'Simulating revenue scenarios…',
++    'Writing your funding strategy…',
++  ];
++  const wrap = h('section', {
++    style: 'min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7rem 2rem;text-align:center;position:relative;'
++  });
++  wrap.appendChild(h('div', { style: 'position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%, rgba(23,190,187,.1) 0%, transparent 60%);' }));
++  const inner = h('div', { style: 'position:relative;z-index:2;max-width:480px;' });
++  inner.appendChild(h('div', { style: 'margin-bottom:2rem;', html: `
++    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" style="animation:spin-slow 3s linear infinite;">
++      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5" opacity="0.4"/>
++      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
++      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
++      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
++    </svg>` }));
++  inner.appendChild(h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.6rem,4vw,2.2rem);color:#fff;letter-spacing:0.02em;margin-bottom:1.5rem;" }, 'Crunching the numbers'));
++  const bar = h('div', { id: 'cs-prog-bar', style: 'width:100%;height:6px;background:rgba(23,190,187,.12);margin-bottom:1.2rem;overflow:hidden;' },
++    h('div', { id: 'cs-prog-fill', style: 'width:0%;height:100%;background:linear-gradient(90deg, #17BEBB, #FC7A1E);transition:width 0.1s linear;' }));
++  inner.appendChild(bar);
++  const labels = h('div', { style: 'min-height:80px;' });
++  phases.forEach((p, i) => labels.appendChild(h('div', { id: 'cs-phase-' + i,
++    style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:transparent;margin-bottom:0.4rem;transition:color 0.4s;display:flex;align-items:center;justify-content:center;gap:0.5rem;" },
++    h('span', { style: 'color:transparent;font-size:0.7rem;' }, '·'),
++    p
++  )));
++  inner.appendChild(labels);
++  wrap.appendChild(inner);
++  // Animate progress + phases
++  let progress = 0;
++  let phase = 0;
++  const tick = setInterval(() => {
++    progress = Math.min(progress + 0.8, 100);
++    const fill = document.getElementById('cs-prog-fill');
++    if (fill) fill.style.width = progress + '%';
++    let newPhase = phase;
++    if (progress > 25 && phase < 1) newPhase = 1;
++    if (progress > 50 && phase < 2) newPhase = 2;
++    if (progress > 75 && phase < 3) newPhase = 3;
++    if (newPhase !== phase) {
++      phase = newPhase;
++      for (let i = 0; i < phases.length; i++) {
++        const el = document.getElementById('cs-phase-' + i);
++        if (!el) continue;
++        const sym = el.firstChild;
++        if (i < phase) { el.style.color = 'rgba(250,240,202,.3)'; sym.textContent = '✓'; sym.style.color = '#17BEBB'; }
++        else if (i === phase) { el.style.color = '#FAF0CA'; sym.textContent = '⟳'; sym.style.color = '#FC7A1E'; }
++        else { el.style.color = 'transparent'; sym.style.color = 'transparent'; }
++      }
++    } else if (progress < 0.81) {
++      // Render initial phase highlight
++      const el = document.getElementById('cs-phase-0');
++      if (el) {
++        el.style.color = '#FAF0CA';
++        el.firstChild.textContent = '⟳';
++        el.firstChild.style.color = '#FC7A1E';
++      }
++    }
++    if (progress >= 100) clearInterval(tick);
++  }, 30);
++  // store so we can clear on transition
++  state._loadingTick = tick;
++  return wrap;
++}
++
++// Polls /api/results until ready (or until ~30s elapses).
++function startResultsPolling() {
++  let elapsed = 0;
++  const minDisplayMs = 3800; // matches design — keeps loader from flashing
++  const startedAt = Date.now();
++  if (state.pollTimer) clearInterval(state.pollTimer);
++  state.pollTimer = setInterval(async () => {
++    elapsed += 2000;
++    let ready = null;
++    if (state.submissionId) {
++      const res = await getJSON('/api/results?id=' + encodeURIComponent(state.submissionId));
++      if (res.ok && res.body && res.body.status === 'ready') {
++        ready = res.body;
++      }
++    }
++    // After ~10s of polling, fall back to local mock so user always gets something.
++    if (!ready && elapsed >= 10000) {
++      ready = buildLocalResults();
++    }
++    if (ready) {
++      const sinceStart = Date.now() - startedAt;
++      const wait = Math.max(0, minDisplayMs - sinceStart);
++      setTimeout(() => {
++        clearInterval(state.pollTimer); state.pollTimer = null;
++        if (state._loadingTick) { clearInterval(state._loadingTick); state._loadingTick = null; }
++        state.results = ready;
++        state.page = 'results';
++        render(); window.scrollTo(0, 0);
++      }, wait);
++    }
++  }, 2000);
++}
++
++function buildLocalResults() {
++  const budget = calcBudgetLocal(state.data);
++  const completeness = classifyCompleteness(state.data);
++  const flaws = getFlawsLocal(state.data, completeness);
++  const price = (state.data.pricePoint && Number(state.data.pricePoint)) || 19.99;
++  const priceAssumed = !state.data.pricePoint;
++  const revenue = calcRevenueLocal(budget.total, price, state.data.fundingType || 'Self-Funded');
++  const confidence = calcConfidence(state.data);
++  return {
++    status: 'ready',
++    budget: { lines: budget.lines, total: budget.total, flaws, completeness },
++    revenue: Object.assign({}, revenue, { fundingType: state.data.fundingType || 'Self-Funded', price, priceAssumed, confidence }),
++    edge: null,        // Edge is rendered locally from data + budget; server overrides if present
++    generatedAt: new Date().toISOString(),
++  };
++}
++
++// ────────────────── PAGE: RESULTS ──────────────────
++function CardBudget(results, completeness) {
++  const lines = results.budget.lines;
++  const flaws = results.budget.flaws;
++  const lineRows = Object.entries(lines).map(([key, line]) => {
++    const prov = PROV_ICONS[line.prov] || PROV_ICONS.estimated;
++    return h('div', { style: 'display:grid;grid-template-columns:24px 180px 110px 1fr;align-items:baseline;gap:0.6rem;padding:0.65rem 0;border-bottom:1px solid rgba(23,190,187,.08);' },
++      h('span', { title: prov.label, style: `color:${prov.color};font-size:0.9rem;text-align:center;` }, prov.symbol),
++      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, BUDGET_LABELS[key]),
++      h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;text-align:right;" }, fmt(line.val)),
++      h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:rgba(250,240,202,.5);line-height:1.4;" }, line.rationale)
++    );
++  });
++  return h('div', { class: 'cs-card' },
++    h('span', { class: 'cs-card-tag' }, 'Budget Revised'),
++    h('div', { class: 'cs-card-inner grid-results-2', style: 'display:grid;grid-template-columns:1fr 340px;gap:2rem;padding:2.5rem 2rem 2rem;' },
++      h('div', null,
++        h('div', { style: 'margin-bottom:1rem;' }, lineRows),
++        h('div', { style: 'display:flex;gap:1.2rem;margin-top:0.5rem;flex-wrap:wrap;' },
++          Object.values(PROV_ICONS).map(p => h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);display:flex;align-items:center;gap:0.3rem;" },
++            h('span', { style: `color:${p.color}` }, p.symbol), ' ', p.label)))
++      ),
++      h('div', { class: 'cs-flaws-panel', style: 'border-left:1px solid rgba(23,190,187,.12);padding-left:1.5rem;' },
++        h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.1rem;color:#D52941;letter-spacing:0.02em;margin-bottom:1rem;" }, '3 flaws we caught'),
++        flaws.map(f => h('div', { style: 'margin-bottom:1.2rem;' },
++          h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.9rem;color:#D52941;margin-bottom:0.25rem;" }, f.title),
++          h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.6);line-height:1.5;margin-bottom:0.3rem;" }, f.body),
++          h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:#17BEBB;font-weight:600;" }, f.fix)
++        ))
++      )
++    ),
++    h('div', { style: 'border-top:2px solid rgba(23,190,187,.15);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.5rem;' },
++      h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.4rem,3vw,2rem);color:#fff;letter-spacing:0.02em;" }, 'Total revised budget'),
++      h('div', null,
++        h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.6rem,3.5vw,2.4rem);color:#17BEBB;letter-spacing:0.02em;" }, fmt(results.budget.total)),
++        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.35);text-align:right;" }, 'Rounded for clarity'))
++    )
++  );
++}
++
++function CardRevenue(results) {
++  const r = results.revenue;
++  const fundingType = r.fundingType || 'Self-Funded';
++  const price = r.price || 19.99;
++  const priceAssumed = !!r.priceAssumed;
++  const sc = r.scenarios;
++  const cols = ['conservative','realistic','optimistic'];
++  const colColors = { conservative: '#D52941', realistic: '#FC7A1E', optimistic: '#17BEBB' };
++  const colLabels = { conservative: 'Conservative', realistic: 'Realistic', optimistic: 'Optimistic' };
++
++  function row(label, getter, opts) {
++    const bold = opts && opts.bold;
++    const fmtFn = (opts && opts.fmt) || fmt;
++    return h('div', { class: 'grid-revsim-row',
++      style: 'display:grid;grid-template-columns:180px repeat(3, 1fr);border-bottom:1px solid rgba(23,190,187,.08);padding:0.5rem 0;'
++    },
++      h('span', { style: `font-family:${bold ? "'Boogaloo',cursive" : "'Nunito',sans-serif"};font-size:${bold ? '0.95rem' : '0.88rem'};color:${bold ? '#fff' : 'rgba(250,240,202,.6)'};letter-spacing:${bold ? '0.02em' : 0};` }, label),
++      cols.map(c => h('span', { class: 'cs-revsim-cell',
++        style: `font-family:'Nunito',sans-serif;font-weight:${bold ? 700 : 600};font-size:0.9rem;color:${bold ? colColors[c] : '#FAF0CA'};text-align:right;`
++      }, fmtFn(getter(c))))
++    );
++  }
++
++  const fundingExtra = [];
++  if (fundingType === 'Publisher') {
++    fundingExtra.push(row('Publisher recoup', c => sc[c].recoup));
++    fundingExtra.push(row('Publisher share', c => sc[c].pubShare));
++  } else if (fundingType === 'Crowdfunding') {
++    fundingExtra.push(h('div', { style: 'border-top:2px solid rgba(252,122,30,.15);margin-top:0.5rem;padding-top:0.5rem;' },
++      h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#FC7A1E;margin-bottom:0.3rem;letter-spacing:0.05em;" }, 'Campaign feasibility'),
++      row('KS goal',          c => sc[c].ksGoal),
++      row('Fees (10%)',       c => sc[c].fees),
++      row('Fulfilment (12%)', c => sc[c].fulfil),
++      row('Net raised',       c => sc[c].netRaised, { bold: true }),
++      row('Backers needed',   c => sc[c].backersNeeded, { fmt: fmtCommas }),
++      h('div', { style: 'border-top:1px solid rgba(252,122,30,.1);margin-top:0.5rem;padding-top:0.3rem;' },
++        h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#FC7A1E;margin-bottom:0.3rem;letter-spacing:0.05em;" }, 'Post-launch revenue')
++      )
++    ));
++  } else if (fundingType === 'Grant') {
++    fundingExtra.push(h('div', { style: 'border-top:2px solid rgba(252,122,30,.15);margin-top:0.5rem;padding-top:0.5rem;' },
++      row('Grant assumed', c => sc[c].grantAmount),
++      row('Remaining gap', c => sc[c].gap),
++      h('div', { style: 'border-top:1px solid rgba(252,122,30,.1);margin-top:0.5rem;padding-top:0.3rem;' },
++        h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#FC7A1E;margin-bottom:0.3rem;letter-spacing:0.05em;" }, 'Post-launch revenue')
++      )
++    ));
++  }
++
++  return h('div', { class: 'cs-card orange' },
++    h('span', { class: 'cs-card-tag' }, 'Revenue Simulation'),
++    h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1rem;' },
++      h('div', { class: 'grid-revsim-row', style: 'display:grid;grid-template-columns:180px repeat(3, 1fr);margin-bottom:0.5rem;' },
++        h('span'),
++        cols.map(c => h('span', { style: `font-family:'Boogaloo',cursive;font-size:0.88rem;color:${colColors[c]};text-align:right;letter-spacing:0.02em;` }, colLabels[c]))
++      ),
++      h('div', { class: 'grid-revsim-row', style: 'display:grid;grid-template-columns:180px repeat(3, 1fr);border-bottom:1px solid rgba(23,190,187,.08);padding:0.5rem 0;' },
++        h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:rgba(250,240,202,.6);display:flex;align-items:center;gap:0.3rem;" },
++          'Price', priceAssumed ? h('span', { style: "font-size:0.68rem;color:#FC7A1E;font-style:italic;" }, '(assumed)') : null),
++        cols.map(c => h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;font-size:0.9rem;color:#FAF0CA;text-align:right;" }, '$' + price.toFixed(2)))
++      ),
++      row('Copies sold',    c => sc[c].copies, { fmt: fmtCommas }),
++      row('Gross revenue',  c => sc[c].gross),
++      row('Steam cut (30%)', c => sc[c].steam),
++      ...fundingExtra,
++      row('Studio share', c => sc[c].studioShare, { bold: true })
++    ),
++    h('div', { style: 'border-top:2px solid rgba(252,122,30,.15);padding:1.2rem 2rem;display:flex;gap:2.5rem;flex-wrap:wrap;' },
++      h('div', null,
++        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:uppercase;letter-spacing:0.1em;" }, 'Break-even'),
++        h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#FC7A1E;" }, fmtCommas(r.breakEven) + ' copies')),
++      h('div', null,
++        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:uppercase;letter-spacing:0.1em;" }, 'Profit target (2×)'),
++        h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#FC7A1E;" }, fmtCommas(r.profitTarget) + ' copies')),
++      h('div', null,
++        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:uppercase;letter-spacing:0.1em;" }, 'Confidence'),
++        h('div', { style: `font-family:'Boogaloo',cursive;font-size:1.2rem;color:${r.confidence === 'High' ? '#17BEBB' : r.confidence === 'Medium' ? '#FC7A1E' : '#D52941'};` }, r.confidence || 'Medium'))
++    )
++  );
++}
++
++function CardEdge(results) {
++  // Prefer server-supplied edge; otherwise compose from data.
++  if (results.edge && (results.edge.biggest_gap || results.edge.closing_paragraph)) {
++    const e = results.edge;
++    return h('div', { class: 'cs-card red', style: 'padding:2.5rem 2.5rem 2rem;' },
++      h('span', { class: 'cs-card-tag' }, 'Caspian Shift Edge'),
++      h('div', { style: "font-family:'Nunito',sans-serif;font-size:1.02rem;color:#FAF0CA;line-height:1.75;" },
++        e.biggest_gap ? h('p', { style: 'margin-bottom:1.2rem;' }, e.biggest_gap) : null,
++        e.rationale  ? h('p', { style: 'margin-bottom:1.2rem;' }, e.rationale)  : null,
++        (e.where_we_help && e.where_we_help.length) ? h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.3rem;color:#17BEBB;line-height:1.4;margin:1.5rem 0;padding-left:1.2rem;border-left:3px solid #17BEBB;" },
++          (e.where_we_help[0] && e.where_we_help[0].why) || '') : null,
++        e.closing_paragraph ? h('p', { style: 'margin-bottom:1.5rem;' }, e.closing_paragraph) : null,
++      ),
++      h('a', { href: '/#contact', class: 'btn-pill', style: 'padding:0.7rem 2rem;font-size:1.1rem;' }, 'Get in touch →')
++    );
++  }
++  // Fallback: derived locally — same shape as the design's CaspianEdge component.
++  const d = state.data;
++  const gameName = d.gameName || 'your game';
++  const hasSteam = !!(d.steamUrl && d.steamUrl.trim());
++  const status = d.status || 'In Development';
++  const country = d.studioCountry || 'your country';
++  const fundingType = d.fundingType || 'Self-Funded';
++  const wishlists = d.wishlists !== '' ? parseInt(d.wishlists) : null;
++  return h('div', { class: 'cs-card red', style: 'padding:2.5rem 2.5rem 2rem;' },
++    h('span', { class: 'cs-card-tag' }, 'Caspian Shift Edge'),
++    h('div', { style: "font-family:'Nunito',sans-serif;font-size:1.02rem;color:#FAF0CA;line-height:1.75;" },
++      h('p', { style: 'margin-bottom:1.2rem;', html:
++        `The biggest gap in <strong style="color:#fff">${escapeHtml(gameName)}</strong>'s funding readiness right now is <strong style="color:#fff">budget clarity</strong>.
++         With ${parseInt(d.studioSize) || 1} ${parseInt(d.studioSize) === 1 ? 'person' : 'people'} burning through runway in ${escapeHtml(country)}, every month of ambiguity costs real money.
++         Pin the dev line down against actual contracts and burn rate — it's the largest by far, and everything else scales from it.`
++      }),
++      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.3rem;color:#17BEBB;line-height:1.4;margin:1.5rem 0;padding-left:1.2rem;border-left:3px solid #17BEBB;" },
++        '"Pin down the dev budget first. Everything else scales from it."'),
++      h('p', { style: 'margin-bottom:1.2rem;', html:
++        `Given your funding type (${escapeHtml(fundingType)}) and current traction (${wishlists ? wishlists.toLocaleString() + ' wishlists' : 'wishlists not shared'}),
++         the path you've picked is workable but tight. The break-even is achievable if you maintain a 15%+ wishlist-to-sale conversion — which means your Steam page and Next Fest performance are critical.`
++        + (!hasSteam && status !== 'Concept'
++          ? ` <span style="color:#FC7A1E;">You don't have a Steam page yet — at ${escapeHtml(status)} stage, setting one up should be a near-term priority. Wishlists compound; every week without a page is lost momentum.</span>`
++          : '')
++      }),
++      h('p', { style: 'margin-bottom:1.5rem;' },
++        "Where Caspian Shift adds the most value here: we'd run a proper budget audit against your actual contracts, size your marketing spend to your wishlist target (not a generic 10% floor), and build a launch timeline that connects your Next Fest slot to release-week momentum. The gap between “directionally correct” and “fundable” is exactly where we work."
++      )
++    ),
++    h('a', { href: '/#contact' + (state.submissionId ? '?submissionId=' + encodeURIComponent(state.submissionId) : ''),
++      class: 'btn-pill', style: 'padding:0.7rem 2rem;font-size:1.1rem;' }, 'Get in touch →')
++  );
++}
++
++function escapeHtml(s) {
++  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
++}
++
++function EmailCapture(variant) {
++  const isInline = variant === 'inline';
++  const wrap = h('div', {
++    class: 'cs-email-capture',
++    style: 'border:2px solid #17BEBB;box-shadow:4px 4px 0 #17BEBB;background:rgba(23,190,187,.04);padding:1.5rem 2rem;margin-bottom:2.5rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;'
++  });
++  let sent = false;
++  let inputEl = null;
++
++  function paint() {
++    wrap.innerHTML = '';
++    if (sent) {
++      wrap.appendChild(h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.1rem;color:#17BEBB;text-align:center;width:100%;" }, 'Sent! Check your inbox.'));
++      return;
++    }
++    wrap.appendChild(h('div', null,
++      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.05rem;color:#fff;letter-spacing:0.02em;margin-bottom:0.2rem;" },
++        isInline ? 'Want this in your inbox?' : 'Share with your co-founder?'),
++      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.5);" },
++        isInline ? "We'll send a PDF copy + bookmark this URL." : 'Send a copy of this analysis to anyone on your team.')
++    ));
++    const inputs = h('div', { class: 'cs-email-capture-inputs', style: 'display:flex;gap:0.5rem;' });
++    inputEl = h('input', {
++      type: 'email', placeholder: 'you@studio.com',
++      style: 'background:rgba(250,240,202,.04);border:2px solid rgba(23,190,187,.35);color:#FAF0CA;padding:0.55rem 1rem;font-family:\'Nunito\',sans-serif;font-size:0.88rem;outline:none;border-radius:0;width:220px;'
++    });
++    inputs.appendChild(inputEl);
++    inputs.appendChild(h('button', { class: 'btn-pill', style: 'padding:0.55rem 1.2rem;font-size:0.9rem;white-space:nowrap;',
++      onclick: async () => {
++        const v = (inputEl.value || '').trim();
++        if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { inputEl.style.borderColor = '#D52941'; inputEl.focus(); return; }
++        await postJSON('/api/capture-email', { submissionId: state.submissionId, email: v });
++        sent = true; paint();
++      } }, 'Send to my inbox →'));
++    wrap.appendChild(inputs);
++  }
++  paint();
++  return wrap;
++}
++
++function WhatsNextCards() {
++  const cards = [
++    { level: 'Level 1', cls: '',       title: 'Funding Analysis',     desc: 'Deep-dive into your budget, market position, and funding path.' },
++    { level: 'Level 2', cls: 'orange', title: 'Funding Ready Pack',   desc: 'Pitch deck, campaign page, outreach targets — ready to execute.' },
++    { level: 'Level 3', cls: 'red',    title: 'Launch Strategy',      desc: 'Steam page, wishlist growth, creator outreach through release.' },
++  ];
++  return h('div', { class: 'grid-3', style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2.5rem;' },
++    cards.map(c => h('a', { href: '/#services', class: 'cs-link-card ' + c.cls },
++      h('span', { class: 'cs-card-tag' }, c.level),
++      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#fff;letter-spacing:0.02em;margin-bottom:0.4rem;" }, c.title),
++      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, c.desc)
++    ))
++  );
++}
++
++function PageResults() {
++  const r = state.results || buildLocalResults();
++  state.results = r;
++  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
++  const conf = (r.revenue && r.revenue.confidence) || 'Medium';
++  return h('section', { class: 'cs-results', style: 'max-width:1100px;margin:0 auto;padding:7rem 2rem 4rem;' },
++    h('div', { style: 'margin-bottom:2.5rem;' },
++      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:0.5rem;" }, 'Your funding analysis'),
++      h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08;color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" },
++        state.data.gameName || 'Your game'),
++      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:rgba(250,240,202,.5);display:flex;gap:1rem;flex-wrap:wrap;" },
++        h('span', null, 'Caspian Shift'),
++        h('span', null, '·'),
++        h('span', { html: 'Confidence: <strong style="color:' + (conf === 'High' ? '#17BEBB' : conf === 'Medium' ? '#FC7A1E' : '#D52941') + '">' + escapeHtml(conf) + '</strong>' }),
++        h('span', null, '·'),
++        h('span', null, today)
++      )
++    ),
++    CardBudget(r, r.budget && r.budget.completeness),
++    CardRevenue(r),
++    EmailCapture('inline'),
++    CardEdge(r),
++    h('div', { style: 'margin-bottom:1rem;' },
++      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:1.5rem;" }, "What's next")
++    ),
++    WhatsNextCards(),
++    EmailCapture('bottom'),
++    // "Run another analysis" reset link — small, low key
++    h('div', { style: 'text-align:center;margin-top:0.5rem;' },
++      h('button', { class: 'btn-outline', style: 'padding:0.45rem 1.2rem;font-size:0.85rem;',
++        onclick: () => {
++          if (!confirm('Reset and start over? Your current analysis will be discarded.')) return;
++          clearStoredFlow();
++          state = { page: 'landing', step: 0, submissionId: null, data: defaultFormData(), results: null, pollTimer: null };
++          render(); window.scrollTo(0, 0);
++        }
++      }, 'Run another analysis')
++    )
++  );
++}
++
++// ────────────────── RENDER ──────────────────
++function render() {
++  const root = document.getElementById('cs-app');
++  if (!root) return;
++  root.innerHTML = '';
++  let page;
++  if (state.page === 'landing') page = PageLanding();
++  else if (state.page === 'wizard') page = PageWizard();
++  else if (state.page === 'loading') page = PageLoading();
++  else if (state.page === 'results') page = PageResults();
++  if (page) root.appendChild(page);
++}
++
++// ────────────────── BOOT ──────────────────
++window.addEventListener('scroll', () => {
++  const nav = document.getElementById('cs-nav');
++  if (!nav) return;
++  if (window.scrollY > 20) nav.classList.add('scrolled'); else nav.classList.remove('scrolled');
++}, { passive: true });
++
++document.addEventListener('DOMContentLoaded', () => {
++  loadState();
++  // Don't auto-resume into loading or results across reload — drop back to wizard if mid-flow.
++  if (state.page === 'loading' || state.page === 'results') state.page = 'wizard';
++  render();
++});
++
++// Expose a small handle for debugging
++window.__cs_budget = { state, render, calcBudgetLocal, calcRevenueLocal, classifyCompleteness, getFlawsLocal };
++</script>
++</body>
++</html>
+diff --git a/index.html b/index.html
+index 2473287..9443d19 100644
+--- a/index.html
++++ b/index.html
+@@ -63,6 +63,42 @@
+     }
+     .nav-logo:hover svg { transform: rotate(45deg); }
+ 
++    /* ─── NAV RIGHT SIDE ─── */
++    .nav-right {
++      display: flex;
++      align-items: center;
++      gap: 1.6rem;
++    }
++    .nav-link {
++      font-family: 'Boogaloo', cursive;
++      color: var(--cream);
++      text-decoration: none;
++      font-size: 1rem;
++      letter-spacing: 0.04em;
++      transition: color .2s;
++    }
++    .nav-link:hover { color: var(--teal); }
++    .nav-link .nav-link-tag {
++      background: var(--teal);
++      color: var(--bg);
++      font-size: 0.62rem;
++      letter-spacing: 0.16em;
++      text-transform: uppercase;
++      padding: 0.1rem 0.4rem;
++      margin-left: 0.4rem;
++      border-radius: 2px;
++      vertical-align: middle;
++      transform: translateY(-1px);
++      display: inline-block;
++    }
++    @media (max-width: 720px) {
++      .nav-right { gap: 0.9rem; }
++      .nav-link .nav-link-tag { display: none; }
++    }
++    @media (max-width: 480px) {
++      .nav-link { display: none; }
++    }
++
+     .btn-pill {
+       background: var(--red);
+       color: var(--white);
+@@ -444,7 +480,10 @@
+     </svg>
+     Caspian Shift
+   </a>
+-  <a href="#contact" class="btn-pill">Get in Touch</a>
++  <div class="nav-right">
++    <a href="/budget" class="nav-link">Budget Tool<span class="nav-link-tag">Free</span></a>
++    <a href="#contact" class="btn-pill">Get in Touch</a>
++  </div>
+ </nav>
+ 
+ 
+@@ -591,6 +630,33 @@
+ </div>
+ 
+ 
++<!-- ════════ BUDGET TOOL CTA ════════ -->
++<div class="section-wrap" id="budget-cta" style="padding-top:3rem;padding-bottom:3rem;">
++  <div style="border:3px solid var(--teal);box-shadow:6px 6px 0 var(--teal);background:rgba(23,190,187,.04);padding:2.5rem 2rem;display:grid;grid-template-columns:1fr auto;gap:2.5rem;align-items:center;">
++    <div>
++      <span class="section-label" style="margin-bottom:.4rem;">Free funding analysis</span>
++      <h2 style="font-family:'Boogaloo',cursive;color:var(--white);font-size:clamp(1.6rem,3.5vw,2.4rem);line-height:1.1;letter-spacing:.02em;margin-bottom:.6rem;">
++        Try the <span style="color:var(--teal);">Budget Tool</span> — get a directional analysis in 60 seconds.
++      </h2>
++      <p style="color:rgba(250,240,202,.72);font-size:1rem;line-height:1.65;max-width:640px;">
++        Three steps. Three outputs: revised budget, revenue simulation, and a personalized funding strategy.
++        Built from the same playbook we run for paying clients — directional, but specific to your game.
++      </p>
++    </div>
++    <div style="white-space:nowrap;">
++      <a href="/budget" class="btn-pill" style="font-size:1.1rem;padding:.65rem 1.7rem;">Start free analysis →</a>
++    </div>
++  </div>
++</div>
++
++<style>
++  @media (max-width: 720px) {
++    #budget-cta > div { grid-template-columns: 1fr !important; gap: 1.5rem !important; }
++    #budget-cta a.btn-pill { display: inline-block; }
++  }
++</style>
++
++
+ <!-- ════════ TESTIMONIALS ════════ -->
+ <div class="section-wrap" id="testimonials">
+   <span class="section-label">What studios say</span>
+@@ -695,56 +761,4 @@
+     <div class="form-group">
+       <label for="message">What's your biggest challenge right now? <span style="font-family:'Nunito',sans-serif;font-size:.75rem;opacity:.45;letter-spacing:0;">optional</span></label>
+       <textarea id="message" name="message" placeholder="Funding, publisher outreach, Steam page, launch — anything goes."></textarea>
+-    </div>
+-
+-    <button type="submit" class="btn-pill" style="width:100%;font-size:1.1rem;padding:.85rem;border-radius:999px;justify-content:center;">Get in Touch →</button>
+-  </form>
+-
+-  <div id="form-success" style="display:none; text-align:center; padding: 3rem 1rem;">
+-    <div style="font-size:2.5rem; margin-bottom:1rem;">🧭</div>
+-    <h3 style="font-family:'Boogaloo',cursive; font-size:2rem; color:var(--teal); margin-bottom:.75rem;">Message received!</h3>
+-    <p style="color:rgba(250,240,202,.75); font-size:1rem; line-height:1.7;">We'll be in touch shortly.<br>In the meantime, feel free to explore the rest of the page.</p>
+-  </div>
+-</div>
+-
+-
+-<!-- ════════ FOOTER ════════ -->
+-<footer>
+-  <a href="#" class="nav-logo" style="text-decoration:none;">
+-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+-      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
+-      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
+-      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
+-      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
+-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
+-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
+-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
+-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
+-    </svg>
+-    Caspian Shift
+-  </a>
+-  <span class="footer-copy">© 2026 Caspian Shift. All rights reserved.</span>
+-  <a href="#contact" class="footer-links" style="color:rgba(250,240,202,.45);text-decoration:none;font-size:.85rem;transition:color .2s;">Get in touch →</a>
+-</footer>
+-
+-
+-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+-  // ── Scroll reveal ──
+-  const observer = new IntersectionObserver((entries) => {
+-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+-  }, { threshold: 0.1 });
+-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+-
+-  // ── Netlify form inline success ──
+-  const form = document.querySelector('.contact-form');
+-  form.addEventListener('submit', async (e) => {
+-    e.preventDefault();
+-    const data = new FormData(form);
+-    await fetch('/', { method: 'POST', body: data });
+-    form.style.display = 'none';
+-    document.getElementById('form-success').style.display = 'block';
+-  });
+-</script>
+-
+-</body>
+-</html>
+\ No newline at end of file
++    </div
+\ No newline at end of file
+diff --git a/index.html:Zone.Identifier b/index.html:Zone.Identifier
+deleted file mode 100644
+index d6c1ec682968c796b9f5e9e080cc6f674b57c766..0000000000000000000000000000000000000000
+GIT binary patch
+literal 0
+HcmV?d00001
+
+literal 25
+dcma!!%Fjy;DN4*MPD?F{<>dl#JyUFr831@K2x<TT
+
+diff --git a/knowledge/budget-template.json b/knowledge/budget-template.json
+new file mode 100755
+index 0000000..27df3c2
+--- /dev/null
++++ b/knowledge/budget-template.json
+@@ -0,0 +1,35 @@
++{
++  "_comment": "Loaded as system-prompt context for the Anthropic call. Encodes the Build Spec's budget rules so the model doesn't have to re-derive them.",
++  "categories": [
++    { "key": "dev",        "label": "Development & QA",  "always_include": true },
++    { "key": "art",        "label": "Art & Illustrations", "always_include": true },
++    { "key": "music",      "label": "Music & Sound",       "always_include": true },
++    { "key": "loc",        "label": "Localization",        "always_include": true },
++    { "key": "marketing",  "label": "Marketing",           "always_include": true },
++    { "key": "overhead",   "label": "Overhead",            "always_include": true, "always_estimated": true },
++    { "key": "preRelease", "label": "Pre-Release",         "always_include": true, "always_estimated": true, "never_user_supplied": true }
++  ],
++  "derivation_rules": {
++    "dev_missing": "country monthly salary × Studio Size × Dev Time",
++    "art_missing": "narrative-heavy genres (RPG/VN/Adventure/Narrative): 25% of dev cost; mechanical genres (Strategy/Roguelike/CardGame/Puzzle): 10%; others: comparables median (fallback 18%)",
++    "music_missing": "comparables median; fallback $8,000",
++    "loc_missing": "$0 if user explicitly indicated English-only; otherwise 7% of production sub-total",
++    "marketing_missing": "10% of production sub-total",
++    "overhead_always": "10% × (production + marketing minimum)",
++    "preRelease_always": "5% × (production + marketing minimum); never user-supplied; tagged source='estimated'",
++    "dev_sanity_check": "if user-provided Dev & QA deviates >30% from country salary × headcount × dev time, mark provenance='adjusted' and average toward the benchmark"
++  },
++  "rounding": {
++    "rule": "round total to nearest $5,000; if total > $200,000 round to nearest $10,000"
++  },
++  "provenance": {
++    "user":      { "icon": "✓", "label": "You provided", "color": "teal" },
++    "estimated": { "icon": "·", "label": "We estimated", "color": "cream" },
++    "adjusted":  { "icon": "⟳", "label": "We adjusted",  "color": "orange" }
++  },
++  "framing_modes": {
++    "constructive_next_steps": "0-2 user-supplied lines (or 3+ estimated). Flaws should read as ordered next-steps, not criticisms.",
++    "partial_with_callouts":   "3-4 user-supplied lines. Standard flaws + missing-line callouts.",
++    "standard_flaws":          "5-6 user-supplied lines. Budget Consistency / Unplanned Expenses / Budget Accuracy."
++  }
++}
+diff --git a/knowledge/country-salaries.json b/knowledge/country-salaries.json
+new file mode 100755
+index 0000000..6bfb222
+--- /dev/null
++++ b/knowledge/country-salaries.json
+@@ -0,0 +1,23 @@
++{
++  "_comment": "USD median monthly fully-loaded dev salary. Drives derivation of Dev & QA when user leaves it blank. Revisit yearly. Source: Caspian Shift internal benchmarks, May 2026.",
++  "currency": "USD",
++  "unit": "monthly",
++  "salaries": {
++    "United States": 9500,
++    "Canada": 7200,
++    "United Kingdom": 6800,
++    "France": 5500,
++    "Germany": 6200,
++    "Netherlands": 6500,
++    "Sweden": 6300,
++    "Finland": 6000,
++    "Spain": 4200,
++    "Italy": 4000,
++    "Japan": 5000,
++    "Poland": 3800,
++    "Czechia": 3500,
++    "Slovenia": 3000,
++    "Brazil": 2800,
++    "Other": 4500
++  }
++}
+diff --git a/knowledge/edge-template.json b/knowledge/edge-template.json
+new file mode 100755
+index 0000000..b2f89c4
+--- /dev/null
++++ b/knowledge/edge-template.json
+@@ -0,0 +1,39 @@
++{
++  "_comment": "Anthropic-prompt context for Output 3 (Caspian Shift Edge). The Edge is fully dynamic — no fixed service catalogue. The model picks where Caspian Shift adds value based on the specific submission.",
++  "voice_and_tone": {
++    "founder_voice": "Direct, blunt, mildly self-deprecating. Match the verbatim site copy attached.",
++    "banned_words": ["unfortunately"],
++    "register": "indie peer to indie peer — not consultant-speak",
++    "do_not": [
++      "Invent specific numbers for comparables — only use comparables provided in the prompt",
++      "Promise outcomes ('we'll get you funded'). Frame in terms of clarity, optionality, runway.",
++      "Be saccharine. Don't open with empty validation."
++    ],
++    "do": [
++      "Name the specific gap — be concrete about what's missing.",
++      "Use the user's actual numbers (game name, studio, country, headcount, dev time, price).",
++      "End with the 'Get in touch' CTA on its own line."
++    ]
++  },
++  "structure": {
++    "paragraphs": "2-4 short paragraphs",
++    "anchors": [
++      "Biggest gap in the studio's funding-readiness right now",
++      "Most realistic funding path given the data — use user's Funding Type as primary lens, but flag if a different path looks materially better",
++      "Where Caspian Shift adds the most value (Claude picks; no fixed catalogue)"
++    ],
++    "closing": "Single CTA on its own line: 'Get in touch →' linking to /#contact?submissionId=..."
++  },
++  "special_hooks": {
++    "many_estimates": "If 3+ budget lines were estimated → nudge pinning down the budget as a near-term to-do.",
++    "no_steam_url_past_vertical_slice": "If no Steam URL AND status past Vertical Slice → flag setting up a Steam page.",
++    "price_derived": "If price was derived from comparables → flag pricing as a near-term decision.",
++    "low_traction": "If confidence band = Low → frame the report as directional and explicitly call out which numbers move first when traction data lands.",
++    "cross_path_alternative": "If Funding Type = Self-Funded but budget > $300k → mention publisher / grant might be a more realistic primary path."
++  },
++  "service_options_to_consider": [
++    { "id": "level_1_funding_analysis", "title": "Funding Analysis", "use_when": "Studio has a budget but it's directional — needs line-by-line audit and risk-adjustment." },
++    { "id": "level_2_funding_ready_pack", "title": "Funding Ready Pack", "use_when": "Studio is ready to pitch — needs deck, campaign page, target list." },
++    { "id": "level_3_launch_strategy", "title": "Launch Strategy", "use_when": "Studio is past Vertical Slice — needs Steam page optimisation, wishlist plan, creator outreach." }
++  ]
++}
+diff --git a/knowledge/revenue-template.json b/knowledge/revenue-template.json
+new file mode 100755
+index 0000000..e767521
+--- /dev/null
++++ b/knowledge/revenue-template.json
+@@ -0,0 +1,65 @@
++{
++  "_comment": "Anthropic-prompt context for Output 2. Defines the funding-type-aware table layouts and the universal scenario fields.",
++  "scenarios": {
++    "conservative": "25th-percentile of comparable launch trajectories",
++    "realistic":    "median of comparable launch trajectories",
++    "optimistic":   "75th-percentile of comparable launch trajectories",
++    "fallback_few_comparables": "If <3 comparables: conservative = realistic × 0.5, optimistic = realistic × 2.0; confidence drops one band."
++  },
++  "universal_fields": [
++    { "key": "price",       "label": "Price",          "format": "usd2" },
++    { "key": "copies",      "label": "Copies sold",    "format": "int_commas" },
++    { "key": "gross",       "label": "Gross revenue",  "format": "usd0" },
++    { "key": "steam_share", "label": "Steam cut (30%)","format": "usd0" },
++    { "key": "studio_share","label": "Studio share",   "format": "usd0", "bold": true }
++  ],
++  "funding_type_layouts": {
++    "Self-Funded": {
++      "description": "Studio keeps 100% of net (gross − Steam 30%).",
++      "extra_rows_after_steam": [],
++      "studio_share_formula": "gross - steam_share"
++    },
++    "Publisher": {
++      "description": "Publisher recoups budget first, then takes 30% post-recoup.",
++      "extra_rows_after_steam": [
++        { "key": "publisher_recoupment", "label": "Publisher recoup", "format": "usd0" },
++        { "key": "publisher_share",      "label": "Publisher share",  "format": "usd0" }
++      ],
++      "studio_share_formula": "if (gross - steam_share) <= recoupment: 0 else 0.70 × (gross - steam_share - recoupment)",
++      "breakeven_field": "recoupment_breakeven_copies",
++      "profit_target_formula": "recoupment_copies + revised_budget / (0.70 × net_per_sale)"
++    },
++    "Crowdfunding": {
++      "description": "Top section: KS feasibility (goal, fees, fulfilment, net raised, backers needed). Bottom section: post-launch revenue using the Self-Funded math.",
++      "top_rows": [
++        { "key": "ks_goal",            "label": "KS goal",          "format": "usd0" },
++        { "key": "ks_fees",            "label": "Fees (10%)",       "format": "usd0" },
++        { "key": "ks_fulfillment_cost","label": "Fulfilment (12%)", "format": "usd0" },
++        { "key": "ks_net_raised",      "label": "Net raised",       "format": "usd0", "bold": true },
++        { "key": "ks_backers_needed",  "label": "Backers needed",   "format": "int_commas" }
++      ],
++      "ks_assumptions": { "fees_pct": 0.10, "fulfilment_pct": 0.12, "avg_pledge_usd": 25.50 },
++      "studio_share_formula": "gross - steam_share"
++    },
++    "Grant": {
++      "description": "Top section: grant assumed = full budget; remaining gap = max(0, budget - grant). Bottom section: post-launch revenue using the Self-Funded math.",
++      "top_rows": [
++        { "key": "grant_amount",   "label": "Grant assumed", "format": "usd0" },
++        { "key": "remaining_gap",  "label": "Remaining gap", "format": "usd0" }
++      ],
++      "studio_share_formula": "gross - steam_share",
++      "breakeven_field": "remaining_gap / net_per_sale"
++    }
++  },
++  "confidence_band": {
++    "scoring": [
++      "if Current Wishlists is set and > 0: +1",
++      "for each social channel with count > 0: +1 (cap +3)"
++    ],
++    "thresholds": { "High": ">=3", "Medium": ">=1", "Low": "0" }
++  },
++  "price_handling": {
++    "user_provided": "use as-is; price_source='user'",
++    "missing":       "use median price of comparables; price_assumed=true; price_source='comparables_median'; rationale must say 'Price: $X.XX (median of N comparable [genre]s at your studio scale).'"
++  }
++}
+diff --git a/netlify.toml b/netlify.toml
+new file mode 100755
+index 0000000..1150851
+--- /dev/null
++++ b/netlify.toml
+@@ -0,0 +1,51 @@
++# Netlify configuration for caspianshift.com
++# Adds the Budget Tool: /budget routes to budget.html and /api/* routes to functions.
++
++[build]
++  publish = "."
++  functions = "netlify/functions"
++
++[functions]
++  # Bundle TypeScript with esbuild. Default in Netlify but pinned here for clarity.
++  node_bundler = "esbuild"
++  # Include the knowledge JSON in the function bundle so anthropic.ts can `import` it.
++  included_files = ["knowledge/**"]
++
++[functions."analyse-background"]
++  # Background functions need explicit declaration via filename suffix or via this block.
++  # The filename ends in `-background.ts` which Netlify recognises automatically — this
++  # block exists in case you ever rename the file.
++
++# ── Pretty URLs ─────────────────────────────────────────────────
++[[redirects]]
++  from = "/budget"
++  to = "/budget.html"
++  status = 200
++
++[[redirects]]
++  from = "/budget/"
++  to = "/budget.html"
++  status = 200
++
++# ── API routing ─────────────────────────────────────────────────
++[[redirects]]
++  from = "/api/*"
++  to = "/.netlify/functions/:splat"
++  status = 200
++
++# ── SPA fallback (existing) ─────────────────────────────────────
++# index.html still lives at /; nothing to do.
++
++# ── Security headers ────────────────────────────────────────────
++[[headers]]
++  for = "/*"
++  [headers.values]
++    X-Content-Type-Options = "nosniff"
++    X-Frame-Options = "DENY"
++    Referrer-Policy = "strict-origin-when-cross-origin"
++    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
++
++[[headers]]
++  for = "/budget*"
++  [headers.values]
++    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
+diff --git a/netlify/functions/_shared/anthropic.ts b/netlify/functions/_shared/anthropic.ts
+new file mode 100755
+index 0000000..500935c
+--- /dev/null
++++ b/netlify/functions/_shared/anthropic.ts
+@@ -0,0 +1,218 @@
++// Anthropic Claude wrapper. One structured-output call, returns the full
++// AnalysisResult described in the Build Spec.
++//
++// Env:
++//   ANTHROPIC_API_KEY
++//   ANTHROPIC_MODEL  (default claude-sonnet-4-6)
++//
++// If ANTHROPIC_API_KEY is missing, returns a deterministic mock analysis so the
++// rest of the pipeline still works. The mock is good enough for end-to-end demos
++// but is not the same per-submission — flip the env var when you want real output.
++
++import Anthropic from "@anthropic-ai/sdk";
++import type { AnalysisResult, NotionRow } from "./types";
++import budgetTpl from "../../../knowledge/budget-template.json";
++import revenueTpl from "../../../knowledge/revenue-template.json";
++import edgeTpl from "../../../knowledge/edge-template.json";
++
++const KEY = process.env.ANTHROPIC_API_KEY;
++const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
++
++export function isAnthropicEnabled(): boolean { return !!KEY; }
++
++const SYSTEM_PROMPT = `You are the analyst for Caspian Shift, an indie-game funding-readiness consultancy.
++You produce three outputs for a single game-studio submission: a Revised Budget, a Revenue Simulation, and a Caspian Shift Edge writeup.
++
++Tone: Direct, blunt, mildly self-deprecating. Indie peer to indie peer — not consultant-speak.
++Banned words: "unfortunately".
++Do not invent numbers for comparables — only use the comparables provided in the user message.
++Do not promise outcomes; frame in terms of clarity, optionality, runway.
++Always include a Pre-Release category in budget_revised with source="estimated" and value = round(0.05 × (production_subtotal + marketing)).
++If 3+ budget categories have source="estimated", framing_mode must be "constructive_next_steps" and the flaws should read as ordered next-steps rather than criticisms.
++The Edge must be 2-4 short paragraphs and end with a single CTA "Get in touch →".
++
++Budget rules and provenance system:
++${JSON.stringify(budgetTpl)}
++
++Revenue table layouts (one of: Self-Funded / Publisher / Crowdfunding / Grant). Match the user's funding_type unless the data overwhelmingly suggests another path is better:
++${JSON.stringify(revenueTpl)}
++
++Edge writing instructions:
++${JSON.stringify(edgeTpl)}
++
++Output a single JSON object that strictly matches this schema (no prose around it):
++{
++  "budget_revised": {
++    "categories": [{ "name": str, "amount_usd": int, "rationale": str, "source": "user"|"estimated"|"adjusted", "source_note": str }],
++    "total_usd": int,
++    "flaws": [{ "title": str, "diagnosis": str, "fix": str }],
++    "framing_mode": "constructive_next_steps"|"partial_with_callouts"|"standard_flaws"
++  },
++  "revenue_simulation": {
++    "funding_path": "Self-Funded"|"Publisher"|"Crowdfunding"|"Grant",
++    "price_assumed": bool, "price_source": "user"|"comparables_median",
++    "scenarios": {
++      "conservative": { "copies": int, "price": int, "gross": int, "steam_share": int, "publisher_recoupment": int|null, "publisher_share": int|null, "ks_goal": int|null, "ks_backers_needed": int|null, "ks_fees": int|null, "ks_fulfillment_cost": int|null, "ks_net_raised": int|null, "grant_amount": int|null, "remaining_gap": int|null, "studio_share": int },
++      "realistic":    { /* same shape */ },
++      "optimistic":   { /* same shape */ }
++    },
++    "recoupment_breakeven_copies": int|null,
++    "studio_profit_target_copies": int,
++    "confidence": "High"|"Medium"|"Low",
++    "confidence_rationale": str,
++    "comparables_used": [{ "game_name": str, "weight": float }]
++  },
++  "edge": {
++    "biggest_gap": str,
++    "best_funding_path": "Publisher"|"Crowdfunding"|"Grant"|"Self-Funded",
++    "rationale": str,
++    "where_we_help": [{ "area": str, "why": str }],
++    "closing_paragraph": str
++  },
++  "key_lessons": str
++}`;
++
++interface RunInput {
++  row: NotionRow;
++  socials: Record<string, number | undefined>;
++  comparables: NotionRow[];      // pulled from Notion
++  steamSignals?: any;            // optional Steam scrape
++}
++
++export async function runAnalysis(input: RunInput): Promise<AnalysisResult> {
++  if (!KEY) {
++    console.warn("[anthropic] ANTHROPIC_API_KEY not set — returning deterministic mock analysis");
++    return mockAnalysis(input);
++  }
++  const client = new Anthropic({ apiKey: KEY });
++  const userPrompt = JSON.stringify({
++    submission: input.row,
++    socials: input.socials,
++    steam_signals: input.steamSignals || null,
++    comparables: input.comparables.map(c => ({
++      game_name: c.gameName, studio_name: c.studioName, genre: c.genre,
++      studio_size: c.studioSize, studio_country: c.studioCountry,
++      price_point: c.pricePoint, funding_type: c.fundingType,
++      release_date: c.releaseDate,
++    })),
++  });
++  try {
++    const msg = await client.messages.create({
++      model: MODEL,
++      max_tokens: 6000,
++      system: SYSTEM_PROMPT,
++      messages: [{ role: "user", content: userPrompt }],
++    });
++    // Concatenate all text blocks
++    const text = msg.content.map((b: any) => b.text || "").join("");
++    // Strip code-fence if Claude wrapped the JSON
++    const jsonText = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```\s*$/, "").trim();
++    const parsed = JSON.parse(jsonText);
++    return parsed as AnalysisResult;
++  } catch (e: any) {
++    console.error("[anthropic] runAnalysis failed, falling back to mock", e?.message || e);
++    return mockAnalysis(input);
++  }
++}
++
++// ─── Deterministic mock — used when ANTHROPIC_API_KEY is absent or the call fails ───
++function mockAnalysis({ row }: RunInput): AnalysisResult {
++  const country = row.studioCountry || "Other";
++  const salary: Record<string, number> = {
++    "United States": 9500, "Canada": 7200, "United Kingdom": 6800, "France": 5500,
++    "Germany": 6200, "Netherlands": 6500, "Sweden": 6300, "Finland": 6000,
++    "Spain": 4200, "Italy": 4000, "Japan": 5000, "Poland": 3800, "Czechia": 3500,
++    "Slovenia": 3000, "Brazil": 2800, "Other": 4500,
++  };
++  const monthly = salary[country] || salary["Other"];
++  const dev = monthly * (row.studioSize || 1) * (row.devTimeMonths || 18);
++  const art = row.artBudget ?? Math.round(dev * 0.18);
++  const music = row.musicBudget ?? 8000;
++  const loc = row.localizationBudget ?? Math.round((dev + art + music) * 0.07);
++  const prod = dev + art + music + loc;
++  const marketing = row.marketingBudget ?? Math.round(prod * 0.10);
++  const overhead = Math.round((prod + marketing) * 0.10);
++  const preRelease = Math.round((prod + marketing) * 0.05);
++  const total = dev + art + music + loc + marketing + overhead + preRelease;
++  const rounded = total > 200000 ? Math.round(total / 10000) * 10000 : Math.round(total / 5000) * 5000;
++  const price = row.pricePoint || 19.99;
++  const netPerSale = price * 0.7;
++  const breakEven = Math.ceil(rounded / netPerSale);
++
++  const baseScenarios = { conservative: 4200, realistic: 11500, optimistic: 28000 };
++  const sc = (copies: number) => {
++    const gross = price * copies;
++    const steam = gross * 0.30;
++    return {
++      copies, price, gross, steam_share: steam,
++      publisher_recoupment: row.fundingType === "Publisher" ? rounded : null,
++      publisher_share: row.fundingType === "Publisher" ? Math.max(0, (gross - steam - rounded) * 0.30) : null,
++      ks_goal: row.fundingType === "Crowdfunding" ? rounded : null,
++      ks_backers_needed: row.fundingType === "Crowdfunding" ? Math.ceil(rounded / 25.5) : null,
++      ks_fees: row.fundingType === "Crowdfunding" ? Math.round(rounded * 0.10) : null,
++      ks_fulfillment_cost: row.fundingType === "Crowdfunding" ? Math.round(rounded * 0.12) : null,
++      ks_net_raised: row.fundingType === "Crowdfunding" ? Math.round(rounded * 0.78) : null,
++      grant_amount: row.fundingType === "Grant" ? rounded : null,
++      remaining_gap: row.fundingType === "Grant" ? 0 : null,
++      studio_share: row.fundingType === "Self-Funded" || row.fundingType === "Crowdfunding"
++        ? gross - steam
++        : row.fundingType === "Grant" ? gross - steam
++        : Math.max(0, (gross - steam - rounded) * 0.70),
++    };
++  };
++
++  const filledLines = [row.devQaBudget, row.artBudget, row.musicBudget, row.localizationBudget, row.marketingBudget].filter(v => v != null).length;
++  const framing = filledLines <= 1 ? "constructive_next_steps" : filledLines <= 3 ? "partial_with_callouts" : "standard_flaws";
++
++  return {
++    budget_revised: {
++      categories: [
++        { name: "Development & QA",  amount_usd: dev,        source: row.devQaBudget        != null ? "user" : "estimated", source_note: row.devQaBudget != null ? "As provided" : `Country median × headcount × dev time`, rationale: row.devQaBudget != null ? "Within country benchmark range." : `${country} median salary ($${monthly.toLocaleString()}/mo) × ${row.studioSize || 1} dev × ${row.devTimeMonths || 18} mo.` },
++        { name: "Art & Illustrations", amount_usd: art,      source: row.artBudget          != null ? "user" : "estimated", source_note: row.artBudget != null ? "As provided" : "Genre-typical share of dev cost", rationale: "Reasonable for the genre profile." },
++        { name: "Music & Sound",     amount_usd: music,      source: row.musicBudget        != null ? "user" : "estimated", source_note: row.musicBudget != null ? "As provided" : "Comparables median; fallback $8,000", rationale: "Within typical range." },
++        { name: "Localization",      amount_usd: loc,        source: row.localizationBudget != null ? "user" : "estimated", source_note: row.localizationBudget != null ? "As provided" : "7% of production sub-total", rationale: loc === 0 ? "English-only." : "Industry-typical share." },
++        { name: "Marketing",         amount_usd: marketing,  source: row.marketingBudget    != null ? "user" : "estimated", source_note: row.marketingBudget != null ? "Matches floor" : "10% production minimum", rationale: "Industry minimum applied." },
++        { name: "Overhead",          amount_usd: overhead,   source: "estimated", source_note: "10% of production + marketing", rationale: "Standard overhead band." },
++        { name: "Pre-Release",       amount_usd: preRelease, source: "estimated", source_note: "Always estimated — 5% of production + marketing", rationale: "Discord moderation, store listing assets, build infra, demo costs." },
++      ],
++      total_usd: rounded,
++      flaws:
++        framing === "constructive_next_steps" ? [
++          { title: "Pin down dev costs first", diagnosis: "Without a dev budget the rest of the analysis is directional.", fix: "Track hours for two sprints and extrapolate. We can run a cost model in a Funding Analysis." },
++          { title: "Art scope undefined", diagnosis: "Most of the spend hides here; range is 5×.", fix: "List asset types and we'll benchmark each." },
++          { title: "Marketing is not optional", diagnosis: "10% is the floor; most launches need 15-25%.", fix: "Funding Ready Pack includes a marketing model sized to your wishlist target." },
++        ] : framing === "partial_with_callouts" ? [
++          { title: "Material gaps remain", diagnosis: "Lines you skipped were estimated — directional, not contractual.", fix: "Track actual burn for two months and update." },
++          { title: "Localization undefined", diagnosis: "Non-English markets cost 7% of production. English-only is fine, we just need to know.", fix: "Loc benchmarks per language live in the Funding Ready Pack." },
++          { title: "Marketing below floor", diagnosis: "10% applied, but pre-launch indies often need 15%+.", fix: "Model wishlist conversion and size marketing accordingly." },
++        ] : [
++          { title: "Budget consistency", diagnosis: "Lines look internally consistent — verify they reflect actual contracts.", fix: "Funding Analysis audits committed vs. projected line by line." },
++          { title: "Unplanned expenses", diagnosis: "No contingency. Indies typically eat 10-15% in scope creep and overruns.", fix: "Risk-adjusted budget model in the Funding Ready Pack." },
++          { title: "Marketing tied to outcomes?", diagnosis: "Spend is sized to a percentage rule, not a wishlist target.", fix: "Marketing audit ties spend to specific channels." },
++        ],
++      framing_mode: framing,
++    },
++    revenue_simulation: {
++      funding_path: row.fundingType,
++      price_assumed: row.pricePoint == null,
++      price_source: row.pricePoint == null ? "comparables_median" : "user",
++      scenarios: { conservative: sc(baseScenarios.conservative), realistic: sc(baseScenarios.realistic), optimistic: sc(baseScenarios.optimistic) },
++      recoupment_breakeven_copies: row.fundingType === "Publisher" ? Math.ceil(rounded / netPerSale) : null,
++      studio_profit_target_copies: Math.ceil((rounded * 2) / netPerSale),
++      confidence: row.dataConfidence || "Medium",
++      confidence_rationale: "Based on supplied wishlists + social signals.",
++      comparables_used: [],
++    },
++    edge: {
++      biggest_gap: `The biggest gap in ${row.gameName}'s funding readiness right now is budget clarity. With ${row.studioSize || 1} ${row.studioSize === 1 ? "person" : "people"} burning runway in ${country}, every month of ambiguity costs real money.`,
++      best_funding_path: row.fundingType,
++      rationale: `Given your funding type (${row.fundingType}) and current traction, the path you've picked is workable but tight. Break-even at ${breakEven.toLocaleString()} copies is achievable if wishlist-to-sale conversion holds at 15%+.`,
++      where_we_help: [
++        { area: "Budget audit", why: "Line-by-line review against actual contracts." },
++        { area: "Marketing sizing", why: "Tie spend to wishlist target, not to a percentage rule." },
++      ],
++      closing_paragraph: `The gap between "directionally correct" and "fundable" is exactly where Caspian Shift works. Get in touch →`,
++    },
++    key_lessons: `Pre-launch ${row.fundingType.toLowerCase()} ${row.genre.join("/")} from ${country}. Budget total $${rounded.toLocaleString()}; break-even ${breakEven.toLocaleString()} copies at $${price.toFixed(2)}.`,
++  };
++}
+diff --git a/netlify/functions/_shared/email.ts b/netlify/functions/_shared/email.ts
+new file mode 100755
+index 0000000..fa137a3
+--- /dev/null
++++ b/netlify/functions/_shared/email.ts
+@@ -0,0 +1,77 @@
++// Transactional email — Resend implementation.
++// Env: EMAIL_API_KEY, EMAIL_FROM (e.g. hello@caspianshift.com).
++// If EMAIL_API_KEY is missing, sendResults logs a warning and returns false (no-op).
++
++import { Resend } from "resend";
++import type { ResultsStored, NotionRow } from "./types";
++
++const KEY = process.env.EMAIL_API_KEY;
++const FROM = process.env.EMAIL_FROM || "Caspian Shift <hello@caspianshift.com>";
++
++export function isEmailEnabled(): boolean { return !!KEY; }
++
++export async function sendResults({
++  to,
++  row,
++  results,
++  pdfBuffer,
++  resultsUrl,
++}: {
++  to: string;
++  row: NotionRow;
++  results: Extract<ResultsStored, { status: "ready" }>;
++  pdfBuffer?: Buffer;
++  resultsUrl: string;
++}): Promise<{ ok: boolean; messageId?: string }> {
++  if (!KEY) {
++    console.warn("[email] EMAIL_API_KEY not set — skipping send to", to);
++    return { ok: false };
++  }
++  const resend = new Resend(KEY);
++  const subject = `Your Caspian Shift funding analysis: ${row.gameName}`;
++  const html = renderEmailHtml({ row, results, resultsUrl });
++  try {
++    const r = await resend.emails.send({
++      from: FROM,
++      to: [to],
++      subject,
++      html,
++      attachments: pdfBuffer ? [{ filename: `${row.gameName.replace(/[^a-z0-9]+/gi, "_")}_analysis.pdf`, content: pdfBuffer }] : undefined,
++    });
++    return { ok: !r.error, messageId: r.data?.id };
++  } catch (e: any) {
++    console.error("[email] send failed", e?.message || e);
++    return { ok: false };
++  }
++}
++
++function renderEmailHtml({ row, results, resultsUrl }: { row: NotionRow; results: Extract<ResultsStored, { status: "ready" }>; resultsUrl: string }) {
++  const total = results.budget.total_usd.toLocaleString();
++  return `<!DOCTYPE html>
++<html><head><meta charset="utf-8"><title>${escapeHtml(row.gameName)} — Funding Analysis</title></head>
++<body style="font-family:Arial, Helvetica, sans-serif;background:#0D0112;color:#FAF0CA;margin:0;padding:0;">
++  <div style="max-width:600px;margin:0 auto;padding:32px 24px;">
++    <h1 style="font-family:Georgia,serif;color:#fff;margin:0 0 8px;">${escapeHtml(row.gameName)}</h1>
++    <div style="color:rgba(250,240,202,.6);font-size:13px;margin-bottom:24px;">Caspian Shift · Funding Analysis · ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
++    <div style="border:2px solid #17BEBB;padding:20px;margin-bottom:16px;background:rgba(23,190,187,0.05);">
++      <div style="color:#17BEBB;font-size:11px;text-transform:uppercase;letter-spacing:.18em;margin-bottom:6px;">Total revised budget</div>
++      <div style="font-size:28px;color:#fff;font-weight:700;">$${total}</div>
++    </div>
++    <div style="border:2px solid #FC7A1E;padding:20px;margin-bottom:16px;background:rgba(252,122,30,0.05);">
++      <div style="color:#FC7A1E;font-size:11px;text-transform:uppercase;letter-spacing:.18em;margin-bottom:6px;">Confidence</div>
++      <div style="font-size:18px;color:#fff;font-weight:700;">${escapeHtml(results.revenue.confidence)}</div>
++    </div>
++    <p style="line-height:1.6;color:rgba(250,240,202,.85);font-size:15px;">${escapeHtml(results.edge.biggest_gap)}</p>
++    <p style="line-height:1.6;color:rgba(250,240,202,.85);font-size:15px;">${escapeHtml(results.edge.rationale)}</p>
++    <p style="line-height:1.6;color:rgba(250,240,202,.85);font-size:15px;">${escapeHtml(results.edge.closing_paragraph)}</p>
++    <div style="margin:32px 0;text-align:center;">
++      <a href="${escapeHtml(resultsUrl)}" style="background:#D52941;color:#fff;text-decoration:none;padding:12px 28px;border-radius:999px;font-weight:700;display:inline-block;">View full analysis →</a>
++    </div>
++    <div style="border-top:1px solid rgba(23,190,187,.18);padding-top:16px;color:rgba(250,240,202,.4);font-size:12px;">
++      Caspian Shift · <a href="https://caspianshift.com" style="color:#17BEBB;">caspianshift.com</a><br>
++      You're receiving this because you requested an emailed copy from the Budget Tool. We won't add you to any mailing list — this is the only message we'll send unless you reach out.
++    </div>
++  </div>
++</body></html>`;
++}
++function escapeHtml(s: string) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"} as any)[c]); }
+diff --git a/netlify/functions/_shared/http.ts b/netlify/functions/_shared/http.ts
+new file mode 100755
+index 0000000..192a0ba
+--- /dev/null
++++ b/netlify/functions/_shared/http.ts
+@@ -0,0 +1,61 @@
++// Tiny HTTP helpers shared by all functions.
++
++const STD_HEADERS = {
++  "Content-Type": "application/json",
++  "Cache-Control": "no-store",
++};
++
++export function ok(body: any, headers: Record<string, string> = {}) {
++  return { statusCode: 200, headers: { ...STD_HEADERS, ...headers }, body: JSON.stringify(body) };
++}
++export function created(body: any) {
++  return { statusCode: 201, headers: STD_HEADERS, body: JSON.stringify(body) };
++}
++export function bad(message: string, extras: any = {}) {
++  return { statusCode: 400, headers: STD_HEADERS, body: JSON.stringify({ error: message, ...extras }) };
++}
++export function unauth() {
++  return { statusCode: 401, headers: STD_HEADERS, body: JSON.stringify({ error: "Unauthorized" }) };
++}
++export function notFound(message = "Not found") {
++  return { statusCode: 404, headers: STD_HEADERS, body: JSON.stringify({ error: message }) };
++}
++export function methodNotAllowed(allowed: string[]) {
++  return { statusCode: 405, headers: { ...STD_HEADERS, Allow: allowed.join(", ") }, body: JSON.stringify({ error: "Method not allowed" }) };
++}
++export function serverError(message = "Internal error") {
++  return { statusCode: 500, headers: STD_HEADERS, body: JSON.stringify({ error: message }) };
++}
++
++export function parseJson<T = any>(body: string | null | undefined): T | null {
++  if (!body) return null;
++  try { return JSON.parse(body) as T; } catch { return null; }
++}
++
++/** Structured log line. Don't include PII (no email; game name is OK). */
++export function log(fn: string, fields: Record<string, any>) {
++  console.log(JSON.stringify({ fn, ts: new Date().toISOString(), ...fields }));
++}
++
++// ── Rate limiter (per IP, in-memory). Sufficient for the v1 traffic profile.
++//    For higher traffic, swap in Netlify Blobs or Upstash.
++const buckets = new Map<string, { count: number; resetAt: number }>();
++export function rateLimit(ip: string, max: number, windowMs: number): boolean {
++  const now = Date.now();
++  const b = buckets.get(ip);
++  if (!b || now > b.resetAt) {
++    buckets.set(ip, { count: 1, resetAt: now + windowMs });
++    return true;
++  }
++  if (b.count >= max) return false;
++  b.count++;
++  return true;
++}
++
++/** Get caller IP from event headers. Netlify sets x-nf-client-connection-ip. */
++export function clientIp(event: any): string {
++  return (event?.headers?.["x-nf-client-connection-ip"]
++    || event?.headers?.["x-forwarded-for"]?.split(",")[0]?.trim()
++    || event?.headers?.["client-ip"]
++    || "unknown").toString();
++}
+diff --git a/netlify/functions/_shared/kv.ts b/netlify/functions/_shared/kv.ts
+new file mode 100755
+index 0000000..d310b15
+--- /dev/null
++++ b/netlify/functions/_shared/kv.ts
+@@ -0,0 +1,44 @@
++// Results KV store — Netlify Blobs.
++// We stash the analysis result under submissionId so the loading screen can poll for it.
++//
++// Falls back to an in-memory Map if Netlify Blobs isn't available (e.g. running
++// `netlify dev` without auth). This keeps local development working at the cost
++// of losing data when the dev process restarts.
++
++import { getStore } from "@netlify/blobs";
++import type { ResultsStored } from "./types";
++
++const STORE_NAME = "budget-results";
++const TTL_DAYS = 14;
++
++const memCache = new Map<string, { ts: number; value: ResultsStored }>();
++
++export async function putResults(submissionId: string, value: ResultsStored): Promise<void> {
++  try {
++    const store = getStore(STORE_NAME);
++    await store.setJSON(submissionId, value);
++    return;
++  } catch (e: any) {
++    console.warn("[kv] Netlify Blobs unavailable — using in-memory cache.", e?.message || e);
++  }
++  memCache.set(submissionId, { ts: Date.now(), value });
++}
++
++export async function getResults(submissionId: string): Promise<ResultsStored | null> {
++  try {
++    const store = getStore(STORE_NAME);
++    const v = await store.get(submissionId, { type: "json" });
++    if (v) return v as ResultsStored;
++  } catch (e: any) {
++    console.warn("[kv] Netlify Blobs read failed — checking memory cache.", e?.message || e);
++  }
++  const mem = memCache.get(submissionId);
++  if (mem) {
++    if (Date.now() - mem.ts > TTL_DAYS * 24 * 60 * 60 * 1000) {
++      memCache.delete(submissionId);
++      return null;
++    }
++    return mem.value;
++  }
++  return null;
++}
+diff --git a/netlify/functions/_shared/notion.ts b/netlify/functions/_shared/notion.ts
+new file mode 100755
+index 0000000..312d3d3
+--- /dev/null
++++ b/netlify/functions/_shared/notion.ts
+@@ -0,0 +1,305 @@
++// Notion wrapper — Game Case Studies database.
++//
++// Env vars:
++//   NOTION_API_KEY  — internal-integration token (Notion → Settings → Integrations → New)
++//   NOTION_DB_ID    — 34abb949947480b2b326c2fe922f384c (Game Case Studies)
++//
++// If the env vars are missing, every operation is a no-op that logs a warning and returns
++// a synthesised submissionId — the rest of the pipeline keeps working in mock mode.
++
++import { Client } from "@notionhq/client";
++import type { Step1Body, Step2Body, Step3Body, NotionRow, GameStatus, FundingType } from "./types";
++
++const NOTION_API_KEY = process.env.NOTION_API_KEY;
++const NOTION_DB_ID = process.env.NOTION_DB_ID || "34abb949947480b2b326c2fe922f384c";
++
++let _client: Client | null = null;
++function client(): Client | null {
++  if (!NOTION_API_KEY) return null;
++  if (_client) return _client;
++  _client = new Client({ auth: NOTION_API_KEY });
++  return _client;
++}
++
++export function isNotionEnabled(): boolean { return !!NOTION_API_KEY; }
++
++/** Property names in the Notion database — must match exactly. */
++const P = {
++  GameName: "Game Name",
++  StudioName: "Studio Name",
++  Status: "Status",
++  Genre: "Genre",
++  StudioSize: "Studio Size",
++  StudioCountry: "Studio Country",
++  ReleaseDate: "Release Date",
++  PricePoint: "Price Point",
++  FundingType: "Funding Type",
++  SteamUrl: "Steam Page URL",
++  DevTime: "Dev Time (months)",
++  DevQa: "Dev and QA Budget",
++  Art: "Art Budget",
++  Music: "Music Budget",
++  Loc: "Localization Budget",
++  Marketing: "Marketing Budget",
++  PreRelease: "Pre-Release Budget",
++  Wishlists: "Current Wishlists",
++  PrimaryChannel: "Primary Marketing Channel",
++  NextFest: "Next Fest",
++  SourceType: "Source Type",
++  DataConfidence: "Data Confidence",
++  SubmissionEmail: "Submission Email",
++  SourceUrl: "Source URL",
++  KeyLessons: "Key Lessons",
++  SubmissionId: "Submission ID", // custom — used to look up rows by our internal id
++};
++
++function uuid(): string {
++  // Lightweight UUID v4 (good enough for submission IDs)
++  if (typeof crypto !== "undefined" && (crypto as any).randomUUID) return (crypto as any).randomUUID();
++  return "ss-" + Math.random().toString(36).slice(2) + "-" + Date.now().toString(36);
++}
++
++/** Step 1: create a new row tagged Source Type=CS Pilot, Data Confidence=Medium. */
++export async function createStep1Row(body: Step1Body): Promise<{ submissionId: string; notionPageId: string | null }> {
++  const submissionId = uuid();
++  const c = client();
++  if (!c) {
++    console.warn("[notion] NOTION_API_KEY not set — returning synthesised submissionId");
++    return { submissionId, notionPageId: null };
++  }
++  try {
++    const page = await c.pages.create({
++      parent: { database_id: NOTION_DB_ID },
++      properties: {
++        [P.GameName]:      { title:       [{ text: { content: body.gameName } }] },
++        [P.StudioName]:    { rich_text:   [{ text: { content: body.studioName } }] },
++        [P.Status]:        { select:      { name: body.status } },
++        [P.Genre]:         { multi_select: body.genre.map(name => ({ name })) },
++        [P.StudioSize]:    { number:       body.studioSize },
++        [P.StudioCountry]: { select:      { name: body.studioCountry } },
++        [P.ReleaseDate]:   { date:        { start: body.releaseDate.length === 7 ? body.releaseDate + "-01" : body.releaseDate } },
++        [P.FundingType]:   { select:      { name: body.fundingType } },
++        ...(body.steamUrl   ? { [P.SteamUrl]:   { url: body.steamUrl } } : {}),
++        ...(body.pricePoint ? { [P.PricePoint]: { number: body.pricePoint } } : {}),
++        [P.SourceType]:     { select:      { name: "CS Pilot" } },
++        [P.DataConfidence]: { select:      { name: "Medium" } },
++        [P.SubmissionId]:   { rich_text:   [{ text: { content: submissionId } }] },
++      } as any,
++    });
++    return { submissionId, notionPageId: page.id };
++  } catch (e: any) {
++    console.error("[notion] createStep1Row failed", e?.message || e);
++    return { submissionId, notionPageId: null };
++  }
++}
++
++/** Look up a Notion page id by submissionId (set on Step 1). */
++export async function findPageBySubmissionId(submissionId: string): Promise<string | null> {
++  const c = client();
++  if (!c) return null;
++  try {
++    const res = await c.databases.query({
++      database_id: NOTION_DB_ID,
++      filter: { property: P.SubmissionId, rich_text: { equals: submissionId } },
++      page_size: 1,
++    } as any);
++    return res.results.length ? res.results[0].id : null;
++  } catch (e: any) {
++    console.error("[notion] findPageBySubmissionId failed", e?.message || e);
++    return null;
++  }
++}
++
++/** Step 2: PATCH budget fields (skip undefined). */
++export async function patchStep2(submissionId: string, body: Step2Body): Promise<boolean> {
++  const c = client();
++  if (!c) return false;
++  const pageId = await findPageBySubmissionId(submissionId);
++  if (!pageId) return false;
++  const props: any = {
++    [P.DevTime]: { number: body.devTimeMonths },
++  };
++  if (body.devQaBudget != null)        props[P.DevQa]     = { number: body.devQaBudget };
++  if (body.artBudget != null)          props[P.Art]       = { number: body.artBudget };
++  if (body.musicBudget != null)        props[P.Music]     = { number: body.musicBudget };
++  if (body.localizationBudget != null) props[P.Loc]       = { number: body.localizationBudget };
++  if (body.marketingBudget != null)    props[P.Marketing] = { number: body.marketingBudget };
++  try {
++    await c.pages.update({ page_id: pageId, properties: props });
++    return true;
++  } catch (e: any) {
++    console.error("[notion] patchStep2 failed", e?.message || e);
++    return false;
++  }
++}
++
++/** Step 3: PATCH traction fields + recompute Data Confidence. */
++export async function patchStep3(submissionId: string, body: Step3Body, derivedConfidence: "High" | "Medium" | "Low"): Promise<boolean> {
++  const c = client();
++  if (!c) return false;
++  const pageId = await findPageBySubmissionId(submissionId);
++  if (!pageId) return false;
++  const props: any = {
++    [P.NextFest]: { checkbox: !!body.nextFestPlanned },
++    [P.DataConfidence]: { select: { name: derivedConfidence } },
++  };
++  if (body.currentWishlists != null) props[P.Wishlists] = { number: body.currentWishlists };
++  if (body.primaryMarketingChannel)  props[P.PrimaryChannel] = { select: { name: body.primaryMarketingChannel } };
++  try {
++    await c.pages.update({ page_id: pageId, properties: props });
++    return true;
++  } catch (e: any) {
++    console.error("[notion] patchStep3 failed", e?.message || e);
++    return false;
++  }
++}
++
++/** PATCH the Pre-Release Budget after Anthropic analysis. */
++export async function patchPreRelease(submissionId: string, preReleaseUsd: number): Promise<boolean> {
++  const c = client();
++  if (!c) return false;
++  const pageId = await findPageBySubmissionId(submissionId);
++  if (!pageId) return false;
++  try {
++    await c.pages.update({ page_id: pageId, properties: { [P.PreRelease]: { number: preReleaseUsd } } });
++    return true;
++  } catch (e: any) {
++    console.error("[notion] patchPreRelease failed", e?.message || e);
++    return false;
++  }
++}
++
++/** PATCH Submission Email (capture-email endpoint). */
++export async function patchEmail(submissionId: string, email: string): Promise<boolean> {
++  const c = client();
++  if (!c) return false;
++  const pageId = await findPageBySubmissionId(submissionId);
++  if (!pageId) return false;
++  try {
++    await c.pages.update({ page_id: pageId, properties: { [P.SubmissionEmail]: { email } } });
++    return true;
++  } catch (e: any) {
++    console.error("[notion] patchEmail failed", e?.message || e);
++    return false;
++  }
++}
++
++/** Read the row by submissionId, decode into NotionRow. Used by analyse-background. */
++export async function readRow(submissionId: string): Promise<NotionRow | null> {
++  const c = client();
++  if (!c) return null;
++  const pageId = await findPageBySubmissionId(submissionId);
++  if (!pageId) return null;
++  try {
++    const page: any = await c.pages.retrieve({ page_id: pageId });
++    const p = page.properties || {};
++    return {
++      pageId,
++      submissionId,
++      gameName:      p[P.GameName]?.title?.[0]?.plain_text || "",
++      studioName:    p[P.StudioName]?.rich_text?.[0]?.plain_text || "",
++      status:        (p[P.Status]?.select?.name || "In Development") as GameStatus,
++      genre:         (p[P.Genre]?.multi_select || []).map((g: any) => g.name),
++      studioSize:    p[P.StudioSize]?.number || 1,
++      studioCountry: p[P.StudioCountry]?.select?.name || "Other",
++      releaseDate:   p[P.ReleaseDate]?.date?.start || "",
++      pricePoint:    p[P.PricePoint]?.number ?? undefined,
++      fundingType:   (p[P.FundingType]?.select?.name || "Self-Funded") as FundingType,
++      steamUrl:      p[P.SteamUrl]?.url || undefined,
++      devTimeMonths: p[P.DevTime]?.number ?? undefined,
++      devQaBudget:        p[P.DevQa]?.number ?? undefined,
++      artBudget:          p[P.Art]?.number ?? undefined,
++      musicBudget:        p[P.Music]?.number ?? undefined,
++      localizationBudget: p[P.Loc]?.number ?? undefined,
++      marketingBudget:    p[P.Marketing]?.number ?? undefined,
++      preReleaseBudget:   p[P.PreRelease]?.number ?? undefined,
++      currentWishlists:   p[P.Wishlists]?.number ?? undefined,
++      primaryMarketingChannel: p[P.PrimaryChannel]?.select?.name || undefined,
++      nextFestPlanned:    p[P.NextFest]?.checkbox ?? undefined,
++      sourceType:         p[P.SourceType]?.select?.name || "CS Pilot",
++      dataConfidence:     (p[P.DataConfidence]?.select?.name || "Medium") as "High" | "Medium" | "Low",
++      submissionEmail:    p[P.SubmissionEmail]?.email || undefined,
++    };
++  } catch (e: any) {
++    console.error("[notion] readRow failed", e?.message || e);
++    return null;
++  }
++}
++
++/** Pull up to N comparable rows: same Source Type ≠ "CS Pilot", overlapping genre. */
++export async function findComparables(genre: string[], n = 5): Promise<NotionRow[]> {
++  const c = client();
++  if (!c) return [];
++  if (!genre || !genre.length) return [];
++  try {
++    const res: any = await c.databases.query({
++      database_id: NOTION_DB_ID,
++      filter: {
++        and: [
++          { property: P.SourceType, select: { does_not_equal: "CS Pilot" } },
++          { or: genre.map(g => ({ property: P.Genre, multi_select: { contains: g } })) },
++        ],
++      },
++      page_size: Math.max(n, 5),
++    });
++    return (res.results || []).map((page: any) => {
++      const p = page.properties || {};
++      return {
++        pageId: page.id,
++        submissionId: p[P.SubmissionId]?.rich_text?.[0]?.plain_text || page.id,
++        gameName:      p[P.GameName]?.title?.[0]?.plain_text || "",
++        studioName:    p[P.StudioName]?.rich_text?.[0]?.plain_text || "",
++        status:        (p[P.Status]?.select?.name || "In Development") as GameStatus,
++        genre:         (p[P.Genre]?.multi_select || []).map((g: any) => g.name),
++        studioSize:    p[P.StudioSize]?.number || 1,
++        studioCountry: p[P.StudioCountry]?.select?.name || "Other",
++        releaseDate:   p[P.ReleaseDate]?.date?.start || "",
++        pricePoint:    p[P.PricePoint]?.number ?? undefined,
++        fundingType:   (p[P.FundingType]?.select?.name || "Self-Funded") as FundingType,
++        sourceType:    p[P.SourceType]?.select?.name || "",
++        dataConfidence: (p[P.DataConfidence]?.select?.name || "Medium") as "High" | "Medium" | "Low",
++      } as NotionRow;
++    });
++  } catch (e: any) {
++    console.error("[notion] findComparables failed", e?.message || e);
++    return [];
++  }
++}
++
++/** Create or update a comparable row by Steam URL or game name. */
++export async function upsertComparable(c: { gameName: string; steamUrl?: string }, signals?: any): Promise<void> {
++  const cli = client();
++  if (!cli) return;
++  try {
++    let existing: string | null = null;
++    if (c.steamUrl) {
++      const res: any = await cli.databases.query({
++        database_id: NOTION_DB_ID,
++        filter: { property: P.SteamUrl, url: { equals: c.steamUrl } },
++        page_size: 1,
++      });
++      if (res.results.length) existing = res.results[0].id;
++    }
++    if (!existing && c.gameName) {
++      const res: any = await cli.databases.query({
++        database_id: NOTION_DB_ID,
++        filter: { property: P.GameName, title: { equals: c.gameName } },
++        page_size: 1,
++      });
++      if (res.results.length) existing = res.results[0].id;
++    }
++    if (existing) return; // don't overwrite manual case studies
++    await cli.pages.create({
++      parent: { database_id: NOTION_DB_ID },
++      properties: {
++        [P.GameName]:    { title: [{ text: { content: c.gameName } }] },
++        [P.SourceType]:  { select: { name: "CS Pilot" } },
++        [P.DataConfidence]: { select: { name: "Low" } },
++        ...(c.steamUrl ? { [P.SteamUrl]: { url: c.steamUrl } } : {}),
++        ...(signals?.price ? { [P.PricePoint]: { number: signals.price } } : {}),
++      } as any,
++    });
++  } catch (e: any) {
++    console.error("[notion] upsertComparable failed", e?.message || e);
++  }
++}
+diff --git a/netlify/functions/_shared/pdf.ts b/netlify/functions/_shared/pdf.ts
+new file mode 100755
+index 0000000..4d17293
+--- /dev/null
++++ b/netlify/functions/_shared/pdf.ts
+@@ -0,0 +1,54 @@
++// PDF rendering — puppeteer-core + @sparticuz/chromium for Netlify serverless.
++// Renders /budget?id={submissionId}&print=true into A4 portrait PDF.
++//
++// First cold start can take 4-8 seconds while Chromium unzips. Subsequent calls
++// reuse the same Lambda warm container and run sub-second.
++
++import type { ResultsStored, NotionRow } from "./types";
++
++export async function renderResultsPdf({
++  submissionId,
++  resultsUrl,
++}: {
++  submissionId: string;
++  resultsUrl: string;
++}): Promise<Buffer | null> {
++  let chromium: any, puppeteer: any;
++  try {
++    // Defer require so missing deps don't crash boot when running mock-only locally.
++    chromium = (await import("@sparticuz/chromium")).default;
++    puppeteer = (await import("puppeteer-core")).default;
++  } catch (e: any) {
++    console.warn("[pdf] puppeteer/chromium not installed — skipping PDF generation");
++    return null;
++  }
++
++  let browser: any = null;
++  try {
++    browser = await puppeteer.launch({
++      args: chromium.args,
++      defaultViewport: chromium.defaultViewport,
++      executablePath: await chromium.executablePath(),
++      headless: chromium.headless,
++    });
++    const page = await browser.newPage();
++    // print=true triggers our print stylesheet (hides nav + CTAs, A4 layout)
++    const url = resultsUrl.includes("?")
++      ? `${resultsUrl}&print=true`
++      : `${resultsUrl}?print=true`;
++    await page.goto(url, { waitUntil: "networkidle0", timeout: 25000 });
++    // Wait for results to render — they fetch from /api/results
++    await page.waitForSelector(".cs-card", { timeout: 20000 });
++    const buf = await page.pdf({
++      format: "A4",
++      printBackground: true,
++      margin: { top: "16mm", right: "14mm", bottom: "16mm", left: "14mm" },
++    });
++    return Buffer.from(buf);
++  } catch (e: any) {
++    console.error("[pdf] render failed for", submissionId, e?.message || e);
++    return null;
++  } finally {
++    if (browser) try { await browser.close(); } catch (_) { /* ignore */ }
++  }
++}
+diff --git a/netlify/functions/_shared/steam.ts b/netlify/functions/_shared/steam.ts
+new file mode 100755
+index 0000000..5f33ba9
+--- /dev/null
++++ b/netlify/functions/_shared/steam.ts
+@@ -0,0 +1,108 @@
++// Public Steam-page signal scraper. Server-side fetch only; no-op when no URL provided.
++// Parses follower count, review summary, top tags, announced release date, price.
++// Does NOT scrape wishlists (Steam doesn't expose them publicly).
++//
++// 4s timeout, fail soft. Cache by Steam app ID for 24h via Netlify Blobs.
++
++import { getStore } from "@netlify/blobs";
++
++export interface SteamSignals {
++  appId: string;
++  fetchedAt: string;
++  price?: number;          // dollars
++  positiveReviewPct?: number;
++  totalReviews?: number;
++  followers?: number;
++  tags?: string[];
++  releaseDate?: string;
++  developer?: string;
++  publisher?: string;
++}
++
++const CACHE_NAME = "steam-signals";
++const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
++
++function appIdFromUrl(url: string): string | null {
++  const m = url.match(/\/app\/(\d+)/);
++  return m ? m[1] : null;
++}
++
++export async function fetchSteamSignals(url: string | undefined): Promise<SteamSignals | null> {
++  if (!url) return null;
++  const appId = appIdFromUrl(url);
++  if (!appId) return null;
++
++  // Check cache first
++  try {
++    const store = getStore(CACHE_NAME);
++    const cached = await store.get(appId, { type: "json" });
++    if (cached && cached.fetchedAt && (Date.now() - new Date(cached.fetchedAt).getTime()) < CACHE_TTL_MS) {
++      return cached as SteamSignals;
++    }
++  } catch (_) { /* blobs unavailable — proceed without cache */ }
++
++  // Fetch with timeout
++  const controller = new AbortController();
++  const timer = setTimeout(() => controller.abort(), 4000);
++  let html = "";
++  try {
++    const res = await fetch(`https://store.steampowered.com/app/${appId}/`, {
++      signal: controller.signal,
++      headers: { "User-Agent": "CaspianShiftBot/1.0 (+https://caspianshift.com)" },
++      // age-gate cookies bypass the gate page on most titles
++      // (Netlify functions don't carry cookies between calls so we send them inline)
++    });
++    if (!res.ok) return null;
++    html = await res.text();
++  } catch (e: any) {
++    console.warn("[steam] fetch failed", appId, e?.message || e);
++    return null;
++  } finally {
++    clearTimeout(timer);
++  }
++
++  const signals: SteamSignals = { appId, fetchedAt: new Date().toISOString() };
++
++  // Price (data-price-final attribute, in cents)
++  const priceMatch = html.match(/data-price-final="(\d+)"/);
++  if (priceMatch) signals.price = parseInt(priceMatch[1]) / 100;
++  else {
++    const altPrice = html.match(/"final_formatted":"\$([0-9.]+)"/);
++    if (altPrice) signals.price = parseFloat(altPrice[1]);
++  }
++
++  // Review summary
++  const totalReviews = html.match(/"review_count":(\d+)/);
++  if (totalReviews) signals.totalReviews = parseInt(totalReviews[1]);
++  const positivePct = html.match(/"review_score_desc":"[^"]*",.*?"total_positive":(\d+),"total_negative":(\d+)/s);
++  if (positivePct) {
++    const pos = parseInt(positivePct[1]); const neg = parseInt(positivePct[2]);
++    if (pos + neg > 0) signals.positiveReviewPct = Math.round((pos / (pos + neg)) * 100);
++  }
++
++  // Tags (top 20)
++  const tagMatches = [...html.matchAll(/<a[^>]+app_tag[^>]*>([^<]+)<\/a>/g)].slice(0, 20);
++  if (tagMatches.length) signals.tags = tagMatches.map(m => m[1].trim()).filter(Boolean);
++
++  // Release date
++  const release = html.match(/"release_date":\s*\{[^}]*"date":"([^"]+)"/);
++  if (release) signals.releaseDate = release[1];
++  else {
++    const altRelease = html.match(/<div class="date">([^<]+)<\/div>/);
++    if (altRelease) signals.releaseDate = altRelease[1].trim();
++  }
++
++  // Developer / Publisher
++  const devMatch = html.match(/<div id="developers_list"[\s\S]*?<a[^>]*>([^<]+)<\/a>/);
++  if (devMatch) signals.developer = devMatch[1].trim();
++  const pubMatch = html.match(/<div class="dev_row">[\s\S]*?Publisher:[\s\S]*?<a[^>]*>([^<]+)<\/a>/);
++  if (pubMatch) signals.publisher = pubMatch[1].trim();
++
++  // Cache
++  try {
++    const store = getStore(CACHE_NAME);
++    await store.setJSON(appId, signals);
++  } catch (_) { /* blobs unavailable */ }
++
++  return signals;
++}
+diff --git a/netlify/functions/_shared/types.ts b/netlify/functions/_shared/types.ts
+new file mode 100755
+index 0000000..a499961
+--- /dev/null
++++ b/netlify/functions/_shared/types.ts
+@@ -0,0 +1,145 @@
++// Shared TypeScript interfaces for the Budget Tool functions.
++
++export type GameStatus =
++  | "Concept" | "Prototype" | "Vertical Slice" | "Demo"
++  | "In Development" | "Alpha" | "Beta";
++
++export type FundingType = "Self-Funded" | "Crowdfunding" | "Publisher" | "Grant";
++
++export interface Step1Body {
++  steamUrl?: string;
++  gameName: string;
++  status: GameStatus;
++  genre: string[];
++  studioName: string;
++  studioSize: number;
++  studioCountry: string;
++  releaseDate: string;        // YYYY-MM-DD or YYYY-MM
++  pricePoint?: number;
++  fundingType: FundingType;
++}
++
++export interface Step2Body {
++  submissionId: string;
++  devTimeMonths: number;
++  devQaBudget?: number;
++  artBudget?: number;
++  musicBudget?: number;
++  localizationBudget?: number;
++  marketingBudget?: number;
++}
++
++export interface Step3Body {
++  submissionId: string;
++  currentWishlists?: number;
++  socials: {
++    twitter?: number; tiktok?: number;
++    youtube?: number; discord?: number; reddit?: number;
++  };
++  nextFestPlanned: boolean;
++  primaryMarketingChannel?: string;
++  comparables: Array<{ gameName: string; steamUrl?: string }>;
++  _hp?: string;  // honeypot
++}
++
++export interface CaptureEmailBody {
++  submissionId: string;
++  email: string;
++}
++
++// Provenance of a budget line item
++export type Provenance = "user" | "estimated" | "adjusted";
++
++export interface BudgetCategory {
++  name: string;
++  amount_usd: number;
++  rationale: string;
++  source: Provenance;
++  source_note: string;
++}
++export interface BudgetRevised {
++  categories: BudgetCategory[];
++  total_usd: number;
++  flaws: Array<{ title: string; diagnosis: string; fix: string }>;
++  framing_mode: "constructive_next_steps" | "partial_with_callouts" | "standard_flaws";
++}
++
++export interface RevenueScenario {
++  copies: number;
++  price: number;
++  gross: number;
++  steam_share: number;
++  publisher_recoupment: number | null;
++  publisher_share: number | null;
++  ks_goal: number | null;
++  ks_backers_needed: number | null;
++  ks_fees: number | null;
++  ks_fulfillment_cost: number | null;
++  ks_net_raised: number | null;
++  grant_amount: number | null;
++  remaining_gap: number | null;
++  studio_share: number;
++}
++export interface RevenueSimulation {
++  funding_path: FundingType;
++  price_assumed: boolean;
++  price_source: "user" | "comparables_median";
++  scenarios: { conservative: RevenueScenario; realistic: RevenueScenario; optimistic: RevenueScenario };
++  recoupment_breakeven_copies: number | null;
++  studio_profit_target_copies: number;
++  confidence: "High" | "Medium" | "Low";
++  confidence_rationale: string;
++  comparables_used: Array<{ game_name: string; weight: number }>;
++}
++
++export interface Edge {
++  biggest_gap: string;
++  best_funding_path: FundingType;
++  rationale: string;
++  where_we_help: Array<{ area: string; why: string }>;
++  closing_paragraph: string;
++}
++
++export interface AnalysisResult {
++  budget_revised: BudgetRevised;
++  revenue_simulation: RevenueSimulation;
++  edge: Edge;
++  key_lessons: string;
++}
++
++// Shape stored in KV under submissionId
++export type ResultsStored =
++  | { status: "pending" }
++  | { status: "ready"; budget: BudgetRevised; revenue: RevenueSimulation; edge: Edge; generatedAt: string }
++  | { status: "error"; message: string };
++
++// Raw row in Notion (subset we actually read/write)
++export interface NotionRow {
++  pageId: string;
++  submissionId: string;
++  steamUrl?: string;
++  gameName: string;
++  status: GameStatus;
++  genre: string[];
++  studioName: string;
++  studioSize: number;
++  studioCountry: string;
++  releaseDate: string;
++  pricePoint?: number;
++  fundingType: FundingType;
++  devTimeMonths?: number;
++  devQaBudget?: number;
++  artBudget?: number;
++  musicBudget?: number;
++  localizationBudget?: number;
++  marketingBudget?: number;
++  preReleaseBudget?: number;
++  currentWishlists?: number;
++  primaryMarketingChannel?: string;
++  nextFestPlanned?: boolean;
++  sourceType: string;          // "CS Pilot" for tool submissions
++  dataConfidence: "High" | "Medium" | "Low";
++  submissionEmail?: string;
++  sourceUrl?: string;
++  keyLessons?: string;
++}
+diff --git a/netlify/functions/_shared/validate.ts b/netlify/functions/_shared/validate.ts
+new file mode 100755
+index 0000000..b2ad96c
+--- /dev/null
++++ b/netlify/functions/_shared/validate.ts
+@@ -0,0 +1,62 @@
++// Zod schemas for each request body. Reject early with human-readable errors.
++import { z } from "zod";
++
++export const Step1Schema = z.object({
++  steamUrl: z.string().url().regex(/store\.steampowered\.com\/app\//i, "Steam URL must look like store.steampowered.com/app/...").optional(),
++  gameName: z.string().min(1, "Game name is required").max(280),
++  status: z.enum(["Concept","Prototype","Vertical Slice","Demo","In Development","Alpha","Beta"]),
++  genre: z.array(z.string().min(1)).min(1, "Pick at least one genre").max(10),
++  studioName: z.string().min(1, "Studio name is required").max(280),
++  studioSize: z.number().int().min(1, "Studio size must be at least 1"),
++  studioCountry: z.string().min(1),
++  releaseDate: z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/, "Release date must be YYYY-MM or YYYY-MM-DD"),
++  pricePoint: z.number().positive().max(100, "Price must be at most $100").optional(),
++  fundingType: z.enum(["Self-Funded","Crowdfunding","Publisher","Grant"]),
++});
++
++export const Step2Schema = z.object({
++  submissionId: z.string().min(1),
++  devTimeMonths: z.number().int().min(1).max(160),
++  devQaBudget: z.number().int().nonnegative().optional(),
++  artBudget: z.number().int().nonnegative().optional(),
++  musicBudget: z.number().int().nonnegative().optional(),
++  localizationBudget: z.number().int().nonnegative().optional(),
++  marketingBudget: z.number().int().nonnegative().optional(),
++});
++
++export const Step3Schema = z.object({
++  submissionId: z.string().min(1),
++  currentWishlists: z.number().int().nonnegative().optional(),
++  socials: z.object({
++    twitter: z.number().int().nonnegative().optional(),
++    tiktok: z.number().int().nonnegative().optional(),
++    youtube: z.number().int().nonnegative().optional(),
++    discord: z.number().int().nonnegative().optional(),
++    reddit: z.number().int().nonnegative().optional(),
++  }).default({}),
++  nextFestPlanned: z.boolean(),
++  primaryMarketingChannel: z.string().optional(),
++  comparables: z.array(z.object({
++    gameName: z.string().min(1),
++    steamUrl: z.string().url().optional(),
++  })).max(3).default([]),
++  // Honeypot — must be empty. Bots will fill it.
++  _hp: z.string().max(0, "spam").optional(),
++});
++
++export const CaptureEmailSchema = z.object({
++  submissionId: z.string().min(1),
++  email: z.string().email("Invalid email address"),
++});
++
++/** Build a 400 JSON response from a ZodError. */
++export function zodError(err: unknown): { statusCode: number; body: string; headers: Record<string, string> } {
++  const issues = (err && typeof err === "object" && "issues" in (err as any) && Array.isArray((err as any).issues))
++    ? (err as any).issues.map((i: any) => ({ path: i.path.join("."), message: i.message }))
++    : [{ path: "", message: String(err) }];
++  return {
++    statusCode: 400,
++    headers: { "Content-Type": "application/json" },
++    body: JSON.stringify({ error: "ValidationError", issues }),
++  };
++}
+diff --git a/netlify/functions/analyse-background.ts b/netlify/functions/analyse-background.ts
+new file mode 100755
+index 0000000..a13341e
+--- /dev/null
++++ b/netlify/functions/analyse-background.ts
+@@ -0,0 +1,80 @@
++// POST /.netlify/functions/analyse-background  (Netlify Background Function)
++// Long-running. Reads the Notion row, fetches comparables + Steam signals,
++// runs Anthropic, writes Pre-Release back to Notion, stashes results in KV.
++//
++// Background Functions get a 15-minute timeout (Pro+). Naming the file
++// `analyse-background.ts` is what makes Netlify treat it as background.
++
++import type { Handler } from "@netlify/functions";
++import { readRow, findComparables, patchPreRelease } from "./_shared/notion";
++import { runAnalysis } from "./_shared/anthropic";
++import { fetchSteamSignals } from "./_shared/steam";
++import { putResults } from "./_shared/kv";
++import { log, parseJson } from "./_shared/http";
++
++export const handler: Handler = async (event) => {
++  // Internal-only: signed via INTERNAL_TOKEN. If unset, we accept any caller — fine
++  // for v1, since the URL isn't published. Lock it down later if needed.
++  const expected = process.env.INTERNAL_TOKEN || "";
++  const got = event.headers?.["x-internal-token"];
++  if (expected && got !== expected) {
++    return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
++  }
++  const body: any = parseJson(event.body);
++  const submissionId = body?.submissionId;
++  if (!submissionId) return { statusCode: 400, body: JSON.stringify({ error: "submissionId required" }) };
++
++  const t0 = Date.now();
++  try {
++    // Read the Notion row. If Notion is disabled (no NOTION_API_KEY), fall back to
++    // a synthetic row built from the request — but step3 doesn't pass the row, so
++    // in mock mode we error softly and the polling endpoint will time out into the
++    // client-side fallback.
++    const row = await readRow(submissionId);
++    if (!row) {
++      // Without Notion, we can't read the submission. Tell the client we're done
++      // with an "error" status — the front-end already falls back to a local mock
++      // when polling exceeds its timeout, so the user still sees a result.
++      await putResults(submissionId, { status: "error", message: "Submission not found in Notion. Configure NOTION_API_KEY." });
++      log("analyse-background", { submissionId, error: "no-notion-row", ms: Date.now() - t0 });
++      return { statusCode: 200, body: JSON.stringify({ ok: false }) };
++    }
++
++    // Fetch comparables and Steam signals in parallel
++    const [comparables, steamSignals] = await Promise.all([
++      findComparables(row.genre, 5),
++      fetchSteamSignals(row.steamUrl),
++    ]);
++
++    // Socials are not stored in Notion. We don't have them at this point unless
++    // step3 stashed them in KV — but the spec says they're ephemeral and only
++    // passed to the model. For background runs we pass an empty object; the
++    // analysis still runs.
++    const result = await runAnalysis({
++      row,
++      socials: {},
++      comparables,
++      steamSignals,
++    });
++
++    // Patch Pre-Release back to Notion
++    const preRelease = result.budget_revised.categories.find(c => /pre-?release/i.test(c.name));
++    if (preRelease) await patchPreRelease(submissionId, preRelease.amount_usd);
++
++    // Stash results — the loading-screen poll picks them up
++    await putResults(submissionId, {
++      status: "ready",
++      budget: result.budget_revised,
++      revenue: result.revenue_simulation,
++      edge: result.edge,
++      generatedAt: new Date().toISOString(),
++    });
++
++    log("analyse-background", { submissionId, ms: Date.now() - t0, total: result.budget_revised.total_usd });
++    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
++  } catch (e: any) {
++    console.error("[analyse-background] failed", e?.message || e);
++    await putResults(submissionId, { status: "error", message: String(e?.message || e) });
++    return { statusCode: 500, body: JSON.stringify({ error: "analysis failed" }) };
++  }
++};
+diff --git a/netlify/functions/capture-email.ts b/netlify/functions/capture-email.ts
+new file mode 100755
+index 0000000..5a399cb
+--- /dev/null
++++ b/netlify/functions/capture-email.ts
+@@ -0,0 +1,57 @@
++// POST /api/capture-email — opportunistic email capture from the results page.
++// Patches Submission Email on the Notion row, renders the results into a PDF,
++// and sends an HTML email + PDF attachment via Resend. Idempotent on
++// (submissionId, email).
++
++import type { Handler } from "@netlify/functions";
++import { CaptureEmailSchema, zodError } from "./_shared/validate";
++import { patchEmail, readRow } from "./_shared/notion";
++import { sendResults } from "./_shared/email";
++import { renderResultsPdf } from "./_shared/pdf";
++import { getResults } from "./_shared/kv";
++import { ok, bad, methodNotAllowed, log, rateLimit, clientIp, parseJson } from "./_shared/http";
++
++export const handler: Handler = async (event) => {
++  if (event.httpMethod !== "POST") return methodNotAllowed(["POST"]);
++  const ip = clientIp(event);
++  if (!rateLimit(ip, 20, 60 * 60 * 1000)) {
++    return { statusCode: 429, body: JSON.stringify({ error: "Too many requests" }) };
++  }
++  const body = parseJson(event.body);
++  const parsed = CaptureEmailSchema.safeParse(body);
++  if (!parsed.success) return zodError(parsed.error);
++  const { submissionId, email } = parsed.data;
++  const t0 = Date.now();
++
++  // PATCH the Notion row. (Logged but not in PII fields.)
++  const wrote = await patchEmail(submissionId, email);
++
++  // Pull row + cached results so the email can include a snapshot
++  const [row, results] = await Promise.all([readRow(submissionId), getResults(submissionId)]);
++
++  let pdfSent = false;
++  if (row && results && results.status === "ready") {
++    const host = (event.headers?.host || "caspianshift.com").toString();
++    const protocol = host.includes("localhost") ? "http" : "https";
++    const resultsUrl = `${protocol}://${host}/budget?id=${encodeURIComponent(submissionId)}`;
++    let pdfBuffer: Buffer | null = null;
++    try {
++      pdfBuffer = await renderResultsPdf({ submissionId, resultsUrl });
++    } catch (e: any) {
++      console.warn("[capture-email] PDF render failed:", e?.message || e);
++    }
++    const sent = await sendResults({
++      to: email,
++      row,
++      results,
++      pdfBuffer: pdfBuffer || undefined,
++      resultsUrl,
++    });
++    pdfSent = sent.ok;
++  }
++
++  log("capture-email", { submissionId, wroteNotion: wrote, sent: pdfSent, ms: Date.now() - t0 });
++  // Don't expose whether the email was actually delivered — return ok regardless,
++  // so attackers can't probe for valid submissionIds.
++  return ok({ ok: true });
++};
+diff --git a/netlify/functions/results.ts b/netlify/functions/results.ts
+new file mode 100755
+index 0000000..a433023
+--- /dev/null
++++ b/netlify/functions/results.ts
+@@ -0,0 +1,19 @@
++// GET /api/results?id={submissionId}
++// Polled every 2s by the loading screen.
++
++import type { Handler } from "@netlify/functions";
++import { getResults } from "./_shared/kv";
++import { ok, methodNotAllowed, bad, log } from "./_shared/http";
++
++export const handler: Handler = async (event) => {
++  if (event.httpMethod !== "GET") return methodNotAllowed(["GET"]);
++  const id = event.queryStringParameters?.id;
++  if (!id) return bad("Missing id");
++  const r = await getResults(id);
++  if (!r) {
++    log("results", { submissionId: id, status: "missing" });
++    return ok({ status: "pending" });
++  }
++  if (r.status === "ready") log("results", { submissionId: id, status: "ready" });
++  return ok(r);
++};
+diff --git a/netlify/functions/step1.ts b/netlify/functions/step1.ts
+new file mode 100755
+index 0000000..78b4925
+--- /dev/null
++++ b/netlify/functions/step1.ts
+@@ -0,0 +1,23 @@
++// POST /api/step1
++// Validates Step 1 body, creates a new Notion row tagged Source Type=CS Pilot,
++// returns a stable submissionId for the rest of the wizard.
++
++import type { Handler } from "@netlify/functions";
++import { Step1Schema, zodError } from "./_shared/validate";
++import { createStep1Row } from "./_shared/notion";
++import { ok, methodNotAllowed, log, rateLimit, clientIp, parseJson } from "./_shared/http";
++
++export const handler: Handler = async (event) => {
++  if (event.httpMethod !== "POST") return methodNotAllowed(["POST"]);
++  const ip = clientIp(event);
++  if (!rateLimit(ip, 30, 60 * 60 * 1000)) {
++    return { statusCode: 429, body: JSON.stringify({ error: "Too many submissions, try again later." }) };
++  }
++  const body = parseJson(event.body);
++  const parsed = Step1Schema.safeParse(body);
++  if (!parsed.success) return zodError(parsed.error);
++  const t0 = Date.now();
++  const { submissionId, notionPageId } = await createStep1Row(parsed.data);
++  log("step1", { submissionId, notion: !!notionPageId, gameName: parsed.data.gameName, ms: Date.now() - t0 });
++  return ok({ submissionId, notionPageId });
++};
+diff --git a/netlify/functions/step2.ts b/netlify/functions/step2.ts
+new file mode 100755
+index 0000000..a80f990
+--- /dev/null
++++ b/netlify/functions/step2.ts
+@@ -0,0 +1,21 @@
++// POST /api/step2 — PATCH the Notion row with budget fields.
++
++import type { Handler } from "@netlify/functions";
++import { Step2Schema, zodError } from "./_shared/validate";
++import { patchStep2 } from "./_shared/notion";
++import { ok, methodNotAllowed, log, rateLimit, clientIp, parseJson } from "./_shared/http";
++
++export const handler: Handler = async (event) => {
++  if (event.httpMethod !== "POST") return methodNotAllowed(["POST"]);
++  const ip = clientIp(event);
++  if (!rateLimit(ip, 60, 60 * 60 * 1000)) {
++    return { statusCode: 429, body: JSON.stringify({ error: "Too many requests" }) };
++  }
++  const body = parseJson(event.body);
++  const parsed = Step2Schema.safeParse(body);
++  if (!parsed.success) return zodError(parsed.error);
++  const t0 = Date.now();
++  const wrote = await patchStep2(parsed.data.submissionId, parsed.data);
++  log("step2", { submissionId: parsed.data.submissionId, wrote, ms: Date.now() - t0 });
++  return ok({ ok: true });
++};
+diff --git a/netlify/functions/step3.ts b/netlify/functions/step3.ts
+new file mode 100755
+index 0000000..526c773
+--- /dev/null
++++ b/netlify/functions/step3.ts
+@@ -0,0 +1,59 @@
++// POST /api/step3 — final step. Patches traction fields, computes Data Confidence,
++// upserts comparable rows, then triggers /api/analyse-background and returns
++// immediately so the loading screen can poll /api/results.
++
++import type { Handler } from "@netlify/functions";
++import { Step3Schema, zodError } from "./_shared/validate";
++import { patchStep3, upsertComparable } from "./_shared/notion";
++import { putResults } from "./_shared/kv";
++import { ok, methodNotAllowed, log, rateLimit, clientIp, parseJson } from "./_shared/http";
++
++function deriveConfidence(socials: Record<string, number | undefined>, wishlists?: number): "High" | "Medium" | "Low" {
++  let signals = 0;
++  if (wishlists && wishlists > 0) signals++;
++  for (const k of Object.keys(socials || {})) {
++    if ((socials[k] || 0) > 0) signals++;
++    if (signals >= 4) break;
++  }
++  if (signals >= 3) return "High";
++  if (signals >= 1) return "Medium";
++  return "Low";
++}
++
++export const handler: Handler = async (event) => {
++  if (event.httpMethod !== "POST") return methodNotAllowed(["POST"]);
++  const ip = clientIp(event);
++  if (!rateLimit(ip, 5, 60 * 60 * 1000)) {
++    return { statusCode: 429, body: JSON.stringify({ error: "Too many submissions, try again later." }) };
++  }
++  const body = parseJson(event.body);
++  const parsed = Step3Schema.safeParse(body);
++  if (!parsed.success) return zodError(parsed.error);
++  const { submissionId, socials, currentWishlists, comparables } = parsed.data;
++  const confidence = deriveConfidence(socials, currentWishlists);
++
++  const t0 = Date.now();
++  // Patch traction
++  await patchStep3(submissionId, parsed.data, confidence);
++  // Upsert comparables (don't block on failures)
++  await Promise.allSettled((comparables || []).map(c => upsertComparable(c)));
++
++  // Mark KV as pending so the polling endpoint has something to return
++  await putResults(submissionId, { status: "pending" });
++
++  // Kick off background analysis. We invoke it via a fetch to its own URL so
++  // it runs in a separate Lambda — Netlify routes /.netlify/functions/foo to the
++  // function regardless of where you fire from.
++  const host = (event.headers?.host || "").toString();
++  const protocol = host.includes("localhost") ? "http" : "https";
++  const targetUrl = `${protocol}://${host}/.netlify/functions/analyse-background`;
++  // Fire-and-forget — don't await the response
++  fetch(targetUrl, {
++    method: "POST",
++    headers: { "Content-Type": "application/json", "x-internal-token": process.env.INTERNAL_TOKEN || "" },
++    body: JSON.stringify({ submissionId }),
++  }).catch(e => console.warn("[step3] could not kick off analyse-background:", e?.message || e));
++
++  log("step3", { submissionId, confidence, comparables: (comparables || []).length, ms: Date.now() - t0 });
++  return ok({ ok: true });
++};
+diff --git a/package.json b/package.json
+new file mode 100755
+index 0000000..3b659cd
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,27 @@
++{
++  "name": "caspianshift-website",
++  "version": "1.1.0",
++  "private": true,
++  "description": "Caspian Shift marketing site + Budget Tool. Vanilla HTML/CSS/JS frontend, Netlify Functions backend.",
++  "scripts": {
++    "dev": "netlify dev",
++    "deploy": "netlify deploy --prod"
++  },
++  "dependencies": {
++    "@anthropic-ai/sdk": "^0.30.0",
++    "@netlify/blobs": "^8.0.0",
++    "@notionhq/client": "^2.2.15",
++    "@sparticuz/chromium": "^131.0.0",
++    "puppeteer-core": "^23.0.0",
++    "resend": "^4.0.0",
++    "zod": "^3.23.0"
++  },
++  "devDependencies": {
++    "@netlify/functions": "^2.8.0",
++    "@types/node": "^20.0.0",
++    "typescript": "^5.4.0"
++  },
++  "engines": {
++    "node": ">=18"
++  }
++}
+diff --git a/tsconfig.json b/tsconfig.json
+new file mode 100755
+index 0000000..a577496
+--- /dev/null
++++ b/tsconfig.json
+@@ -0,0 +1,16 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "module": "ESNext",
++    "moduleResolution": "Bundler",
++    "esModuleInterop": true,
++    "strict": false,
++    "noImplicitAny": false,
++    "skipLibCheck": true,
++    "resolveJsonModule": true,
++    "allowSyntheticDefaultImports": true,
++    "isolatedModules": true,
++    "lib": ["ES2022", "DOM"]
++  },
++  "include": ["netlify/**/*.ts"]
++}
