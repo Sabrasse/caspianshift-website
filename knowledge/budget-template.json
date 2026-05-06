@@ -6,8 +6,7 @@
     { "key": "music",      "label": "Music & Sound",       "always_include": true },
     { "key": "loc",        "label": "Localization",        "always_include": true },
     { "key": "marketing",  "label": "Marketing",           "always_include": true },
-    { "key": "overhead",   "label": "Overhead",            "always_include": true, "always_estimated": true },
-    { "key": "preRelease", "label": "Pre-Release",         "always_include": true, "always_estimated": true, "never_user_supplied": true }
+    { "key": "overhead",   "label": "Overhead",            "always_include": true, "always_estimated": true }
   ],
   "derivation_rules": {
     "dev_missing": "country monthly salary × Studio Size × Dev Time",
@@ -16,7 +15,6 @@
     "loc_missing": "$0 if user explicitly indicated English-only; otherwise 7% of production sub-total",
     "marketing_missing": "10% of production sub-total",
     "overhead_always": "10% × (production + marketing minimum)",
-    "preRelease_always": "5% × (production + marketing minimum); never user-supplied; tagged source='estimated'",
     "dev_sanity_check": "if user-provided Dev & QA deviates >30% from country salary × headcount × dev time, mark provenance='adjusted' and average toward the benchmark"
   },
   "rounding": {
