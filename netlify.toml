@@ -1,0 +1,51 @@
+# Netlify configuration for caspianshift.com
+# Adds the Budget Tool: /budget routes to budget.html and /api/* routes to functions.
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  # Bundle TypeScript with esbuild. Default in Netlify but pinned here for clarity.
+  node_bundler = "esbuild"
+  # Include the knowledge JSON in the function bundle so anthropic.ts can `import` it.
+  included_files = ["knowledge/**"]
+
+[functions."analyse-background"]
+  # Background functions need explicit declaration via filename suffix or via this block.
+  # The filename ends in `-background.ts` which Netlify recognises automatically — this
+  # block exists in case you ever rename the file.
+
+# ── Pretty URLs ─────────────────────────────────────────────────
+[[redirects]]
+  from = "/budget"
+  to = "/budget.html"
+  status = 200
+
+[[redirects]]
+  from = "/budget/"
+  to = "/budget.html"
+  status = 200
+
+# ── API routing ─────────────────────────────────────────────────
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# ── SPA fallback (existing) ─────────────────────────────────────
+# index.html still lives at /; nothing to do.
+
+# ── Security headers ────────────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+[[headers]]
+  for = "/budget*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
