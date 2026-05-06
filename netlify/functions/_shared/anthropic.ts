@@ -27,7 +27,7 @@ Tone: Direct, blunt, mildly self-deprecating. Indie peer to indie peer — not c
 Banned words: "unfortunately".
 Do not invent numbers for comparables — only use the comparables provided in the user message.
 Do not promise outcomes; frame in terms of clarity, optionality, runway.
-Always include a Pre-Release category in budget_revised with source="estimated" and value = round(0.05 × (production_subtotal + marketing)).
+Do NOT include a Pre-Release category in budget_revised -- that line was removed in v1.1. The 6 categories are: Development & QA, Art & Illustrations, Music & Sound, Localization, Marketing, Overhead.
 If 3+ budget categories have source="estimated", framing_mode must be "constructive_next_steps" and the flaws should read as ordered next-steps rather than criticisms.
 The Edge must be 2-4 short paragraphs and end with a single CTA "Get in touch →".
 
@@ -132,8 +132,7 @@ function mockAnalysis({ row }: RunInput): AnalysisResult {
   const prod = dev + art + music + loc;
   const marketing = row.marketingBudget ?? Math.round(prod * 0.10);
   const overhead = Math.round((prod + marketing) * 0.10);
-  const preRelease = Math.round((prod + marketing) * 0.05);
-  const total = dev + art + music + loc + marketing + overhead + preRelease;
+  const total = dev + art + music + loc + marketing + overhead;
   const rounded = total > 200000 ? Math.round(total / 10000) * 10000 : Math.round(total / 5000) * 5000;
   const price = row.pricePoint || 19.99;
   const netPerSale = price * 0.7;
@@ -173,7 +172,6 @@ function mockAnalysis({ row }: RunInput): AnalysisResult {
         { name: "Localization",      amount_usd: loc,        source: row.localizationBudget != null ? "user" : "estimated", source_note: row.localizationBudget != null ? "As provided" : "7% of production sub-total", rationale: loc === 0 ? "English-only." : "Industry-typical share." },
         { name: "Marketing",         amount_usd: marketing,  source: row.marketingBudget    != null ? "user" : "estimated", source_note: row.marketingBudget != null ? "Matches floor" : "10% production minimum", rationale: "Industry minimum applied." },
         { name: "Overhead",          amount_usd: overhead,   source: "estimated", source_note: "10% of production + marketing", rationale: "Standard overhead band." },
-        { name: "Pre-Release",       amount_usd: preRelease, source: "estimated", source_note: "Always estimated — 5% of production + marketing", rationale: "Discord moderation, store listing assets, build infra, demo costs." },
       ],
       total_usd: rounded,
       flaws:

@@ -57,9 +57,13 @@ export const handler: Handler = async (event) => {
       steamSignals,
     });
 
-    // Patch Pre-Release back to Notion
-    const preRelease = result.budget_revised.categories.find(c => /pre-?release/i.test(c.name));
-    if (preRelease) await patchPreRelease(submissionId, preRelease.amount_usd);
+    // Per Keyvan's clarification: the "Pre-Release Budget" Notion column holds
+    // the TOTAL revised budget for this pre-release game (every submission is
+    // pre-launch by definition since Released-stage is gated out). It does NOT
+    // hold the spec's old 5%-of-production slice -- that line item was dropped.
+    if (typeof result.budget_revised.total_usd === "number") {
+      await patchPreRelease(submissionId, result.budget_revised.total_usd);
+    }
 
     // Stash results — the loading-screen poll picks them up
     await putResults(submissionId, {
