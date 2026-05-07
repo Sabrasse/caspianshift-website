@@ -1,19 +1,14 @@
 {
   "name": "caspianshift-website",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Caspian Shift marketing site + Budget Tool. Vanilla HTML/CSS/JS frontend, Netlify Functions backend.",
+  "description": "Caspian Shift marketing site + Funding Analysis tool. Vanilla HTML/CSS/JS frontend, Netlify Functions backend.",
   "scripts": {
     "dev": "netlify dev",
     "deploy": "netlify deploy --prod"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.30.0",
-    "@netlify/blobs": "^8.0.0",
     "@notionhq/client": "^2.2.15",
-    "@sparticuz/chromium": "^131.0.0",
-    "puppeteer-core": "^23.0.0",
-    "resend": "^4.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
