@@ -1,4 +1,4 @@
-// POST /api/step2 — PATCH the Notion row with budget fields.
+// POST /api/step2 — Studio step. PATCHes the row created in Step 1.
 
 import type { Handler } from "@netlify/functions";
 import { Step2Schema, zodError } from "./_shared/validate";
@@ -14,8 +14,9 @@ export const handler: Handler = async (event) => {
   const body = parseJson(event.body);
   const parsed = Step2Schema.safeParse(body);
   if (!parsed.success) return zodError(parsed.error);
+
   const t0 = Date.now();
-  const wrote = await patchStep2(parsed.data.submissionId, parsed.data);
-  log("step2", { submissionId: parsed.data.submissionId, wrote, ms: Date.now() - t0 });
+  const wrote = await patchStep2(parsed.data);
+  log("step2", { notionPageId: parsed.data.notionPageId, wrote, ms: Date.now() - t0 });
   return ok({ ok: true });
 };

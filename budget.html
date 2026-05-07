@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Budget Tool — Caspian Shift</title>
+  <title>Funding Analysis — Caspian Shift</title>
   <meta name="description" content="Free funding analysis for indie game studios. Get a revised budget, revenue simulation, and personalized funding strategy in 60 seconds.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='6' fill='%230D0112'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' font-weight='bold' text-anchor='middle' fill='%2317BEBB'>CS</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -81,7 +81,7 @@
     }
     .cs-nav-logo svg { width: 24px; height: 24px; flex-shrink: 0; transition: transform .5s ease; }
     .cs-nav-logo:hover svg { transform: rotate(45deg); }
-    .cs-nav-right { display: flex; align-items: center; gap: 2rem; }
+    .cs-nav-right { display: flex; align-items: center; gap: 1.6rem; }
     .cs-nav-tag {
       font-family: 'Boogaloo', cursive; font-size: 0.82rem;
       color: var(--teal); letter-spacing: 0.22em; text-transform: uppercase;
@@ -121,30 +121,29 @@
       margin: 0 auto;
       padding: 2rem 2rem 3rem;
       border-top: 1px solid rgba(23,190,187,.12);
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 1rem;
     }
     .cs-footer-logo { text-decoration: none; }
     .cs-footer-copy {
       text-align: center;
-      font-size: 0.85rem;
-      color: rgba(250,240,202,.45);
+      font-size: .78rem;
+      color: rgba(250,240,202,.35);
       font-family: 'Nunito', sans-serif;
     }
     .cs-footer-link {
-      justify-self: end;
       color: rgba(250,240,202,.45);
       text-decoration: none;
-      font-size: 0.85rem;
+      font-size: .85rem;
       transition: color .2s;
     }
     .cs-footer-link:hover { color: var(--teal); }
-    @media (max-width: 720px) {
-      .cs-footer { grid-template-columns: 1fr; text-align: center; gap: 0.6rem; }
-      .cs-footer-link { justify-self: center; }
-      .cs-footer-logo { justify-self: center; }
+    @media (max-width: 640px) {
+      nav.cs-nav { padding: .8rem 1.2rem; }
+      .cs-footer { flex-direction: column; text-align: center; gap: 0.6rem; }
     }
     .btn-pill {
       background: var(--red); color: var(--white); border: 2px solid var(--red);
@@ -294,7 +293,7 @@
     .cs-card.orange .cs-card-tag { background: var(--orange); color: var(--bg); }
     .cs-card.red    .cs-card-tag { background: var(--red);    color: var(--white); }
 
-    /* What's-next mini cards (link cards) */
+    /* What's-next mini cards (link cards) — reused for Caspian Shift recommendation cards */
     .cs-link-card {
       border: 3px solid var(--teal); background: rgba(23,190,187,.03);
       padding: 1.5rem 1.25rem; position: relative; text-decoration: none;
@@ -310,20 +309,15 @@
 
     /* Mobile tweaks */
     @media (max-width: 720px) {
-      nav.cs-nav { padding: 0.85rem 1rem; }
       .cs-nav-tag { display: none; }
-      .cs-nav-right { gap: 1rem; }
+      .cs-nav-right { gap: 0.9rem; }
       .grid-2 { grid-template-columns: 1fr !important; }
       .grid-3 { grid-template-columns: 1fr !important; }
-      .grid-results-2 { grid-template-columns: 1fr !important; }
-      .grid-results-2 .cs-flaws-panel { border-left: none !important; padding-left: 0 !important; border-top: 1px solid rgba(23,190,187,.12); padding-top: 1.5rem !important; margin-top: 0.5rem; }
       .grid-revsim-row { grid-template-columns: 110px repeat(3, 1fr) !important; font-size: 0.78rem; }
       .cs-results { padding: 6rem 1rem 3rem !important; }
       .cs-card-inner { padding: 2rem 1.25rem 1.5rem !important; }
       .cs-revsim-cell { font-size: 0.78rem !important; }
-      .cs-email-capture { flex-direction: column; align-items: stretch !important; }
-      .cs-email-capture-inputs { flex-direction: column; }
-      .cs-email-capture-inputs input { width: 100% !important; }
+      .cs-caspian-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
@@ -345,7 +339,7 @@
     Caspian Shift
   </a>
   <div class="cs-nav-right">
-    <a href="/budget" class="cs-nav-link">Budget Tool<span class="cs-nav-link-tag">Free</span></a>
+    <a href="/budget" class="cs-nav-link">Funding Analysis<span class="cs-nav-link-tag">Free</span></a>
     <a href="/#contact" class="btn-pill">Get in Touch</a>
   </div>
 </nav>
@@ -375,23 +369,17 @@
 <script>
 'use strict';
 /* ─────────────────────────────────────────────────────────────────────
-   Caspian Shift — Budget Tool
-   Vanilla JS port of the React design. No framework. No build step.
-   Pages: landing → wizard → loading → results.
-   API endpoints: /api/step1, /api/step2, /api/step3, /api/results, /api/capture-email
-   On localhost / file://, calls fall through gracefully; results always render.
+   Caspian Shift — Funding Analysis (v2)
+   3-step wizard: Game → Studio → Budget. Server-backed Notion + caspian DB.
+   API endpoints: /api/step1, /api/step2, /api/step3, /api/results, /api/caspian
+   Frontend stays vanilla — no framework, no build.
    ───────────────────────────────────────────────────────────────────── */
 
-// ────────────────── CONSTANTS (mirrors budget-data.jsx + spec) ──────────────────
+// ────────────────── CONSTANTS ──────────────────
 const COUNTRIES = [
   'United States','Canada','United Kingdom','France','Germany','Spain','Italy',
   'Netherlands','Sweden','Finland','Poland','Czechia','Slovenia','Brazil','Japan'
 ];
-const COUNTRY_SALARIES = {
-  'United States':9500,'Canada':7200,'United Kingdom':6800,'France':5500,'Germany':6200,
-  'Spain':4200,'Italy':4000,'Netherlands':6500,'Sweden':6300,'Finland':6000,
-  'Poland':3800,'Czechia':3500,'Slovenia':3000,'Brazil':2800,'Japan':5000,'Other':4500
-};
 const STATUSES = ['Concept','Prototype','Vertical Slice','Demo','In Development','Alpha','Beta'];
 const GENRES = [
   'Action','Adventure','RPG','Strategy','Simulation','Puzzle','Platformer','Horror',
@@ -399,24 +387,9 @@ const GENRES = [
   'Racing','Fighting','Shooter','Stealth','Sandbox','Card Game','Narrative','Rhythm'
 ];
 const FUNDING_TYPES = ['Self-Funded','Crowdfunding','Publisher','Grant'];
+const COPIES_LABELS = { conservative: 500, realistic: 5000, optimistic: 50000 };
 
-const PROV_ICONS = {
-  provided:  { symbol: '✓', color: '#17BEBB', label: 'You provided' },
-  estimated: { symbol: '·', color: '#FAF0CA', label: 'We estimated' },
-  adjusted:  { symbol: '⟳', color: '#FC7A1E', label: 'We adjusted' },
-};
-const BUDGET_LABELS = {
-  dev: 'Development & QA', art: 'Art & Illustrations', music: 'Music & Sound',
-  loc: 'Localization', marketing: 'Marketing', overhead: 'Overhead',
-};
-
-// ────────────────── DOM HELPERS (mini React-like h() factory) ──────────────────
-/**
- * h(tag, attrs?, ...children) — create an HTMLElement.
- * `attrs` keys: style (string|object), className/class, dataset object,
- * onclick / onchange / on* (event handlers), html (innerHTML), or any DOM attr.
- * children: strings → text nodes; arrays → flattened; null/undefined skipped.
- */
+// ────────────────── DOM HELPERS ──────────────────
 function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
   if (attrs && typeof attrs === 'object' && !(attrs instanceof Node) && !Array.isArray(attrs)) {
@@ -457,40 +430,40 @@ function appendChildren(el, kids) {
   }
 }
 
-// Format helpers
 const fmt = (v) => '$' + (v || 0).toLocaleString();
 const fmtCommas = (v) => (v || 0).toLocaleString();
 
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 // ────────────────── STATE ──────────────────
-const STORAGE_KEY = 'cs_budget_tool_v1';
-const SUBMISSION_KEY = 'cs_budget_submission_v1';
+const STORAGE_KEY = 'cs_funding_tool_v2';
+const PAGE_ID_KEY = 'cs_funding_pageid_v2';
 let state = {
   page: 'landing',           // landing | wizard | loading | results
-  step: 0,                   // 0 | 1 | 2 (within wizard)
-  submissionId: null,        // received from /api/step1
+  step: 0,                   // 0=Game | 1=Studio | 2=Budget
+  notionPageId: null,        // returned from /api/step1
   data: defaultFormData(),
-  results: null,             // populated when /api/results returns ready
-  pollTimer: null,
+  results: null,             // populated when /api/results returns
 };
 
 function defaultFormData() {
   return {
-    steamUrl: '', gameName: '', studioName: '', status: '', genre: [],
-    studioSize: '', studioCountry: '', releaseDate: '', pricePoint: null,
-    fundingType: '', devTime: '',
+    // Step 1 — Game
+    gameName: '', status: '', genre: [], releaseDate: '', similarGame: '',
+    // Step 2 — Studio
+    studioName: '', studioSize: '', studioCountry: '', fundingType: '',
+    // Step 3 — Budget
+    devTime: '',
     devBudget: null, artBudget: null, musicBudget: null, locBudget: null, marketingBudget: null,
-    wishlists: '',
-    socials: { twitter: 0, tiktok: 0, youtube: 0, discord: 0, reddit: 0 },
-    primaryChannel: '',
-    nextFest: false,
-    comparables: [{ name: '', url: '' }, { name: '', url: '' }, { name: '', url: '' }],
   };
 }
 
 function saveState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: state.data, step: state.step, page: state.page }));
-    if (state.submissionId) localStorage.setItem(SUBMISSION_KEY, state.submissionId);
+    if (state.notionPageId) localStorage.setItem(PAGE_ID_KEY, state.notionPageId);
   } catch (e) { /* private mode — ignore */ }
 }
 function loadState() {
@@ -500,19 +473,16 @@ function loadState() {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.data) {
         state.data = Object.assign(defaultFormData(), parsed.data);
-        state.data.socials = Object.assign({ twitter:0,tiktok:0,youtube:0,discord:0,reddit:0 }, parsed.data.socials || {});
-        state.data.comparables = (parsed.data.comparables && parsed.data.comparables.length)
-          ? parsed.data.comparables : defaultFormData().comparables;
       }
     }
-    const sid = localStorage.getItem(SUBMISSION_KEY);
-    if (sid) state.submissionId = sid;
+    const pid = localStorage.getItem(PAGE_ID_KEY);
+    if (pid) state.notionPageId = pid;
   } catch (e) { /* ignore */ }
 }
 function clearStoredFlow() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SUBMISSION_KEY);
+    localStorage.removeItem(PAGE_ID_KEY);
   } catch (e) { /* ignore */ }
 }
 
@@ -526,13 +496,13 @@ async function postJSON(path, body) {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
-      console.warn('[budget] POST', path, res.status, text.slice(0, 200));
+      console.warn('[funding] POST', path, res.status, text.slice(0, 200));
       return { ok: false, status: res.status, body: text };
     }
     const json = await res.json();
     return { ok: true, status: res.status, body: json };
   } catch (e) {
-    console.warn('[budget] POST', path, 'failed', e.message);
+    console.warn('[funding] POST', path, 'failed', e.message);
     return { ok: false, status: 0, body: null, error: e.message };
   }
 }
@@ -547,11 +517,17 @@ async function getJSON(path) {
   }
 }
 
-// ────────────────── BUDGET / REVENUE — local fallback ──────────────────
-/**
- * Local mock used when /api/results returns nothing (or running on file://).
- * Mirrors the spec's derivation rules. The real analysis runs server-side via Anthropic.
- */
+// ────────────────── LOCAL FALLBACK (when backend is unavailable) ──────────────────
+// Mirrors results.ts deterministic math so the page still renders something useful
+// when running against `file://` or an unconfigured backend.
+const COUNTRY_SALARIES = {
+  'United States':9500,'Canada':7200,'United Kingdom':6800,'France':5500,'Germany':6200,
+  'Spain':4200,'Italy':4000,'Netherlands':6500,'Sweden':6300,'Finland':6000,
+  'Poland':3800,'Czechia':3500,'Slovenia':3000,'Brazil':2800,'Japan':5000,'Other':4500
+};
+const NARRATIVE_GENRES = ['RPG','Visual Novel','Adventure','Narrative'];
+const MECHANICAL_GENRES = ['Strategy','Roguelike','Card Game','Puzzle'];
+
 function calcBudgetLocal(input) {
   const country = input.studioCountry || 'Other';
   const salary = COUNTRY_SALARIES[country] || COUNTRY_SALARIES['Other'];
@@ -559,157 +535,127 @@ function calcBudgetLocal(input) {
   const devTime = parseInt(input.devTime) || 12;
   const devEst = salary * studioSize * devTime;
 
-  const lines = {};
+  const lines = [];
   // Dev & QA
-  if (input.devBudget) {
-    const ratio = input.devBudget / devEst;
-    if (ratio > 1.3 || ratio < 0.7) {
-      lines.dev = { val: Math.round((input.devBudget + devEst) / 2),
-        prov: 'adjusted',
-        rationale: `Your $${input.devBudget.toLocaleString()} is ${ratio > 1 ? 'above' : 'below'} the ${country} salary benchmark for ${studioSize} dev${studioSize===1?'':'s'} × ${devTime}mo. We averaged toward the country-typical figure.` };
-    } else {
-      lines.dev = { val: input.devBudget, prov: 'provided',
-        rationale: `Within range of ${country} salary benchmarks for your team size and dev time.` };
-    }
-  } else {
-    lines.dev = { val: devEst, prov: 'estimated',
-      rationale: `Based on ${country} median salary ($${salary.toLocaleString()}/mo) × ${studioSize} dev${studioSize===1?'':'s'} × ${devTime} months.` };
-  }
-  // Art — genre-typical share of dev cost
-  const narrativeHeavy = (input.genre || []).some(g => ['RPG','Visual Novel','Adventure','Narrative'].includes(g));
-  const mechanical = (input.genre || []).some(g => ['Strategy','Roguelike','Card Game','Puzzle'].includes(g));
+  lines.push(input.devBudget != null
+    ? { key: 'dev', label: 'Development & QA', amount_usd: input.devBudget, source: 'user',
+        rationale: `As provided — within ${country} salary range for your team.` }
+    : { key: 'dev', label: 'Development & QA', amount_usd: devEst, source: 'estimated',
+        rationale: `${country} median salary ($${salary.toLocaleString()}/mo) × ${studioSize} dev${studioSize===1?'':'s'} × ${devTime} months.` });
+
+  // Art
+  const narrativeHeavy = (input.genre || []).some(g => NARRATIVE_GENRES.includes(g));
+  const mechanical = (input.genre || []).some(g => MECHANICAL_GENRES.includes(g));
   const artShare = narrativeHeavy ? 0.25 : mechanical ? 0.10 : 0.18;
-  if (input.artBudget) {
-    lines.art = { val: input.artBudget, prov: 'provided',
-      rationale: `Within the typical range for your genre profile.` };
-  } else {
-    lines.art = { val: Math.round(devEst * artShare), prov: 'estimated',
-      rationale: `Genre-typical share of dev cost (${Math.round(artShare*100)}% for your genre profile).` };
-  }
+  lines.push(input.artBudget != null
+    ? { key: 'art', label: 'Art & Illustrations', amount_usd: input.artBudget, source: 'user',
+        rationale: 'As provided — within typical genre range.' }
+    : { key: 'art', label: 'Art & Illustrations', amount_usd: Math.round(devEst * artShare), source: 'estimated',
+        rationale: `Genre-typical share of dev cost (${Math.round(artShare*100)}%).` });
+
   // Music
-  if (input.musicBudget) {
-    lines.music = { val: input.musicBudget, prov: 'provided', rationale: 'As provided.' };
-  } else {
-    lines.music = { val: 8000, prov: 'estimated', rationale: 'Comparables median; fallback $8,000.' };
-  }
+  lines.push(input.musicBudget != null
+    ? { key: 'music', label: 'Music & Sound', amount_usd: input.musicBudget, source: 'user', rationale: 'As provided.' }
+    : { key: 'music', label: 'Music & Sound', amount_usd: 8000, source: 'estimated',
+        rationale: 'Comparables median; fallback $8,000.' });
+
   // Localization
-  if (input.locBudget != null && input.locBudget !== '' && input.locBudget !== undefined) {
-    lines.loc = { val: input.locBudget, prov: 'provided',
-      rationale: input.locBudget === 0 ? 'English-only — no localization budget.' : 'As provided.' };
-  } else {
-    const prodSoFar = lines.dev.val + lines.art.val + lines.music.val;
-    lines.loc = { val: Math.round(prodSoFar * 0.07), prov: 'estimated',
-      rationale: '7% of production sub-total (industry typical for 4-6 languages).' };
-  }
-  // Marketing — at least 10% of production
-  const productionSubtotal = lines.dev.val + lines.art.val + lines.music.val + lines.loc.val;
+  const productionSoFar = lines[0].amount_usd + lines[1].amount_usd + lines[2].amount_usd;
+  lines.push(input.locBudget != null
+    ? { key: 'loc', label: 'Localization', amount_usd: input.locBudget, source: 'user',
+        rationale: input.locBudget === 0 ? 'English-only — no localization budget.' : 'As provided.' }
+    : { key: 'loc', label: 'Localization', amount_usd: Math.round(productionSoFar * 0.07), source: 'estimated',
+        rationale: '7% of production sub-total (industry typical for 4–6 languages).' });
+
+  // Marketing — minimum 10% of production sub-total
+  const productionSubtotal = productionSoFar + lines[3].amount_usd;
   const marketingFloor = Math.round(productionSubtotal * 0.10);
-  if (input.marketingBudget) {
-    if (input.marketingBudget < marketingFloor) {
-      lines.marketing = { val: marketingFloor, prov: 'adjusted',
-        rationale: `Your $${input.marketingBudget.toLocaleString()} is below the 10% production minimum. We raised it to the floor.` };
-    } else {
-      lines.marketing = { val: input.marketingBudget, prov: 'provided', rationale: 'Above the 10% production minimum.' };
-    }
-  } else {
-    lines.marketing = { val: marketingFloor, prov: 'estimated',
-      rationale: 'Industry minimum: 10% of production sub-total.' };
-  }
-  // Overhead = 10% of (production + marketing). Always its own line.
-  lines.overhead = { val: Math.round((productionSubtotal + lines.marketing.val) * 0.10),
-    prov: 'estimated', rationale: '10% of production + marketing.' };
+  lines.push(input.marketingBudget != null && input.marketingBudget >= marketingFloor
+    ? { key: 'marketing', label: 'Marketing', amount_usd: input.marketingBudget, source: 'user',
+        rationale: 'As provided — above the 10% production minimum.' }
+    : { key: 'marketing', label: 'Marketing', amount_usd: marketingFloor, source: 'estimated',
+        rationale: 'Industry minimum: 10% of production sub-total.' });
 
-  const total = Object.values(lines).reduce((s, l) => s + l.val, 0);
-  const rounded = total > 200000 ? Math.round(total / 10000) * 10000 : Math.round(total / 5000) * 5000;
-  return { lines, total: rounded };
+  // Overhead
+  const overheadAmount = Math.round((productionSubtotal + lines[4].amount_usd) * 0.10);
+  lines.push({ key: 'overhead', label: 'Overhead', amount_usd: overheadAmount, source: 'estimated',
+    rationale: '10% of production + marketing.' });
+
+  const raw = lines.reduce((s, l) => s + l.amount_usd, 0);
+  const total_usd = raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
+  return { lines, total_usd };
 }
 
-function classifyCompleteness(input) {
-  const filled = ['devBudget','artBudget','musicBudget','locBudget','marketingBudget']
-    .filter(k => input[k] != null && input[k] !== '' && input[k] !== 0).length;
-  if (filled <= 1) return 'blank';
-  if (filled <= 3) return 'partial';
-  return 'full';
+function calcRevenueLocal(fundingType, totalBudget) {
+  const price = 19.99;
+  const STEAM_CUT = 0.30;
+  const COPIES = [500, 5000, 50000];
+  const GRANTS = [25000, 50000, 100000];
+
+  function buildBase(copies) {
+    const gross = price * copies;
+    const steam_share = gross * STEAM_CUT;
+    return { copies, price, gross, steam_share, studio_share: gross - steam_share };
+  }
+
+  if (fundingType === 'Self-Funded') {
+    return { funding_path: 'Self-Funded', price,
+      scenarios: { conservative: buildBase(COPIES[0]), realistic: buildBase(COPIES[1]), optimistic: buildBase(COPIES[2]) } };
+  }
+  if (fundingType === 'Publisher') {
+    const recoupment = totalBudget;
+    const buildPub = (copies) => {
+      const base = buildBase(copies);
+      const net = base.gross - base.steam_share;
+      const postRecoup = Math.max(net - recoupment, 0);
+      return Object.assign({}, base, {
+        publisher_recoupment: recoupment,
+        publisher_share: postRecoup * 0.30,
+        studio_share: postRecoup * 0.70,
+      });
+    };
+    return { funding_path: 'Publisher', price,
+      scenarios: { conservative: buildPub(COPIES[0]), realistic: buildPub(COPIES[1]), optimistic: buildPub(COPIES[2]) } };
+  }
+  if (fundingType === 'Grant') {
+    const buildGrant = (copies, grantAmount) => Object.assign({}, buildBase(copies), {
+      grant_amount: grantAmount,
+      remaining_gap: Math.max(totalBudget - grantAmount, 0),
+    });
+    return { funding_path: 'Grant', price,
+      scenarios: {
+        conservative: buildGrant(COPIES[0], GRANTS[0]),
+        realistic:    buildGrant(COPIES[1], GRANTS[1]),
+        optimistic:   buildGrant(COPIES[2], GRANTS[2]),
+      } };
+  }
+  // Crowdfunding — equal-weight tier distribution
+  const tierDefs = [{ label: 'Tier 1', price: 15 }, { label: 'Tier 2', price: 25 }, { label: 'Tier 3', price: 30 }, { label: 'Tier 4', price: 50 }];
+  const tiers = tierDefs.map(t => ({ label: t.label, price: t.price, backers: Math.ceil(totalBudget / 4 / t.price) }));
+  return { funding_path: 'Crowdfunding', price,
+    crowdfunding: {
+      tiers,
+      total_backers: tiers.reduce((s, t) => s + t.backers, 0),
+      total_raised: tiers.reduce((s, t) => s + t.backers * t.price, 0),
+    } };
 }
 
-function getFlawsLocal(input, completeness) {
-  const country = input.studioCountry || 'your country';
-  if (completeness === 'blank') {
-    return [
-      { title: 'Pin down dev costs first', body: "Without a dev budget, the entire analysis is a rough estimate. Track hours for two sprints and extrapolate.", fix: 'We can run a detailed cost model in a Funding Analysis session.' },
-      { title: 'Art scope undefined', body: 'Art budgets span a 5× range depending on asset count and fidelity. Most of your spend hides here.', fix: "List your asset types (tilesets, portraits, VFX) and we'll benchmark each." },
-      { title: 'Marketing is not optional', body: 'The 10% production minimum is an industry floor. Most successful launches spend 15–25%.', fix: 'A Funding Ready Pack includes a marketing budget model sized to your wishlist target.' },
-    ];
-  }
-  if (completeness === 'partial') {
-    return [
-      { title: 'Budget gaps still material', body: "You filled some lines but skipped others. The estimates we plugged in are directional, not contractual.", fix: 'Track your actual monthly burn for two months and update the missing lines.' },
-      { title: 'Localization undefined', body: 'If you plan non-English markets, budget 7% of production for localization. English-only is fine — we just need to know.', fix: 'We benchmark loc costs per target language in the Funding Ready Pack.' },
-      { title: 'Marketing below floor', body: "We applied the 10% minimum, but pre-launch indies with sub-10k wishlists often need 15%+ to break through.", fix: "Let's model your wishlist-to-launch conversion and size marketing accordingly." },
-    ];
-  }
-  return [
-    { title: 'Budget consistency', body: `Your dev budget sits within the ${country} benchmark for your team size — but verify it reflects actual contracts, not aspirational hiring.`, fix: 'We audit line-by-line in the Funding Analysis to separate committed vs. projected spend.' },
-    { title: 'Unplanned expenses', body: 'No contingency buffer. Hardware failures, scope creep, and contractor overruns typically add 10-15% to indie budgets.', fix: 'We build a risk-adjusted budget in the Funding Ready Pack.' },
-    { title: 'Marketing tied to outcomes?', body: "Your marketing spend is at the industry floor. Validate it against your wishlist growth target — not a percentage rule.", fix: 'A marketing audit ties spend to specific acquisition channels.' },
-  ];
-}
-
-function calcConfidence(input) {
-  let signals = 0;
-  if (input.wishlists != null && input.wishlists !== '' && parseInt(input.wishlists) > 0) signals += 1;
-  for (const k of Object.keys(input.socials || {})) {
-    if ((input.socials[k] || 0) > 0) signals += 1;
-  }
-  signals = Math.min(signals, 4);
-  if (signals >= 3) return 'High';
-  if (signals >= 1) return 'Medium';
-  return 'Low';
-}
-
-function calcRevenueLocal(budget, price, fundingType) {
-  const netPerSale = price * (1 - 0.30);
-  // Conservative / realistic / optimistic copy projections — design's mock numbers,
-  // matched roughly to comparables-ratio in the spec.
-  const baseScenarios = {
-    conservative: { copies: 4200,  label: 'Conservative' },
-    realistic:    { copies: 11500, label: 'Realistic' },
-    optimistic:   { copies: 28000, label: 'Optimistic' },
+function buildLocalResults() {
+  const budget = calcBudgetLocal(state.data);
+  const fundingType = state.data.fundingType || 'Self-Funded';
+  const revenue = calcRevenueLocal(fundingType, budget.total_usd);
+  return {
+    status: 'ready',
+    studio_name: state.data.studioName || 'Your studio',
+    game_name: state.data.gameName || 'Your game',
+    funding_type: fundingType,
+    budget,
+    revenue,
+    generatedAt: new Date().toISOString(),
   };
-  const result = {};
-  for (const [key, s] of Object.entries(baseScenarios)) {
-    const gross = price * s.copies;
-    const steam = gross * 0.30;
-    const net = gross - steam;
-    if (fundingType === 'Self-Funded') {
-      result[key] = { ...s, price, gross, steam, studioShare: net };
-    } else if (fundingType === 'Publisher') {
-      const recoup = budget;
-      const postRecoup = Math.max(net - recoup, 0);
-      result[key] = { ...s, price, gross, steam, recoup,
-        pubShare: postRecoup * 0.30,
-        studioShare: net <= recoup ? 0 : postRecoup * 0.70 };
-    } else if (fundingType === 'Crowdfunding') {
-      const ksGoal = budget;
-      const fees = ksGoal * 0.10;
-      const fulfil = ksGoal * 0.12;
-      const netRaised = ksGoal - fees - fulfil;
-      const backersNeeded = Math.ceil(ksGoal / 25.50);
-      result[key] = { ...s, price, gross, steam, studioShare: net,
-        ksGoal, fees, fulfil, netRaised, backersNeeded };
-    } else { // Grant
-      const grantAmount = budget;
-      result[key] = { ...s, price, gross, steam, studioShare: net,
-        grantAmount, gap: 0 };
-    }
-  }
-  const breakEven = Math.ceil(budget / netPerSale);
-  const profitTarget = Math.ceil((budget * 2) / netPerSale);
-  return { scenarios: result, breakEven, profitTarget, netPerSale };
 }
 
 // ────────────────── VALIDATION ──────────────────
-/** Accepts YYYY-MM, YYYY/MM, YYYY MM, YYYY-MM-DD, MM-YYYY, MM/YYYY, MM YYYY. Returns YYYY-MM or null. */
 function normalizeReleaseDate(raw) {
   if (!raw) return null;
   const s = String(raw).trim();
@@ -725,37 +671,34 @@ function normalizeReleaseDate(raw) {
   }
   return null;
 }
-function validateStep1(d) {
+function validateGame(d) {
   const errs = {};
   if (!d.gameName || !d.gameName.trim()) errs.gameName = 'Required.';
   if (d.gameName && d.gameName.length > 280) errs.gameName = 'Max 280 characters.';
-  if (!d.studioName || !d.studioName.trim()) errs.studioName = 'Required.';
   if (!d.status) errs.status = 'Required.';
-  if (!d.fundingType) errs.fundingType = 'Required.';
   if (!d.genre || !d.genre.length) errs.genre = 'Pick at least one.';
-  if (!d.studioSize || parseInt(d.studioSize) < 1) errs.studioSize = 'Headcount required (≥ 1).';
-  if (!d.studioCountry) errs.studioCountry = 'Required.';
   if (!d.releaseDate) errs.releaseDate = 'Required.';
   else {
     const norm = normalizeReleaseDate(d.releaseDate);
-    if (!norm) errs.releaseDate = "Use a year-month, e.g. 2027-08 or 08/2027.";
+    if (!norm) errs.releaseDate = 'Use a year-month, e.g. 2027-08 or 08/2027.';
     else d.releaseDate = norm;
   }
-  if (d.steamUrl && d.steamUrl.trim() && !/^https?:\/\/(store\.)?steampowered\.com\/app\//i.test(d.steamUrl.trim())) {
-    errs.steamUrl = "Doesn't look like a Steam app URL — leave blank if you don't have one yet.";
-  }
-  if (d.pricePoint != null && d.pricePoint !== '' && (Number(d.pricePoint) <= 0 || Number(d.pricePoint) > 100)) {
-    errs.pricePoint = 'Must be between $0.01 and $100, or leave blank.';
-  }
   return errs;
 }
-function validateStep2(d) {
+function validateStudio(d) {
+  const errs = {};
+  if (!d.studioName || !d.studioName.trim()) errs.studioName = 'Required.';
+  if (!d.studioSize || parseInt(d.studioSize) < 1) errs.studioSize = 'Headcount required (≥ 1).';
+  if (!d.studioCountry) errs.studioCountry = 'Required.';
+  if (!d.fundingType) errs.fundingType = 'Required.';
+  return errs;
+}
+function validateBudget(d) {
   const errs = {};
   if (!d.devTime || parseInt(d.devTime) < 1) errs.devTime = 'Required.';
-  if (d.devTime && parseInt(d.devTime) > 160) errs.devTime = 'Cap is 160 months — try 60-72 if you mean a long project.';
+  if (d.devTime && parseInt(d.devTime) > 160) errs.devTime = 'Cap is 160 months — try 60–72 if you mean a long project.';
   return errs;
 }
-function validateStep3(_d) { return {}; /* all fields optional */ }
 
 // ────────────────── COMPONENTS — primitives ──────────────────
 function Field(props, ...children) {
@@ -778,7 +721,6 @@ function CurrencyInput({ value, onInput, placeholder }) {
       oninput: (e) => {
         const raw = e.target.value.replace(/[^0-9]/g, '');
         const n = raw ? parseInt(raw, 10) : null;
-        // re-format the visible value on the fly
         e.target.value = n != null ? n.toLocaleString('en-US') : '';
         onInput(n);
       },
@@ -789,12 +731,11 @@ function Select({ value, options, placeholder, onChange }) {
   const wrap = h('div', { class: 'cs-select' });
   let open = false;
   function trigger() {
-    const t = h('button', {
+    return h('button', {
       type: 'button', class: 'cs-select-trigger' + (value ? '' : ' placeholder') + (open ? ' open' : ''),
       onclick: (e) => { e.stopPropagation(); open = !open; render(); },
     }, h('span', null, value || placeholder || 'Select…'),
        h('svg', { class: 'cs-select-arrow', width: 12, height: 12, viewBox: '0 0 12 12', html: '<path d="M2 4l4 4 4-4" stroke="#17BEBB" fill="none" stroke-width="1.5"/>' }));
-    return t;
   }
   function menu() {
     const m = h('div', { class: 'cs-select-menu' });
@@ -814,7 +755,6 @@ function Select({ value, options, placeholder, onChange }) {
     if (open) wrap.appendChild(menu());
   }
   render();
-  // Close on outside click
   document.addEventListener('mousedown', function handler(e) {
     if (!wrap.isConnected) { document.removeEventListener('mousedown', handler); return; }
     if (open && !wrap.contains(e.target)) { open = false; render(); }
@@ -852,16 +792,12 @@ function PageLanding() {
   return h('section', {
     style: 'min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 1.5rem 5rem;position:relative;overflow:hidden;'
   },
-    // glow
     h('div', { style: {
       position:'absolute', inset:0, pointerEvents:'none',
       background: 'radial-gradient(ellipse at 50% 25%, rgba(23,190,187,.14) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(252,122,30,.08) 0%, transparent 50%)',
     }}),
-    // stars
     h('div', { style: 'position:absolute;inset:0;pointer-events:none;' }, stars),
-    // content
     h('div', { style: 'position:relative;z-index:2;max-width:820px;' },
-      // pixel icon
       h('div', { style: 'margin-bottom:1.5rem;', html: `
         <svg width="80" height="80" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
           <rect x="3" y="2" width="10" height="1" fill="#17BEBB"/>
@@ -885,12 +821,11 @@ function PageLanding() {
       h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1.05;color:#fff;margin-bottom:1.5rem;letter-spacing:0.02em;",
         html: 'Is your game <span style="color:#FC7A1E;">funded right?</span><br><span style="color:#17BEBB;">Find out in 60 seconds.</span>' }),
       h('p', { style: "font-family:'Nunito',sans-serif;font-size:clamp(.95rem,2.2vw,1.12rem);color:rgba(250,240,202,.78);line-height:1.75;max-width:520px;margin:0 auto 2.5rem;font-weight:600;" },
-        "We'll return a revised budget, revenue simulation, and a personalized funding strategy."),
+        "We'll return a revised budget, four funding-path simulations, and three matched recommendations."),
       h('button', { class: 'btn-pill', style: 'padding:0.85rem 2.5rem;font-size:1.2rem;',
         onclick: () => { state.page = 'wizard'; state.step = 0; saveState(); render(); window.scrollTo(0,0); }
       }, 'Start your analysis →')
     ),
-    // waves
     h('div', { style: 'position:absolute;bottom:0;left:0;right:0;height:130px;pointer-events:none;' },
       h('div', { class: 'wave-wrap wave-1', html: '<svg viewBox="0 0 1440 130" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="M0,65 C240,110 480,20 720,65 C960,110 1200,20 1440,65 L1440,130 L0,130 Z" fill="rgba(23,190,187,0.25)"/></svg>' }),
       h('div', { class: 'wave-wrap wave-2', html: '<svg viewBox="0 0 1440 130" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="M0,45 C360,100 720,10 1080,55 C1260,75 1380,35 1440,45 L1440,130 L0,130 Z" fill="rgba(23,190,187,0.15)"/></svg>' })
@@ -900,8 +835,7 @@ function PageLanding() {
 
 // ────────────────── PAGE: WIZARD ──────────────────
 function StepIndicator(current) {
-  const labels = ['Game & Studio', 'Budget', 'Traction'];
-  // Per-step design-system colors: step 1 = teal, step 2 = orange, step 3 = red.
+  const labels = ['Game', 'Studio', 'Budget'];
   const colors = ['#17BEBB', '#FC7A1E', '#D52941'];
   const wrap = h('div', { class: 'cs-stepind' });
   labels.forEach((s, i) => {
@@ -916,83 +850,114 @@ function StepIndicator(current) {
     const barStyle = (i < current)
       ? `background:linear-gradient(90deg, ${c}, ${colors[i+1]});`
       : `background:rgba(23,190,187,.15);`;
-    const row = h('div', { class: 'cs-stepind-row' },
+    wrap.appendChild(h('div', { class: 'cs-stepind-row' },
       h('div', { class: 'cs-stepind-dot', style: dotStyle }, String(i + 1)),
       h('span', { class: 'cs-stepind-label', style: labelStyle }, s),
       i < 2 ? h('div', { class: 'cs-stepind-bar', style: barStyle }) : null,
-    );
-    wrap.appendChild(row);
+    ));
   });
   return wrap;
 }
 
-function WizardStep1(errors) {
+// Step 1 — Game
+function WizardGame(errors) {
   const d = state.data;
-  const noSteam = !d.steamUrl;
   return h('div', null,
-    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Game & Studio'),
+    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Game'),
     h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
-      'Those information helps calibrate the quality of the analysis.'),
-    Field({ label: 'Steam page URL', helper: 'No Steam page yet? Leave the field above blank and continue.', error: errors.steamUrl },
-      h('input', { class: 'cs-input', value: d.steamUrl || '',
-        placeholder: 'https://store.steampowered.com/app/...',
-        oninput: (e) => { state.data.steamUrl = e.target.value; saveState(); }
-      })),
+      'What game are you building?'),
     h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
       Field({ label: 'Game name', required: true, error: errors.gameName },
         h('input', { class: 'cs-input', value: d.gameName, placeholder: 'Ember Frontier', maxlength: 280,
           oninput: (e) => { state.data.gameName = e.target.value; saveState(); } })),
-      Field({ label: 'Studio name', required: true, error: errors.studioName },
-        h('input', { class: 'cs-input', value: d.studioName, placeholder: 'Ironvale Games', maxlength: 280,
-          oninput: (e) => { state.data.studioName = e.target.value; saveState(); } }))
-    ),
-    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
       Field({ label: 'Status', required: true, error: errors.status },
         Select({ value: d.status, placeholder: 'Select…', options: STATUSES,
-          onChange: (v) => { state.data.status = v; saveState(); render(); } })),
-      Field({ label: 'Funding type', required: true, error: errors.fundingType },
-        Select({ value: d.fundingType, placeholder: 'Select…', options: FUNDING_TYPES,
-          onChange: (v) => { state.data.fundingType = v; saveState(); render(); } }))
+          onChange: (v) => { state.data.status = v; saveState(); render(); } }))
     ),
     Field({ label: 'Genre', required: true, error: errors.genre, helper: 'Pick all that apply.' },
       MultiSelect({ value: d.genre, options: GENRES,
         onChange: (g) => { state.data.genre = g; saveState(); render(); } })),
-    h('div', { class: 'grid-3', style: 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;' },
+    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
+      Field({ label: 'Release date', required: true, helper: 'YYYY-MM (e.g. 2027-08)', error: errors.releaseDate },
+        h('input', { class: 'cs-input', type: 'text', inputmode: 'numeric', maxlength: 7,
+          value: d.releaseDate || '', placeholder: 'YYYY-MM',
+          oninput: (e) => {
+            const raw = e.target.value.replace(/\D/g, '').slice(0, 6);
+            const formatted = raw.length >= 5 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
+            e.target.value = formatted;
+            state.data.releaseDate = formatted;
+            saveState();
+          } })),
+      Field({ label: 'Similar game', helper: 'Optional.' },
+        h('input', { class: 'cs-input', value: d.similarGame || '', placeholder: 'Hades, Stardew Valley, …', maxlength: 280,
+          oninput: (e) => { state.data.similarGame = e.target.value; saveState(); } }))
+    )
+  );
+}
+
+// Step 2 — Studio
+function WizardStudio(errors) {
+  const d = state.data;
+  return h('div', null,
+    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Studio'),
+    h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
+      "What's the profile of your studio?"),
+    Field({ label: 'Studio name', required: true, error: errors.studioName },
+      h('input', { class: 'cs-input', value: d.studioName, placeholder: 'Ironvale Games', maxlength: 280,
+        oninput: (e) => { state.data.studioName = e.target.value; saveState(); } })),
+    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
       Field({ label: 'Studio size', required: true, helper: 'Headcount', error: errors.studioSize },
         h('input', { class: 'cs-input', type: 'number', min: 1, value: d.studioSize || '', placeholder: '4',
           oninput: (e) => { state.data.studioSize = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
       Field({ label: 'Country', required: true, error: errors.studioCountry },
-        Select({ value: d.studioCountry, placeholder: 'Select…', options: [...COUNTRIES, 'Other'],
-          onChange: (v) => { state.data.studioCountry = v; saveState(); render(); } })),
-      Field({ label: 'Release date', required: true, error: errors.releaseDate },
-        h('input', { class: 'cs-input', type: 'month', value: d.releaseDate || '',
-          oninput: (e) => { state.data.releaseDate = e.target.value; saveState(); } }))
+        Select({
+          value: d._countryOther ? 'Other' : d.studioCountry,
+          placeholder: 'Select…',
+          options: [...COUNTRIES, 'Other'],
+          onChange: (v) => {
+            if (v === 'Other') { state.data._countryOther = true; state.data.studioCountry = ''; }
+            else { state.data._countryOther = false; state.data.studioCountry = v; }
+            saveState(); render();
+          }
+        }),
+        d._countryOther ? h('input', {
+          class: 'cs-input', style: 'margin-top:0.5rem;',
+          value: d.studioCountry || '', placeholder: 'Type your country',
+          oninput: (e) => { state.data.studioCountry = e.target.value; saveState(); }
+        }) : null),
     ),
-    Field({ label: 'Price point ($)', helper: "Leave blank if you haven't priced the game yet.", error: errors.pricePoint },
-      CurrencyInput({ value: d.pricePoint, placeholder: 'e.g. 19.99 (or leave blank)',
-        onInput: (n) => { state.data.pricePoint = n; saveState(); } }))
+    Field({ label: 'Funding type', required: true, error: errors.fundingType },
+      Select({ value: d.fundingType, placeholder: 'Select…', options: FUNDING_TYPES,
+        onChange: (v) => { state.data.fundingType = v; saveState(); render(); } }))
   );
 }
 
-function WizardStep2(errors) {
+// Step 3 — Budget
+function WizardBudget(errors) {
   const d = state.data;
-  const lines = [
-    { key: 'devBudget',       label: 'Dev & QA budget',       helper: "Leave blank if you're not sure — we'll estimate from your dev time and country." },
-    { key: 'artBudget',       label: 'Art budget',            helper: "Leave blank — we'll estimate from comparable games in your genre." },
-    { key: 'musicBudget',     label: 'Music & sound budget',  helper: "Leave blank — we'll estimate from comparables." },
-    { key: 'locBudget',       label: 'Localization budget',   helper: "0 if English-only, blank if you don't know." },
-    { key: 'marketingBudget', label: 'Marketing budget',      helper: "Industry minimum is 10% of production — we'll apply it if blank." },
-  ];
-  const total = lines.reduce((s, l) => s + (parseInt(d[l.key]) || 0), 0);
+  const fields = {
+    devBudget:       { label: 'Dev & QA budget',       helper: 'If blank, we estimate from dev time and studio country.' },
+    artBudget:       { label: 'Art budget',            helper: 'If blank, we estimate from comparable games.' },
+    musicBudget:     { label: 'Music & sound budget',  helper: 'If blank, we estimate from comparable games.' },
+    locBudget:       { label: 'Localization budget',   helper: 'If blank, we estimate from comparable games.' },
+    marketingBudget: { label: 'Marketing budget',      helper: 'If blank, we apply the 10% minimum of production.' },
+  };
+  const total = Object.keys(fields).reduce((s, k) => s + (parseInt(d[k]) || 0), 0);
+  const currencyField = (key) => Field({ label: fields[key].label, helper: fields[key].helper },
+    CurrencyInput({ value: d[key], onInput: (n) => { state.data[key] = n; saveState(); rerenderTotal(); } }));
+  const row = (a, b) => h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' }, a, b);
   return h('div', null,
     h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Budget'),
     h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
-      "Fill in what you know. Blank fields are fine — we'll estimate from comparable games."),
-    Field({ label: 'Dev time (months)', required: true, helper: 'Total months of active development. Past + remaining if mid-flight.', error: errors.devTime },
-      h('input', { class: 'cs-input', type: 'number', min: 1, max: 160, value: d.devTime || '', placeholder: '24',
-        oninput: (e) => { state.data.devTime = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
-    ...lines.map(l => Field({ label: l.label, helper: l.helper },
-      CurrencyInput({ value: d[l.key], onInput: (n) => { state.data[l.key] = n; saveState(); rerenderTotal(); } }))),
+      "What's your expected budget for the game?"),
+    row(
+      Field({ label: 'Dev time (months)', required: true, helper: 'Past and remaining months of development.', error: errors.devTime },
+        h('input', { class: 'cs-input', type: 'number', min: 1, max: 160, value: d.devTime || '', placeholder: '24',
+          oninput: (e) => { state.data.devTime = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
+      currencyField('devBudget')
+    ),
+    row(currencyField('artBudget'),  currencyField('musicBudget')),
+    row(currencyField('locBudget'),  currencyField('marketingBudget')),
     h('div', { id: 'cs-budget-total', style: "border:2px solid rgba(23,190,187,.2);padding:1.2rem 1.5rem;display:flex;justify-content:space-between;align-items:center;margin-top:1rem;" },
       h('span', { style: "font-family:'Boogaloo',cursive;color:#17BEBB;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;" }, 'Total budget'),
       h('span', { style: "font-family:'Nunito',sans-serif;font-weight:700;color:#FAF0CA;font-size:1.2rem;" }, total > 0 ? '$' + total.toLocaleString() : '—'))
@@ -1006,58 +971,18 @@ function rerenderTotal() {
   el.children[1].textContent = total > 0 ? '$' + total.toLocaleString() : '—';
 }
 
-function WizardStep3(_errors) {
-  const d = state.data;
-  function updateSocial(ch, val) {
-    state.data.socials = Object.assign({}, state.data.socials, { [ch]: parseInt(val) || 0 });
-    saveState();
-  }
-  return h('div', null,
-    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Traction'),
-    h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
-      "Traction data sharpens the revenue simulation. Share what you're comfortable with."),
-    Field({ label: 'Current wishlists', helper: "Leave blank if you'd rather not share, confidence drops but the analysis still runs." },
-      h('input', { class: 'cs-input', type: 'number', min: 0, value: d.wishlists === '' ? '' : d.wishlists, placeholder: '8,200',
-        oninput: (e) => { state.data.wishlists = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
-    h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;" }, 'Social followers'),
-    h('div', { class: 'grid-3', style: 'display:grid;grid-template-columns:repeat(5,1fr);gap:0.75rem;margin-bottom:1.5rem;' },
-      ['twitter','tiktok','youtube','discord','reddit'].map(ch => h('div', null,
-        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:capitalize;margin-bottom:0.25rem;" }, ch === 'twitter' ? 'X / Twitter' : ch),
-        h('input', { class: 'cs-input small', type: 'number', min: 0, value: d.socials[ch] || '',
-          oninput: (e) => updateSocial(ch, e.target.value) })
-      ))
-    ),
-    Field({ label: 'Next Fest plans' },
-      h('label', { style: 'display:flex;align-items:center;gap:0.6rem;cursor:pointer;' },
-        h('input', { type: 'checkbox', checked: !!d.nextFest, style: 'width:18px;height:18px;accent-color:#17BEBB;',
-          onchange: (e) => { state.data.nextFest = e.target.checked; saveState(); } }),
-        h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.9rem;color:#FAF0CA;" }, 'We plan to participate in Steam Next Fest')
-      )
-    ),
-    h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:0.6rem;margin-top:1rem;" }, 'Comparables (up to 3)'),
-    [0,1,2].map(i => h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1.5fr;gap:0.75rem;margin-bottom:0.6rem;' },
-      h('input', { class: 'cs-input small', placeholder: `Game name ${i+1}`,
-        value: (d.comparables[i] || {}).name || '',
-        oninput: (e) => { const c = [...d.comparables]; c[i] = Object.assign({}, c[i], { name: e.target.value }); state.data.comparables = c; saveState(); } }),
-      h('input', { class: 'cs-input small', placeholder: 'Steam URL (optional)',
-        value: (d.comparables[i] || {}).url || '',
-        oninput: (e) => { const c = [...d.comparables]; c[i] = Object.assign({}, c[i], { url: e.target.value }); state.data.comparables = c; saveState(); } })
-    )),
-    // Honeypot — hidden from users; bots fill it
-    h('input', { type: 'text', name: 'company', tabindex: -1, autocomplete: 'off',
-      style: 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0;', value: '',
-      oninput: (e) => { state.data._hp = e.target.value; } })
-  );
-}
-
 function PageWizard() {
   const errors = window.__cs_errors || {};
-  const stepEl = state.step === 0 ? WizardStep1(errors) : state.step === 1 ? WizardStep2(errors) : WizardStep3(errors);
+  const stepEl = state.step === 0 ? WizardGame(errors) : state.step === 1 ? WizardStudio(errors) : WizardBudget(errors);
+  const stepColors = ['#17BEBB', '#FC7A1E', '#D52941'];
+  const stepTints  = ['rgba(23,190,187,.03)', 'rgba(252,122,30,.03)', 'rgba(213,41,65,.03)'];
+  const c = stepColors[state.step];
+  const tint = stepTints[state.step];
   return h('section', {
     style: 'max-width:720px;margin:0 auto;padding:7rem 2rem 4rem;min-height:100vh;'
   },
     StepIndicator(state.step),
-    h('div', { style: 'border:3px solid #17BEBB;box-shadow:6px 6px 0 #17BEBB;background:rgba(23,190,187,.03);padding:2.5rem 2.5rem 2rem;' },
+    h('div', { style: `border:3px solid ${c};box-shadow:6px 6px 0 ${c};background:${tint};padding:2.5rem 2.5rem 2rem;` },
       stepEl,
       h('div', { style: 'display:flex;justify-content:space-between;margin-top:2rem;gap:1rem;' },
         state.step > 0
@@ -1071,82 +996,77 @@ function PageWizard() {
 }
 
 async function onWizardNext() {
-  const validators = [validateStep1, validateStep2, validateStep3];
+  const validators = [validateGame, validateStudio, validateBudget];
   const errs = validators[state.step](state.data);
   window.__cs_errors = errs;
   if (Object.keys(errs).length) {
     render();
-    // Scroll to first error
     setTimeout(() => {
       const firstErr = document.querySelector('.cs-error');
       if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 60);
     return;
   }
-  // Persist this step server-side, then advance
+
   if (state.step === 0) {
+    // Step 1 — Game: create the Notion row, persist notionPageId
     const body = {
-      steamUrl: state.data.steamUrl || undefined,
       gameName: state.data.gameName.trim(),
       status: state.data.status,
       genre: state.data.genre,
-      studioName: state.data.studioName.trim(),
-      studioSize: parseInt(state.data.studioSize),
-      studioCountry: state.data.studioCountry,
       releaseDate: state.data.releaseDate,
-      pricePoint: state.data.pricePoint != null && state.data.pricePoint !== '' ? Number(state.data.pricePoint) : undefined,
-      fundingType: state.data.fundingType,
+      similarGame: state.data.similarGame && state.data.similarGame.trim() ? state.data.similarGame.trim() : undefined,
     };
     const res = await postJSON('/api/step1', body);
-    if (res.ok && res.body && res.body.submissionId) {
-      state.submissionId = res.body.submissionId;
+    if (res.ok && res.body && res.body.notionPageId) {
+      state.notionPageId = res.body.notionPageId;
       saveState();
     }
     state.step = 1;
     saveState(); render(); window.scrollTo(0, 0);
     return;
   }
+
   if (state.step === 1) {
-    const body = {
-      submissionId: state.submissionId,
-      devTimeMonths: parseInt(state.data.devTime),
-      devQaBudget: state.data.devBudget || undefined,
-      artBudget: state.data.artBudget || undefined,
-      musicBudget: state.data.musicBudget || undefined,
-      localizationBudget: state.data.locBudget != null ? state.data.locBudget : undefined,
-      marketingBudget: state.data.marketingBudget || undefined,
-    };
-    await postJSON('/api/step2', body);
+    // Step 2 — Studio: PATCH by pageId
+    if (state.notionPageId) {
+      await postJSON('/api/step2', {
+        notionPageId: state.notionPageId,
+        studioName: state.data.studioName.trim(),
+        studioSize: parseInt(state.data.studioSize),
+        studioCountry: state.data.studioCountry,
+        fundingType: state.data.fundingType,
+      });
+    }
     state.step = 2;
     saveState(); render(); window.scrollTo(0, 0);
     return;
   }
-  // step 3 — final submit
-  const body = {
-    submissionId: state.submissionId,
-    currentWishlists: state.data.wishlists !== '' ? parseInt(state.data.wishlists) : undefined,
-    socials: state.data.socials,
-    nextFestPlanned: !!state.data.nextFest,
-    primaryMarketingChannel: state.data.primaryChannel || undefined,
-    comparables: (state.data.comparables || [])
-      .filter(c => c && c.name && c.name.trim())
-      .slice(0, 3)
-      .map(c => ({ gameName: c.name.trim(), steamUrl: (c.url && c.url.trim()) ? c.url.trim() : undefined })),
-    _hp: state.data._hp || '',
-  };
-  await postJSON('/api/step3', body); // kicks off /api/analyse-background server-side
+
+  // Step 3 — Budget: PATCH by pageId, then go to loading + fetch results
+  if (state.notionPageId) {
+    await postJSON('/api/step3', {
+      notionPageId: state.notionPageId,
+      devTimeMonths: parseInt(state.data.devTime),
+      devQaBudget:        state.data.devBudget       != null ? state.data.devBudget       : undefined,
+      artBudget:          state.data.artBudget       != null ? state.data.artBudget       : undefined,
+      musicBudget:        state.data.musicBudget     != null ? state.data.musicBudget     : undefined,
+      localizationBudget: state.data.locBudget       != null ? state.data.locBudget       : undefined,
+      marketingBudget:    state.data.marketingBudget != null ? state.data.marketingBudget : undefined,
+    });
+  }
   state.page = 'loading';
   render(); window.scrollTo(0, 0);
-  startResultsPolling();
+  fetchResultsAndRender();
 }
 
 // ────────────────── PAGE: LOADING ──────────────────
 function PageLoading() {
   const phases = [
-    'Matching comparables from our database…',
-    'Running budget analysis…',
-    'Simulating revenue scenarios…',
-    'Writing your funding strategy…',
+    'Saving your submission…',
+    'Pulling comparables from our database…',
+    'Building revenue scenarios…',
+    'Matching your funding path…',
   ];
   const wrap = h('section', {
     style: 'min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7rem 2rem;text-align:center;position:relative;'
@@ -1172,11 +1092,11 @@ function PageLoading() {
   )));
   inner.appendChild(labels);
   wrap.appendChild(inner);
-  // Animate progress + phases
+  // Animate progress + phases over the minimum display time (~3.5s).
   let progress = 0;
   let phase = 0;
   const tick = setInterval(() => {
-    progress = Math.min(progress + 0.8, 100);
+    progress = Math.min(progress + 0.9, 100);
     const fill = document.getElementById('cs-prog-fill');
     if (fill) fill.style.width = progress + '%';
     let newPhase = phase;
@@ -1193,8 +1113,7 @@ function PageLoading() {
         else if (i === phase) { el.style.color = '#FAF0CA'; sym.textContent = '⟳'; sym.style.color = '#FC7A1E'; }
         else { el.style.color = 'transparent'; sym.style.color = 'transparent'; }
       }
-    } else if (progress < 0.81) {
-      // Render initial phase highlight
+    } else if (progress < 0.91) {
       const el = document.getElementById('cs-phase-0');
       if (el) {
         el.style.color = '#FAF0CA';
@@ -1204,96 +1123,81 @@ function PageLoading() {
     }
     if (progress >= 100) clearInterval(tick);
   }, 30);
-  // store so we can clear on transition
   state._loadingTick = tick;
   return wrap;
 }
 
-// Polls /api/results until ready (or until ~30s elapses).
-function startResultsPolling() {
-  let elapsed = 0;
-  const minDisplayMs = 3800; // matches design — keeps loader from flashing
+// Fire one /api/results call. Wait a minimum 3.5s so the loader doesn't flash.
+async function fetchResultsAndRender() {
+  const minDisplayMs = 3500;
   const startedAt = Date.now();
-  if (state.pollTimer) clearInterval(state.pollTimer);
-  state.pollTimer = setInterval(async () => {
-    elapsed += 2000;
-    let ready = null;
-    if (state.submissionId) {
-      const res = await getJSON('/api/results?id=' + encodeURIComponent(state.submissionId));
-      if (res.ok && res.body && res.body.status === 'ready') {
-        ready = res.body;
-      }
-    }
-    // After ~10s of polling, fall back to local mock so user always gets something.
-    if (!ready && elapsed >= 10000) {
-      ready = buildLocalResults();
-    }
-    if (ready) {
-      const sinceStart = Date.now() - startedAt;
-      const wait = Math.max(0, minDisplayMs - sinceStart);
-      setTimeout(() => {
-        clearInterval(state.pollTimer); state.pollTimer = null;
-        if (state._loadingTick) { clearInterval(state._loadingTick); state._loadingTick = null; }
-        state.results = ready;
-        state.page = 'results';
-        render(); window.scrollTo(0, 0);
-      }, wait);
-    }
-  }, 2000);
+  let payload = null;
+  if (state.notionPageId) {
+    const res = await getJSON('/api/results?notionPageId=' + encodeURIComponent(state.notionPageId));
+    if (res.ok && res.body && res.body.status === 'ready') payload = res.body;
+  }
+  if (!payload) payload = buildLocalResults();
+  const sinceStart = Date.now() - startedAt;
+  const wait = Math.max(0, minDisplayMs - sinceStart);
+  setTimeout(() => {
+    if (state._loadingTick) { clearInterval(state._loadingTick); state._loadingTick = null; }
+    state.results = payload;
+    state.page = 'results';
+    render(); window.scrollTo(0, 0);
+    fetchCaspianCards();
+  }, wait);
 }
 
-function buildLocalResults() {
-  const budget = calcBudgetLocal(state.data);
-  const completeness = classifyCompleteness(state.data);
-  const flaws = getFlawsLocal(state.data, completeness);
-  const price = (state.data.pricePoint && Number(state.data.pricePoint)) || 19.99;
-  const priceAssumed = !state.data.pricePoint;
-  const revenue = calcRevenueLocal(budget.total, price, state.data.fundingType || 'Self-Funded');
-  const confidence = calcConfidence(state.data);
-  return {
-    status: 'ready',
-    budget: { lines: budget.lines, total: budget.total, flaws, completeness },
-    revenue: Object.assign({}, revenue, { fundingType: state.data.fundingType || 'Self-Funded', price, priceAssumed, confidence }),
-    edge: null,        // Edge is rendered locally from data + budget; server overrides if present
-    generatedAt: new Date().toISOString(),
-  };
+// Caspian Shift cards — load asynchronously after results render.
+async function fetchCaspianCards() {
+  const ft = state.results && state.results.funding_type;
+  if (!ft || ft === 'Self-Funded') {
+    state.caspianCards = null;
+    rerenderCaspian();
+    return;
+  }
+  const params = new URLSearchParams({ fundingType: ft });
+  if (ft === 'Grant') {
+    if (state.data.studioCountry) params.set('country', state.data.studioCountry);
+  } else {
+    const g = (state.data.genre || [])[0];
+    if (g) params.set('genre', g);
+  }
+  const res = await getJSON('/api/caspian?' + params.toString());
+  state.caspianCards = (res.ok && res.body && Array.isArray(res.body.cards)) ? res.body.cards : [];
+  rerenderCaspian();
 }
 
 // ────────────────── PAGE: RESULTS ──────────────────
-function CardBudget(results, completeness) {
-  const lines = results.budget.lines;
-  const flaws = results.budget.flaws;
-  const lineRows = Object.entries(lines).map(([key, line]) => {
-    const prov = PROV_ICONS[line.prov] || PROV_ICONS.estimated;
-    return h('div', { style: 'display:grid;grid-template-columns:24px 180px 110px 1fr;align-items:baseline;gap:0.6rem;padding:0.65rem 0;border-bottom:1px solid rgba(23,190,187,.08);' },
-      h('span', { title: prov.label, style: `color:${prov.color};font-size:0.9rem;text-align:center;` }, prov.symbol),
-      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, BUDGET_LABELS[key]),
-      h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;text-align:right;" }, fmt(line.val)),
-      h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:rgba(250,240,202,.5);line-height:1.4;" }, line.rationale)
+const SOURCE_ICONS = {
+  user:      { symbol: '✓', color: '#17BEBB', label: 'You provided' },
+  estimated: { symbol: '·', color: '#FAF0CA', label: 'We estimated' },
+};
+
+function CardBudget(results) {
+  const lines = (results.budget && results.budget.lines) || [];
+  const total = (results.budget && results.budget.total_usd) || 0;
+  const lineRows = lines.map(line => {
+    const src = SOURCE_ICONS[line.source] || SOURCE_ICONS.estimated;
+    return h('div', { style: 'display:grid;grid-template-columns:24px 200px 130px 1fr;align-items:baseline;gap:0.6rem;padding:0.7rem 0;border-bottom:1px solid rgba(23,190,187,.08);' },
+      h('span', { title: src.label, style: `color:${src.color};font-size:0.95rem;text-align:center;` }, src.symbol),
+      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, line.label),
+      h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;text-align:right;" }, fmt(line.amount_usd)),
+      h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, line.rationale)
     );
   });
   return h('div', { class: 'cs-card' },
     h('span', { class: 'cs-card-tag' }, 'Budget Revised'),
-    h('div', { class: 'cs-card-inner grid-results-2', style: 'display:grid;grid-template-columns:1fr 340px;gap:2rem;padding:2.5rem 2rem 2rem;' },
-      h('div', null,
-        h('div', { style: 'margin-bottom:1rem;' }, lineRows),
-        h('div', { style: 'display:flex;gap:1.2rem;margin-top:0.5rem;flex-wrap:wrap;' },
-          Object.values(PROV_ICONS).map(p => h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);display:flex;align-items:center;gap:0.3rem;" },
-            h('span', { style: `color:${p.color}` }, p.symbol), ' ', p.label)))
-      ),
-      h('div', { class: 'cs-flaws-panel', style: 'border-left:1px solid rgba(23,190,187,.12);padding-left:1.5rem;' },
-        h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.1rem;color:#D52941;letter-spacing:0.02em;margin-bottom:1rem;" }, '3 flaws we caught'),
-        flaws.map(f => h('div', { style: 'margin-bottom:1.2rem;' },
-          h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.9rem;color:#D52941;margin-bottom:0.25rem;" }, f.title),
-          h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.6);line-height:1.5;margin-bottom:0.3rem;" }, f.body),
-          h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:#17BEBB;font-weight:600;" }, f.fix)
-        ))
-      )
+    h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1.5rem;' },
+      lineRows,
+      h('div', { style: 'display:flex;gap:1.2rem;margin-top:1rem;flex-wrap:wrap;' },
+        Object.values(SOURCE_ICONS).map(p => h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);display:flex;align-items:center;gap:0.3rem;" },
+          h('span', { style: `color:${p.color}` }, p.symbol), ' ', p.label)))
     ),
     h('div', { style: 'border-top:2px solid rgba(23,190,187,.15);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.5rem;' },
       h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.4rem,3vw,2rem);color:#fff;letter-spacing:0.02em;" }, 'Total revised budget'),
       h('div', null,
-        h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.6rem,3.5vw,2.4rem);color:#17BEBB;letter-spacing:0.02em;" }, fmt(results.budget.total)),
+        h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.6rem,3.5vw,2.4rem);color:#17BEBB;letter-spacing:0.02em;" }, fmt(total)),
         h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.35);text-align:right;" }, 'Rounded for clarity'))
     )
   );
@@ -1301,9 +1205,40 @@ function CardBudget(results, completeness) {
 
 function CardRevenue(results) {
   const r = results.revenue;
-  const fundingType = r.fundingType || 'Self-Funded';
+  const fundingType = r.funding_path;
+  const studioLabel = (results.studio_name || 'Studio') + ' share';
   const price = r.price || 19.99;
-  const priceAssumed = !!r.priceAssumed;
+
+  if (fundingType === 'Crowdfunding') {
+    const cf = r.crowdfunding;
+    return h('div', { class: 'cs-card orange' },
+      h('span', { class: 'cs-card-tag' }, 'Revenue Simulation'),
+      h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1.5rem;' },
+        h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#FC7A1E;letter-spacing:0.05em;margin-bottom:1rem;" }, 'Crowdfunding — backer breakdown'),
+        h('div', { style: 'display:grid;grid-template-columns:1fr 100px 130px;border-bottom:2px solid rgba(252,122,30,.2);padding-bottom:0.5rem;margin-bottom:0.5rem;' },
+          h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:rgba(250,240,202,.5);text-transform:uppercase;letter-spacing:0.08em;" }, 'Tier'),
+          h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:rgba(250,240,202,.5);text-transform:uppercase;letter-spacing:0.08em;text-align:right;" }, 'Price'),
+          h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.78rem;color:rgba(250,240,202,.5);text-transform:uppercase;letter-spacing:0.08em;text-align:right;" }, 'Backers needed'),
+        ),
+        cf.tiers.map(t => h('div', { style: 'display:grid;grid-template-columns:1fr 100px 130px;padding:0.6rem 0;border-bottom:1px solid rgba(23,190,187,.08);' },
+          h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;" }, t.label),
+          h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;text-align:right;" }, fmt(t.price)),
+          h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;text-align:right;" }, fmtCommas(t.backers))
+        )),
+        h('div', { style: 'display:grid;grid-template-columns:1fr 100px 130px;padding:0.8rem 0;border-top:2px solid rgba(252,122,30,.2);margin-top:0.4rem;' },
+          h('span', { style: "font-family:'Boogaloo',cursive;font-size:1rem;color:#FC7A1E;letter-spacing:0.04em;" }, 'Total backers'),
+          h('span'),
+          h('span', { style: "font-family:'Nunito',sans-serif;font-weight:700;color:#FC7A1E;font-size:1rem;text-align:right;" }, fmtCommas(cf.total_backers))
+        ),
+        h('div', { style: 'display:grid;grid-template-columns:1fr 100px 130px;padding:0.4rem 0 0.2rem;' },
+          h('span', { style: "font-family:'Boogaloo',cursive;font-size:1rem;color:#FC7A1E;letter-spacing:0.04em;" }, 'Total crowdfunding'),
+          h('span'),
+          h('span', { style: "font-family:'Nunito',sans-serif;font-weight:700;color:#FC7A1E;font-size:1rem;text-align:right;" }, fmt(cf.total_raised))
+        )
+      )
+    );
+  }
+
   const sc = r.scenarios;
   const cols = ['conservative','realistic','optimistic'];
   const colColors = { conservative: '#D52941', realistic: '#FC7A1E', optimistic: '#17BEBB' };
@@ -1324,205 +1259,114 @@ function CardRevenue(results) {
 
   const fundingExtra = [];
   if (fundingType === 'Publisher') {
-    fundingExtra.push(row('Publisher recoup', c => sc[c].recoup));
-    fundingExtra.push(row('Publisher share', c => sc[c].pubShare));
-  } else if (fundingType === 'Crowdfunding') {
-    fundingExtra.push(h('div', { style: 'border-top:2px solid rgba(252,122,30,.15);margin-top:0.5rem;padding-top:0.5rem;' },
-      h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#FC7A1E;margin-bottom:0.3rem;letter-spacing:0.05em;" }, 'Campaign feasibility'),
-      row('KS goal',          c => sc[c].ksGoal),
-      row('Fees (10%)',       c => sc[c].fees),
-      row('Fulfilment (12%)', c => sc[c].fulfil),
-      row('Net raised',       c => sc[c].netRaised, { bold: true }),
-      row('Backers needed',   c => sc[c].backersNeeded, { fmt: fmtCommas }),
-      h('div', { style: 'border-top:1px solid rgba(252,122,30,.1);margin-top:0.5rem;padding-top:0.3rem;' },
-        h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#FC7A1E;margin-bottom:0.3rem;letter-spacing:0.05em;" }, 'Post-launch revenue')
-      )
-    ));
+    fundingExtra.push(row('Publisher recoup', c => sc[c].publisher_recoupment));
+    fundingExtra.push(row('Publisher share', c => sc[c].publisher_share));
   } else if (fundingType === 'Grant') {
-    fundingExtra.push(h('div', { style: 'border-top:2px solid rgba(252,122,30,.15);margin-top:0.5rem;padding-top:0.5rem;' },
-      row('Grant assumed', c => sc[c].grantAmount),
-      row('Remaining gap', c => sc[c].gap),
-      h('div', { style: 'border-top:1px solid rgba(252,122,30,.1);margin-top:0.5rem;padding-top:0.3rem;' },
-        h('div', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#FC7A1E;margin-bottom:0.3rem;letter-spacing:0.05em;" }, 'Post-launch revenue')
-      )
-    ));
+    fundingExtra.push(row('Grant assumed', c => sc[c].grant_amount));
+    fundingExtra.push(row('Remaining gap', c => sc[c].remaining_gap));
   }
 
   return h('div', { class: 'cs-card orange' },
     h('span', { class: 'cs-card-tag' }, 'Revenue Simulation'),
-    h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1rem;' },
+    h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1.5rem;' },
       h('div', { class: 'grid-revsim-row', style: 'display:grid;grid-template-columns:180px repeat(3, 1fr);margin-bottom:0.5rem;' },
         h('span'),
         cols.map(c => h('span', { style: `font-family:'Boogaloo',cursive;font-size:0.88rem;color:${colColors[c]};text-align:right;letter-spacing:0.02em;` }, colLabels[c]))
       ),
       h('div', { class: 'grid-revsim-row', style: 'display:grid;grid-template-columns:180px repeat(3, 1fr);border-bottom:1px solid rgba(23,190,187,.08);padding:0.5rem 0;' },
-        h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:rgba(250,240,202,.6);display:flex;align-items:center;gap:0.3rem;" },
-          'Price', priceAssumed ? h('span', { style: "font-size:0.68rem;color:#FC7A1E;font-style:italic;" }, '(assumed)') : null),
+        h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:rgba(250,240,202,.6);" }, 'Price'),
         cols.map(c => h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;font-size:0.9rem;color:#FAF0CA;text-align:right;" }, '$' + price.toFixed(2)))
       ),
-      row('Copies sold',    c => sc[c].copies, { fmt: fmtCommas }),
-      row('Gross revenue',  c => sc[c].gross),
-      row('Steam cut (30%)', c => sc[c].steam),
+      row('Copies sold',     c => sc[c].copies, { fmt: fmtCommas }),
+      row('Gross revenue',   c => sc[c].gross),
+      row('Steam cut (30%)', c => sc[c].steam_share),
       ...fundingExtra,
-      row('Studio share', c => sc[c].studioShare, { bold: true })
-    ),
-    h('div', { style: 'border-top:2px solid rgba(252,122,30,.15);padding:1.2rem 2rem;display:flex;gap:2.5rem;flex-wrap:wrap;' },
-      h('div', null,
-        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:uppercase;letter-spacing:0.1em;" }, 'Break-even'),
-        h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#FC7A1E;" }, fmtCommas(r.breakEven) + ' copies')),
-      h('div', null,
-        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:uppercase;letter-spacing:0.1em;" }, 'Profit target (2×)'),
-        h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#FC7A1E;" }, fmtCommas(r.profitTarget) + ' copies')),
-      h('div', null,
-        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);text-transform:uppercase;letter-spacing:0.1em;" }, 'Confidence'),
-        h('div', { style: `font-family:'Boogaloo',cursive;font-size:1.2rem;color:${r.confidence === 'High' ? '#17BEBB' : r.confidence === 'Medium' ? '#FC7A1E' : '#D52941'};` }, r.confidence || 'Medium'))
+      row(studioLabel, c => sc[c].studio_share, { bold: true })
     )
   );
 }
 
-function CardEdge(results) {
-  // Prefer server-supplied edge; otherwise compose from data.
-  if (results.edge && (results.edge.biggest_gap || results.edge.closing_paragraph)) {
-    const e = results.edge;
-    return h('div', { class: 'cs-card red', style: 'padding:2.5rem 2.5rem 2rem;' },
-      h('span', { class: 'cs-card-tag' }, 'Caspian Shift Edge'),
-      h('div', { style: "font-family:'Nunito',sans-serif;font-size:1.02rem;color:#FAF0CA;line-height:1.75;" },
-        e.biggest_gap ? h('p', { style: 'margin-bottom:1.2rem;' }, e.biggest_gap) : null,
-        e.rationale  ? h('p', { style: 'margin-bottom:1.2rem;' }, e.rationale)  : null,
-        (e.where_we_help && e.where_we_help.length) ? h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.3rem;color:#17BEBB;line-height:1.4;margin:1.5rem 0;padding-left:1.2rem;border-left:3px solid #17BEBB;" },
-          (e.where_we_help[0] && e.where_we_help[0].why) || '') : null,
-        e.closing_paragraph ? h('p', { style: 'margin-bottom:1.5rem;' }, e.closing_paragraph) : null,
-      ),
-      h('a', { href: '/#contact', class: 'btn-pill', style: 'padding:0.7rem 2rem;font-size:1.1rem;' }, 'Get in touch →')
-    );
-  }
-  // Fallback: derived locally — same shape as the design's CaspianEdge component.
-  const d = state.data;
-  const gameName = d.gameName || 'your game';
-  const hasSteam = !!(d.steamUrl && d.steamUrl.trim());
-  const status = d.status || 'In Development';
-  const country = d.studioCountry || 'your country';
-  const fundingType = d.fundingType || 'Self-Funded';
-  const wishlists = d.wishlists !== '' ? parseInt(d.wishlists) : null;
+function CardCaspianGeneric() {
   return h('div', { class: 'cs-card red', style: 'padding:2.5rem 2.5rem 2rem;' },
-    h('span', { class: 'cs-card-tag' }, 'Caspian Shift Edge'),
-    h('div', { style: "font-family:'Nunito',sans-serif;font-size:1.02rem;color:#FAF0CA;line-height:1.75;" },
-      h('p', { style: 'margin-bottom:1.2rem;', html:
-        `The biggest gap in <strong style="color:#fff">${escapeHtml(gameName)}</strong>'s funding readiness right now is <strong style="color:#fff">budget clarity</strong>.
-         With ${parseInt(d.studioSize) || 1} ${parseInt(d.studioSize) === 1 ? 'person' : 'people'} burning through runway in ${escapeHtml(country)}, every month of ambiguity costs real money.
-         Pin the dev line down against actual contracts and burn rate — it's the largest by far, and everything else scales from it.`
-      }),
-      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.3rem;color:#17BEBB;line-height:1.4;margin:1.5rem 0;padding-left:1.2rem;border-left:3px solid #17BEBB;" },
-        '"Pin down the dev budget first. Everything else scales from it."'),
-      h('p', { style: 'margin-bottom:1.2rem;', html:
-        `Given your funding type (${escapeHtml(fundingType)}) and current traction (${wishlists ? wishlists.toLocaleString() + ' wishlists' : 'wishlists not shared'}),
-         the path you've picked is workable but tight. The break-even is achievable if you maintain a 15%+ wishlist-to-sale conversion — which means your Steam page and Next Fest performance are critical.`
-        + (!hasSteam && status !== 'Concept'
-          ? ` <span style="color:#FC7A1E;">You don't have a Steam page yet — at ${escapeHtml(status)} stage, setting one up should be a near-term priority. Wishlists compound; every week without a page is lost momentum.</span>`
-          : '')
-      }),
-      h('p', { style: 'margin-bottom:1.5rem;' },
-        "Where Caspian Shift adds the most value here: we'd run a proper budget audit against your actual contracts, size your marketing spend to your wishlist target (not a generic 10% floor), and build a launch timeline that connects your Next Fest slot to release-week momentum. The gap between “directionally correct” and “fundable” is exactly where we work."
-      )
-    ),
-    h('a', { href: '/#contact' + (state.submissionId ? '?submissionId=' + encodeURIComponent(state.submissionId) : ''),
-      class: 'btn-pill', style: 'padding:0.7rem 2rem;font-size:1.1rem;' }, 'Get in touch →')
+    h('span', { class: 'cs-card-tag' }, 'Caspian Shift'),
+    h('div', { style: "font-family:'Nunito',sans-serif;font-size:1.02rem;color:#FAF0CA;line-height:1.75;margin-bottom:1.5rem;" },
+      "Self-funded paths benefit most from a budget audit and a marketing plan tied to wishlist outcomes. The gap between “directionally correct” and “fundable” is exactly where Caspian Shift works."),
+    h('a', { href: '/#contact', class: 'btn-pill', style: 'padding:0.7rem 2rem;font-size:1.1rem;' }, 'Get in touch →')
   );
 }
 
-function escapeHtml(s) {
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
+function CardCaspianCards() {
+  const cards = state.caspianCards;
+  const tagColors = ['#17BEBB', '#FC7A1E'];
+  const cardClasses = ['', 'orange', 'red'];
 
-function EmailCapture(variant) {
-  const isInline = variant === 'inline';
-  const wrap = h('div', {
-    class: 'cs-email-capture',
-    style: 'border:2px solid #17BEBB;box-shadow:4px 4px 0 #17BEBB;background:rgba(23,190,187,.04);padding:1.5rem 2rem;margin-bottom:2.5rem;display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;'
-  });
-  let sent = false;
-  let inputEl = null;
+  // Wrapper element so we can mount/unmount on async fetch
+  const wrap = h('div', { id: 'cs-caspian-wrap', class: 'cs-card', style: 'border-color:transparent;box-shadow:none;background:transparent;margin-bottom:2.5rem;' });
 
-  function paint() {
-    wrap.innerHTML = '';
-    if (sent) {
-      wrap.appendChild(h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.1rem;color:#17BEBB;text-align:center;width:100%;" }, 'Sent! Check your inbox.'));
-      return;
-    }
-    wrap.appendChild(h('div', null,
-      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.05rem;color:#fff;letter-spacing:0.02em;margin-bottom:0.2rem;" },
-        isInline ? 'Want this in your inbox?' : 'Share with your co-founder?'),
-      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.5);" },
-        isInline ? "We'll send a PDF copy + bookmark this URL." : 'Send a copy of this analysis to anyone on your team.')
-    ));
-    const inputs = h('div', { class: 'cs-email-capture-inputs', style: 'display:flex;gap:0.5rem;' });
-    inputEl = h('input', {
-      type: 'email', placeholder: 'you@studio.com',
-      style: 'background:rgba(250,240,202,.04);border:2px solid rgba(23,190,187,.35);color:#FAF0CA;padding:0.55rem 1rem;font-family:\'Nunito\',sans-serif;font-size:0.88rem;outline:none;border-radius:0;width:220px;'
-    });
-    inputs.appendChild(inputEl);
-    inputs.appendChild(h('button', { class: 'btn-pill', style: 'padding:0.55rem 1.2rem;font-size:0.9rem;white-space:nowrap;',
-      onclick: async () => {
-        const v = (inputEl.value || '').trim();
-        if (!v || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { inputEl.style.borderColor = '#D52941'; inputEl.focus(); return; }
-        await postJSON('/api/capture-email', { submissionId: state.submissionId, email: v });
-        sent = true; paint();
-      } }, 'Send to my inbox →'));
-    wrap.appendChild(inputs);
+  if (cards == null) {
+    // Still loading — show a skeleton
+    wrap.appendChild(h('div', { style: 'text-align:center;padding:2rem;' },
+      h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.85rem;color:rgba(250,240,202,.4);" }, 'Loading recommendations…')));
+    return wrap;
   }
-  paint();
+
+  if (!cards.length) {
+    wrap.appendChild(CardCaspianGeneric());
+    return wrap;
+  }
+
+  wrap.appendChild(h('div', { style: 'margin-bottom:1.2rem;' },
+    h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#D52941;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:0.4rem;" }, 'Caspian Shift'),
+    h('h3', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.4rem,3vw,1.9rem);color:#fff;letter-spacing:0.02em;" }, 'Three matches we picked for you')
+  ));
+  const grid = h('div', { class: 'cs-caspian-grid', style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;' });
+  cards.slice(0, 3).forEach((card, i) => {
+    grid.appendChild(h('a', { href: '/#contact', class: 'cs-link-card ' + cardClasses[i % cardClasses.length] },
+      h('span', { class: 'cs-card-tag' }, 'Match ' + (i + 1)),
+      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.15rem;color:#fff;letter-spacing:0.02em;margin-bottom:0.4rem;" }, card.title),
+      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.85rem;color:rgba(250,240,202,.65);line-height:1.5;margin-bottom:0.8rem;" }, card.description),
+      h('div', { style: 'display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.8rem;' },
+        (card.tags || []).slice(0, 2).map((t, ti) => h('span', {
+          style: `font-family:'Nunito',sans-serif;font-size:0.7rem;padding:0.18rem 0.55rem;border:1px solid ${tagColors[ti % tagColors.length]};color:${tagColors[ti % tagColors.length]};letter-spacing:0.04em;`
+        }, t))),
+      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#D52941;letter-spacing:0.04em;" }, 'Get in Touch →')
+    ));
+  });
+  wrap.appendChild(grid);
   return wrap;
 }
 
-function WhatsNextCards() {
-  const cards = [
-    { level: 'Level 1', cls: '',       title: 'Funding Analysis',     desc: 'Deep-dive into your budget, market position, and funding path.' },
-    { level: 'Level 2', cls: 'orange', title: 'Funding Ready Pack',   desc: 'Pitch deck, campaign page, outreach targets — ready to execute.' },
-    { level: 'Level 3', cls: 'red',    title: 'Launch Strategy',      desc: 'Steam page, wishlist growth, creator outreach through release.' },
-  ];
-  return h('div', { class: 'grid-3', style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-bottom:2.5rem;' },
-    cards.map(c => h('a', { href: '/#services', class: 'cs-link-card ' + c.cls },
-      h('span', { class: 'cs-card-tag' }, c.level),
-      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#fff;letter-spacing:0.02em;margin-bottom:0.4rem;" }, c.title),
-      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, c.desc)
-    ))
-  );
+function rerenderCaspian() {
+  const old = document.getElementById('cs-caspian-wrap');
+  if (!old) return;
+  const fresh = CardCaspianCards();
+  old.parentNode.replaceChild(fresh, old);
 }
 
 function PageResults() {
   const r = state.results || buildLocalResults();
   state.results = r;
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const conf = (r.revenue && r.revenue.confidence) || 'Medium';
   return h('section', { class: 'cs-results', style: 'max-width:1100px;margin:0 auto;padding:7rem 2rem 4rem;' },
     h('div', { style: 'margin-bottom:2.5rem;' },
       h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:0.5rem;" }, 'Your funding analysis'),
       h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08;color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" },
-        state.data.gameName || 'Your game'),
+        r.game_name || 'Your game'),
       h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:rgba(250,240,202,.5);display:flex;gap:1rem;flex-wrap:wrap;" },
         h('span', null, 'Caspian Shift'),
-        h('span', null, '·'),
-        h('span', { html: 'Confidence: <strong style="color:' + (conf === 'High' ? '#17BEBB' : conf === 'Medium' ? '#FC7A1E' : '#D52941') + '">' + escapeHtml(conf) + '</strong>' }),
         h('span', null, '·'),
         h('span', null, today)
       )
     ),
-    CardBudget(r, r.budget && r.budget.completeness),
+    CardBudget(r),
     CardRevenue(r),
-    EmailCapture('inline'),
-    CardEdge(r),
-    h('div', { style: 'margin-bottom:1rem;' },
-      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:1.5rem;" }, "What's next")
-    ),
-    WhatsNextCards(),
-    EmailCapture('bottom'),
-    // "Run another analysis" reset link — small, low key
+    CardCaspianCards(),
     h('div', { style: 'text-align:center;margin-top:0.5rem;' },
       h('button', { class: 'btn-outline', style: 'padding:0.45rem 1.2rem;font-size:0.85rem;',
         onclick: () => {
           if (!confirm('Reset and start over? Your current analysis will be discarded.')) return;
           clearStoredFlow();
-          state = { page: 'landing', step: 0, submissionId: null, data: defaultFormData(), results: null, pollTimer: null };
+          state = { page: 'landing', step: 0, notionPageId: null, data: defaultFormData(), results: null };
           render(); window.scrollTo(0, 0);
         }
       }, 'Run another analysis')
@@ -1558,7 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Expose a small handle for debugging
-window.__cs_budget = { state, render, calcBudgetLocal, calcRevenueLocal, classifyCompleteness, getFlawsLocal };
+window.__cs_funding = { state, render, calcBudgetLocal, calcRevenueLocal };
 </script>
 </body>
 </html>

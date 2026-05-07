@@ -1,4 +1,4 @@
-// Shared TypeScript interfaces for the Budget Tool functions.
+// Shared TypeScript interfaces for the Funding Analysis functions.
 
 export type GameStatus =
   | "Concept" | "Prototype" | "Vertical Slice" | "Demo"
@@ -6,21 +6,28 @@ export type GameStatus =
 
 export type FundingType = "Self-Funded" | "Crowdfunding" | "Publisher" | "Grant";
 
+// ─── Request bodies ─────────────────────────────────────────────────
+// Step 1 (Game): creates the Notion row.
 export interface Step1Body {
-  steamUrl?: string;
   gameName: string;
   status: GameStatus;
   genre: string[];
+  releaseDate: string;          // YYYY-MM or YYYY-MM-DD
+  similarGame?: string;         // free-text game name; creates a comparables row
+}
+
+// Step 2 (Studio): PATCHes the row created in Step 1.
+export interface Step2Body {
+  notionPageId: string;
   studioName: string;
   studioSize: number;
   studioCountry: string;
-  releaseDate: string;        // YYYY-MM-DD or YYYY-MM
-  pricePoint?: number;
   fundingType: FundingType;
 }
 
-export interface Step2Body {
-  submissionId: string;
+// Step 3 (Budget): PATCHes the row and writes Pre-Release Budget total.
+export interface Step3Body {
+  notionPageId: string;
   devTimeMonths: number;
   devQaBudget?: number;
   artBudget?: number;
@@ -29,103 +36,16 @@ export interface Step2Body {
   marketingBudget?: number;
 }
 
-export interface Step3Body {
-  submissionId: string;
-  currentWishlists?: number;
-  socials: {
-    twitter?: number; tiktok?: number;
-    youtube?: number; discord?: number; reddit?: number;
-  };
-  nextFestPlanned: boolean;
-  primaryMarketingChannel?: string;
-  comparables: Array<{ gameName: string; steamUrl?: string }>;
-  _hp?: string;  // honeypot
-}
-
-export interface CaptureEmailBody {
-  submissionId: string;
-  email: string;
-}
-
-// Provenance of a budget line item
-export type Provenance = "user" | "estimated" | "adjusted";
-
-export interface BudgetCategory {
-  name: string;
-  amount_usd: number;
-  rationale: string;
-  source: Provenance;
-  source_note: string;
-}
-export interface BudgetRevised {
-  categories: BudgetCategory[];
-  total_usd: number;
-  flaws: Array<{ title: string; diagnosis: string; fix: string }>;
-  framing_mode: "constructive_next_steps" | "partial_with_callouts" | "standard_flaws";
-}
-
-export interface RevenueScenario {
-  copies: number;
-  price: number;
-  gross: number;
-  steam_share: number;
-  publisher_recoupment: number | null;
-  publisher_share: number | null;
-  ks_goal: number | null;
-  ks_backers_needed: number | null;
-  ks_fees: number | null;
-  ks_fulfillment_cost: number | null;
-  ks_net_raised: number | null;
-  grant_amount: number | null;
-  remaining_gap: number | null;
-  studio_share: number;
-}
-export interface RevenueSimulation {
-  funding_path: FundingType;
-  price_assumed: boolean;
-  price_source: "user" | "comparables_median";
-  scenarios: { conservative: RevenueScenario; realistic: RevenueScenario; optimistic: RevenueScenario };
-  recoupment_breakeven_copies: number | null;
-  studio_profit_target_copies: number;
-  confidence: "High" | "Medium" | "Low";
-  confidence_rationale: string;
-  comparables_used: Array<{ game_name: string; weight: number }>;
-}
-
-export interface Edge {
-  biggest_gap: string;
-  best_funding_path: FundingType;
-  rationale: string;
-  where_we_help: Array<{ area: string; why: string }>;
-  closing_paragraph: string;
-}
-
-export interface AnalysisResult {
-  budget_revised: BudgetRevised;
-  revenue_simulation: RevenueSimulation;
-  edge: Edge;
-  key_lessons: string;
-}
-
-// Shape stored in KV under submissionId
-export type ResultsStored =
-  | { status: "pending" }
-  | { status: "ready"; budget: BudgetRevised; revenue: RevenueSimulation; edge: Edge; generatedAt: string }
-  | { status: "error"; message: string };
-
-// Raw row in Notion (subset we actually read/write)
+// ─── Notion row shape (subset we read/write) ────────────────────────
 export interface NotionRow {
   pageId: string;
-  submissionId: string;
-  steamUrl?: string;
   gameName: string;
   status: GameStatus;
   genre: string[];
+  releaseDate: string;
   studioName: string;
   studioSize: number;
   studioCountry: string;
-  releaseDate: string;
-  pricePoint?: number;
   fundingType: FundingType;
   devTimeMonths?: number;
   devQaBudget?: number;
@@ -134,12 +54,82 @@ export interface NotionRow {
   localizationBudget?: number;
   marketingBudget?: number;
   preReleaseBudget?: number;
-  currentWishlists?: number;
-  primaryMarketingChannel?: string;
-  nextFestPlanned?: boolean;
-  sourceType: string;          // "CS Pilot" for tool submissions
-  dataConfidence: "High" | "Medium" | "Low";
-  submissionEmail?: string;
-  sourceUrl?: string;
-  keyLessons?: string;
+}
+
+// ─── Result shape returned by /api/results ──────────────────────────
+export type Provenance = "user" | "estimated";
+
+export interface BudgetLine {
+  key: "dev" | "art" | "music" | "loc" | "marketing" | "overhead";
+  label: string;
+  amount_usd: number;
+  source: Provenance;
+  rationale: string;
+}
+
+export interface BudgetRevised {
+  lines: BudgetLine[];
+  total_usd: number;
+}
+
+// Hardcoded scenarios (Decisions Log #6/#7).
+export const COPIES_SOLD = [500, 5000, 50000] as const;
+export const GRANT_AMOUNTS = [25000, 50000, 100000] as const;
+export const CROWDFUNDING_TIERS = [
+  { label: "Tier 1", price: 15 },
+  { label: "Tier 2", price: 25 },
+  { label: "Tier 3", price: 30 },
+  { label: "Tier 4", price: 50 },
+] as const;
+
+export interface ScenarioBase {
+  copies: number;
+  price: number;
+  gross: number;
+  steam_share: number;
+  studio_share: number;
+}
+export interface ScenarioPublisher extends ScenarioBase {
+  publisher_recoupment: number;
+  publisher_share: number;
+}
+export interface ScenarioGrant extends ScenarioBase {
+  grant_amount: number;
+  remaining_gap: number;
+}
+
+export interface CrowdfundingTier {
+  label: string;
+  price: number;
+  backers: number;
+}
+export interface CrowdfundingResult {
+  tiers: CrowdfundingTier[];
+  total_backers: number;
+  total_raised: number;
+}
+
+export type RevenueSimulation =
+  | { funding_path: "Self-Funded";   price: number; scenarios: { conservative: ScenarioBase;      realistic: ScenarioBase;      optimistic: ScenarioBase } }
+  | { funding_path: "Publisher";     price: number; scenarios: { conservative: ScenarioPublisher; realistic: ScenarioPublisher; optimistic: ScenarioPublisher } }
+  | { funding_path: "Grant";         price: number; scenarios: { conservative: ScenarioGrant;     realistic: ScenarioGrant;     optimistic: ScenarioGrant } }
+  | { funding_path: "Crowdfunding";  price: number; crowdfunding: CrowdfundingResult };
+
+export interface ResultsPayload {
+  status: "ready";
+  studio_name: string;
+  game_name: string;
+  funding_type: FundingType;
+  budget: BudgetRevised;
+  revenue: RevenueSimulation;
+  generatedAt: string;
+}
+
+// ─── Caspian Shift recommendation cards ─────────────────────────────
+export type CaspianFundingType = "Publisher" | "Crowdfunding" | "Grant";
+
+export interface CaspianCard {
+  title: string;
+  description: string;
+  tags: string[];
 }
