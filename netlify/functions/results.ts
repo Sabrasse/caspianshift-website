@@ -16,66 +16,139 @@ const COUNTRY_SALARIES: Record<string, number> = {
   "Spain": 4200, "Italy": 4000, "Japan": 5000, "Poland": 3800, "Czechia": 3500,
   "Slovenia": 3000, "Brazil": 2800, "Other": 4500,
 };
-const NARRATIVE_GENRES = new Set(["RPG", "Visual Novel", "Adventure", "Narrative"]);
-const MECHANICAL_GENRES = new Set(["Strategy", "Roguelike", "Card Game", "Puzzle"]);
 const DEFAULT_PRICE = 19.99;
 const STEAM_CUT = 0.30;
+
+// ±50% band around our estimate. Below = orange flag (cascade defensively against
+// our estimate). Above = white amount (cascade with user value — likely scope choice).
+const FLAG_BAND = 0.5;
+
+type LineRationales = { blank: string; coherent: string; below: string; above: string };
+
+function classify(args: {
+  key: BudgetLine["key"]; label: string; userVal?: number; estimate: number; rationales: LineRationales;
+}): { line: BudgetLine; cascadeValue: number } {
+  const { key, label, userVal, estimate, rationales } = args;
+  if (userVal == null) {
+    return {
+      line: { key, label, amount_usd: estimate, source: "estimated", rationale: rationales.blank },
+      cascadeValue: estimate,
+    };
+  }
+  const ratio = estimate > 0 ? userVal / estimate : 1;
+  if (ratio < 1 - FLAG_BAND) {
+    // Below — display user value with warning, but cascade with estimate (defensive)
+    return {
+      line: { key, label, amount_usd: userVal, source: "below", rationale: rationales.below },
+      cascadeValue: estimate,
+    };
+  }
+  if (ratio > 1 + FLAG_BAND) {
+    // Above — display user value, cascade with user value (intentional scope)
+    return {
+      line: { key, label, amount_usd: userVal, source: "above", rationale: rationales.above },
+      cascadeValue: userVal,
+    };
+  }
+  // Coherent
+  return {
+    line: { key, label, amount_usd: userVal, source: "user", rationale: rationales.coherent },
+    cascadeValue: userVal,
+  };
+}
 
 function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number } {
   const country = row.studioCountry || "Other";
   const monthly = COUNTRY_SALARIES[country] ?? COUNTRY_SALARIES["Other"];
   const studioSize = row.studioSize || 1;
   const devTime = row.devTimeMonths || 12;
+  const devs = `${studioSize} dev${studioSize === 1 ? "" : "s"}`;
 
-  // Dev & QA
+  // Dev & QA — anchor
   const devEstimate = monthly * studioSize * devTime;
-  const dev: BudgetLine = row.devQaBudget != null
-    ? { key: "dev", label: "Development & QA", amount_usd: row.devQaBudget, source: "user",
-        rationale: `As provided — within ${country} salary range for your team.` }
-    : { key: "dev", label: "Development & QA", amount_usd: devEstimate, source: "estimated",
-        rationale: `${country} median salary ($${monthly.toLocaleString()}/mo) × ${studioSize} dev${studioSize === 1 ? "" : "s"} × ${devTime} months.` };
+  const dev = classify({
+    key: "dev", label: "Development & QA",
+    userVal: row.devQaBudget,
+    estimate: devEstimate,
+    rationales: {
+      blank: `${country}: $${monthly.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devEstimate.toLocaleString()}.`,
+      coherent: `Within ${country} salary range for ${devs} over ${devTime} months.`,
+      below: `Below ${country} costs for ${devs} × ${devTime} months, under-budgeted?`,
+      above: `Above ${country} costs, likely a senior team or extended scope.`,
+    },
+  });
 
-  // Art — share of dev cost based on genre
-  const narrativeHeavy = (row.genre || []).some(g => NARRATIVE_GENRES.has(g));
-  const mechanical     = (row.genre || []).some(g => MECHANICAL_GENRES.has(g));
-  const artShare = narrativeHeavy ? 0.25 : mechanical ? 0.10 : 0.18;
-  const art: BudgetLine = row.artBudget != null
-    ? { key: "art", label: "Art & Illustrations", amount_usd: row.artBudget, source: "user",
-        rationale: "As provided — within typical genre range." }
-    : { key: "art", label: "Art & Illustrations", amount_usd: Math.round(devEstimate * artShare), source: "estimated",
-        rationale: `Genre-typical share of dev cost (${Math.round(artShare * 100)}%).` };
+  // Art — 20% of Dev cascade
+  const artEstimate = Math.round(dev.cascadeValue * 0.20);
+  const art = classify({
+    key: "art", label: "Art & Illustrations",
+    userVal: row.artBudget,
+    estimate: artEstimate,
+    rationales: {
+      blank: "20% of Dev, standard minimum rate for indie games.",
+      coherent: "Within typical art share, proportional to your dev scope.",
+      below: "Below standard costs, limited art scope?",
+      above: "Above standard costs, likely an art-heavy scope or outsourced work.",
+    },
+  });
 
-  // Music
-  const music: BudgetLine = row.musicBudget != null
-    ? { key: "music", label: "Music & Sound", amount_usd: row.musicBudget, source: "user", rationale: "As provided." }
-    : { key: "music", label: "Music & Sound", amount_usd: 8000, source: "estimated",
-        rationale: "Comparables median; fallback $8,000." };
+  // Music — 5% of (Dev + Art) cascade
+  const musicEstimate = Math.round((dev.cascadeValue + art.cascadeValue) * 0.05);
+  const music = classify({
+    key: "music", label: "Music & Sound",
+    userVal: row.musicBudget,
+    estimate: musicEstimate,
+    rationales: {
+      blank: "5% of Dev + Art, usually dedicated to custom soundtrack and SFX.",
+      coherent: "Within typical audio share, fits a hybrid stock + custom approach.",
+      below: "Below standard costs, stock music only?",
+      above: "Above standard costs, likely custom-scored or licensed tracks.",
+    },
+  });
 
-  // Localization
-  const productionSoFar = dev.amount_usd + art.amount_usd + music.amount_usd;
-  const loc: BudgetLine = row.localizationBudget != null
-    ? { key: "loc", label: "Localization", amount_usd: row.localizationBudget, source: "user",
-        rationale: row.localizationBudget === 0 ? "English-only — no localization budget." : "As provided." }
-    : { key: "loc", label: "Localization", amount_usd: Math.round(productionSoFar * 0.07), source: "estimated",
-        rationale: "7% of production sub-total (industry typical for 4–6 languages)." };
+  // Localization — 5% of (Dev + Art + Music) cascade. $0 falls through to "below".
+  const locEstimate = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue) * 0.05);
+  const loc = classify({
+    key: "loc", label: "Localization",
+    userVal: row.localizationBudget,
+    estimate: locEstimate,
+    rationales: {
+      blank: "5% of Dev + Art + Music, typical for 4 to 6 supported languages.",
+      coherent: "Within typical localization share, fits 4 to 6 languages.",
+      below: "Below standard costs, limited language coverage?",
+      above: "Above standard costs, likely broad language coverage planned.",
+    },
+  });
 
-  // Marketing — minimum 10% of production sub-total
-  const productionSubtotal = productionSoFar + loc.amount_usd;
-  const marketingFloor = Math.round(productionSubtotal * 0.10);
-  const marketing: BudgetLine = row.marketingBudget != null && row.marketingBudget >= marketingFloor
-    ? { key: "marketing", label: "Marketing", amount_usd: row.marketingBudget, source: "user",
-        rationale: "As provided — above the 10% production minimum." }
-    : { key: "marketing", label: "Marketing", amount_usd: marketingFloor, source: "estimated",
-        rationale: "Industry minimum: 10% of production sub-total." };
+  // Marketing — 15% of (Dev + Art + Music + Loc) cascade
+  const marketingEstimate = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue) * 0.15);
+  const marketing = classify({
+    key: "marketing", label: "Marketing",
+    userVal: row.marketingBudget,
+    estimate: marketingEstimate,
+    rationales: {
+      blank: "15% of production subtotal, minimum industry standard.",
+      coherent: "Within recommended marketing range, supports a real launch push.",
+      below: "Below the 15% production minimum, risk of poor visibility on launch.",
+      above: "Above the 15% minimum, strong visibility budget planned.",
+    },
+  });
 
-  // Overhead — always estimated, 10% of production + marketing
-  const overheadAmount = Math.round((productionSubtotal + marketing.amount_usd) * 0.10);
-  const overhead: BudgetLine = {
-    key: "overhead", label: "Overhead", amount_usd: overheadAmount, source: "estimated",
-    rationale: "10% of production + marketing.",
-  };
+  // Overhead — 5% of (Dev + Art + Music + Loc + Marketing) cascade
+  const overheadEstimate = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue + marketing.cascadeValue) * 0.05);
+  const overhead = classify({
+    key: "overhead", label: "Overhead",
+    userVal: row.overheadBudget,
+    estimate: overheadEstimate,
+    rationales: {
+      blank: "5% of production + marketing, covers trailer, capsule art, legal, tools, contingency.",
+      coherent: "Within typical overhead range, fits standard launch operations.",
+      below: "Below standard overhead, limited contingency for unknowns?",
+      above: "Above standard overhead, likely broader operations or larger contingency.",
+    },
+  });
 
-  const lines = [dev, art, music, loc, marketing, overhead];
+  const lines = [dev.line, art.line, music.line, loc.line, marketing.line, overhead.line];
   const raw = lines.reduce((s, l) => s + l.amount_usd, 0);
   const total_usd = raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
   return { lines, total_usd };

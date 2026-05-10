@@ -6,7 +6,6 @@ export const Step1Schema = z.object({
   status: z.enum(["Concept","Prototype","Vertical Slice","Demo","In Development","Alpha","Beta"]),
   genre: z.array(z.string().min(1)).min(1, "Pick at least one genre").max(10),
   releaseDate: z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/, "Release date must be YYYY-MM or YYYY-MM-DD"),
-  similarGame: z.string().min(1).max(280).optional(),
 });
 
 export const Step2Schema = z.object({
@@ -25,6 +24,7 @@ export const Step3Schema = z.object({
   musicBudget: z.number().int().nonnegative().optional(),
   localizationBudget: z.number().int().nonnegative().optional(),
   marketingBudget: z.number().int().nonnegative().optional(),
+  overheadBudget: z.number().int().nonnegative().optional(),
 });
 
 export const ResultsQuerySchema = z.object({
