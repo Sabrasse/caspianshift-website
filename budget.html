@@ -396,8 +396,9 @@ const COUNTRIES = [
 const STATUSES = ['Concept','Prototype','Vertical Slice','Demo','In Development','Alpha','Beta'];
 const GENRES = [
   'Action','Adventure','RPG','Strategy','Simulation','Puzzle','Platformer','Horror',
-  'Survival','Roguelike','Visual Novel','Metroidvania','City Builder','Tower Defense',
-  'Racing','Fighting','Shooter','Stealth','Sandbox','Card Game','Narrative','Rhythm'
+  'Visual Novel','Narrative','Fighting','Shooter','Racing','Sports','Roguelike',
+  'Tower Defense','Management','Turn-Based','Dungeon Crawler','Detective','Cozy',
+  'Building','Metroidvania','Survival'
 ];
 const FUNDING_TYPES = ['Self-Funded','Crowdfunding','Publisher','Grant'];
 const COPIES_LABELS = { conservative: 500, realistic: 5000, optimistic: 50000 };
@@ -591,24 +592,25 @@ function calcBudgetLocal(input) {
     userVal: input.devBudget,
     estimate: devRevised,
     rationales: {
-      blank: `${country}: $${salary.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devRevised.toLocaleString()}.`,
-      coherent: `Within ${country} salary range for ${devs} over ${devTime} months.`,
-      below: `Below ${country} costs for ${devs} × ${devTime} months, under-budgeted?`,
-      above: `Above ${country} costs, likely a senior team or extended scope.`,
+      blank: `Average salary in ${country} for ${devs} * ${devTime} months.`,
+      coherent: `Fits our data range in ${country} for ${devs} * ${devTime} months.`,
+      below: `Below our data range in ${country} for ${devs} * ${devTime} months.`,
+      above: `Above our data range in ${country} for ${devs} * ${devTime} months.`,
     },
   });
 
   // Art — 20% of Dev
   const artRevised = Math.round(devRevised * 0.20);
+  const primaryGenre = (input.genre && input.genre[0]) || 'indie';
   const art = classifyLine({
     key: 'art', label: 'Art & Illustrations',
     userVal: input.artBudget,
     estimate: artRevised,
     rationales: {
-      blank: '20% of Dev, standard minimum rate for indie games.',
-      coherent: 'Within typical art share, proportional to your dev scope.',
-      below: 'Below standard costs, limited art scope?',
-      above: 'Above standard costs, likely an art-heavy scope or outsourced work.',
+      blank: `20% of Dev & QA, standard for ${primaryGenre} games.`,
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -619,10 +621,10 @@ function calcBudgetLocal(input) {
     userVal: input.musicBudget,
     estimate: musicRevised,
     rationales: {
-      blank: '5% of Dev + Art, usually dedicated to custom soundtrack and SFX.',
-      coherent: 'Within typical audio share, fits a hybrid stock + custom approach.',
-      below: 'Below standard costs, stock music only?',
-      above: 'Above standard costs, likely custom-scored.',
+      blank: '5% of Dev + Art, evolve with game scope.',
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -633,10 +635,10 @@ function calcBudgetLocal(input) {
     userVal: input.locBudget,
     estimate: locRevised,
     rationales: {
-      blank: '5% of Dev + Art + Music, typical for 4 to 6 supported languages.',
-      coherent: 'Within typical localization share, fits 4 to 6 languages.',
-      below: 'Below standard costs, limited language coverage?',
-      above: 'Above standard costs, likely broad language coverage.',
+      blank: '5% of Dev + Art + Music, evolve with country coverage.',
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -647,10 +649,10 @@ function calcBudgetLocal(input) {
     userVal: input.marketingBudget,
     estimate: marketingRevised,
     rationales: {
-      blank: '15% of production subtotal, minimum industry standard.',
-      coherent: 'Within recommended marketing range, supports a real launch push.',
-      below: 'Below the 15% production minimum, risk of poor visibility on launch.',
-      above: 'Above the 15% minimum, strong visibility budget planned.',
+      blank: '15% of production subtotal, to be spent wisely!',
+      coherent: `Fits our data range for similar released ${primaryGenre} games.`,
+      below: `Below our data range for similar released ${primaryGenre} games.`,
+      above: `Above our data range for similar released ${primaryGenre} games.`,
     },
   });
 
@@ -661,10 +663,10 @@ function calcBudgetLocal(input) {
     userVal: input.overheadBudget,
     estimate: overheadRevised,
     rationales: {
-      blank: '5% of production + marketing, covers trailer, tools, etc.',
-      coherent: 'Within typical overhead range, fits standard launch operations.',
-      below: 'Below standard overhead, limited contingency for unknowns?',
-      above: 'Above standard overhead, likely broader operations or larger contingency.',
+      blank: 'An additional 5% to add breathing room to your budget.',
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -1348,24 +1350,26 @@ function CardBudget(results) {
     const isCoherent = line.source === 'user' && provided != null;
     const revisedDisplay = isCoherent ? fmtRange(revised * 0.5, revised * 1.5) : fmt(revised);
     const revisedStyle = isCoherent
-      ? "font-family:'Nunito',sans-serif;font-weight:500;color:#FAF0CA;font-size:0.85rem;"
+      ? "font-family:'Nunito',sans-serif;font-weight:500;color:#FAF0CA;font-size:0.95rem;"
       : "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;";
     return h('div', { class: 'cs-budget-row', style: rowStyle },
       h('span', { class: 'cs-budget-label', style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, line.label),
       h('span', { style: `font-family:'Nunito',sans-serif;font-weight:600;color:${provided == null ? 'rgba(250,240,202,.35)' : providedColor};font-size:0.95rem;` }, providedDisplay),
       h('span', { style: revisedStyle }, revisedDisplay),
-      h('span', { class: 'cs-budget-details', style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, line.rationale || '')
+      h('span', { class: 'cs-budget-details', style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:#fff;line-height:1.5;" }, line.rationale || '')
     );
   });
-  // Total row Details cell: delta (revised − provided) + rounded label.
+  // Total row Details cell: delta (revised − provided) styled like Provided/Revised totals.
+  // Teal when Provided is within ±10% of Revised; orange otherwise.
   const delta = totalRevised - totalProvided;
   const deltaPct = totalProvided > 0 ? Math.round((Math.abs(delta) / totalProvided) * 100) : 0;
   const showDelta = totalProvided > 0 && delta !== 0;
   const deltaArrow = delta > 0 ? '↑' : '↓';
   const deltaSign = delta > 0 ? '+' : '−';
   const deltaText = showDelta ? `${deltaSign}${fmt(Math.abs(delta))} (${deltaArrow} ${deltaPct}%)` : '';
+  const deltaColor = deltaPct <= 10 ? '#17BEBB' : '#FC7A1E';
   const totalDetailsCell = h('span', { class: 'cs-budget-details', style: "display:flex;flex-direction:row;align-items:baseline;gap:0.6rem;flex-wrap:wrap;line-height:1.3;" },
-    showDelta ? h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.65);font-weight:500;" }, deltaText) : null
+    showDelta ? h('span', { style: `font-family:'Boogaloo',cursive;font-size:clamp(1.2rem,2.6vw,1.7rem);color:${deltaColor};letter-spacing:0.02em;` }, deltaText) : null
   );
   const totalRow = h('div', { class: 'cs-budget-row cs-budget-total', style: `border-top:2px solid rgba(23,190,187,.15);padding:1.2rem 2rem;display:grid;grid-template-columns:${rowGrid};align-items:baseline;gap:${colGap};` },
     h('span', { class: 'cs-budget-label', style: "font-family:'Boogaloo',cursive;font-size:clamp(1.1rem,2.4vw,1.6rem);color:#fff;letter-spacing:0.02em;" }, 'Total'),

@@ -79,24 +79,25 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
     userVal: row.devQaBudget,
     estimate: devRevised,
     rationales: {
-      blank: `${country}: $${monthly.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devRevised.toLocaleString()}.`,
-      coherent: `Within ${country} salary range for ${devs} over ${devTime} months.`,
-      below: `Below ${country} costs for ${devs} × ${devTime} months, under-budgeted?`,
-      above: `Above ${country} costs, likely a senior team or extended scope.`,
+      blank: `Average salary in ${country} for ${devs} * ${devTime} months.`,
+      coherent: `Fits our data range in ${country} for ${devs} * ${devTime} months.`,
+      below: `Below our data range in ${country} for ${devs} * ${devTime} months.`,
+      above: `Above our data range in ${country} for ${devs} * ${devTime} months.`,
     },
   });
 
   // Art — 20% of Dev
   const artRevised = Math.round(devRevised * 0.20);
+  const primaryGenre = (row.genre && row.genre[0]) || "indie";
   const art = classify({
     key: "art", label: "Art & Illustrations",
     userVal: row.artBudget,
     estimate: artRevised,
     rationales: {
-      blank: "20% of Dev, standard minimum rate for indie games.",
-      coherent: "Within typical art share, proportional to your dev scope.",
-      below: "Below standard costs, limited art scope?",
-      above: "Above standard costs, likely an art-heavy scope or outsourced work.",
+      blank: `20% of Dev & QA, standard for ${primaryGenre} games.`,
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -107,10 +108,10 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
     userVal: row.musicBudget,
     estimate: musicRevised,
     rationales: {
-      blank: "5% of Dev + Art, usually dedicated to custom soundtrack and SFX.",
-      coherent: "Within typical audio share, fits a hybrid stock + custom approach.",
-      below: "Below standard costs, stock music only?",
-      above: "Above standard costs, likely custom-scored.",
+      blank: "5% of Dev + Art, evolve with game scope.",
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -121,10 +122,10 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
     userVal: row.localizationBudget,
     estimate: locRevised,
     rationales: {
-      blank: "5% of Dev + Art + Music, typical for 4 to 6 supported languages.",
-      coherent: "Within typical localization share, fits 4 to 6 languages.",
-      below: "Below standard costs, limited language coverage?",
-      above: "Above standard costs, likely broad language coverage.",
+      blank: "5% of Dev + Art + Music, evolve with country coverage.",
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
@@ -135,10 +136,10 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
     userVal: row.marketingBudget,
     estimate: marketingRevised,
     rationales: {
-      blank: "15% of production subtotal, minimum industry standard.",
-      coherent: "Within recommended marketing range, supports a real launch push.",
-      below: "Below the 15% production minimum, risk of poor visibility on launch.",
-      above: "Above the 15% minimum, strong visibility budget planned.",
+      blank: "15% of production subtotal, to be spent wisely!",
+      coherent: `Fits our data range for similar released ${primaryGenre} games.`,
+      below: `Below our data range for similar released ${primaryGenre} games.`,
+      above: `Above our data range for similar released ${primaryGenre} games.`,
     },
   });
 
@@ -149,10 +150,10 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
     userVal: row.overheadBudget,
     estimate: overheadRevised,
     rationales: {
-      blank: "5% of production + marketing, covers trailer, tools, etc.",
-      coherent: "Within typical overhead range, fits standard launch operations.",
-      below: "Below standard overhead, limited contingency for unknowns?",
-      above: "Above standard overhead, likely broader operations or larger contingency.",
+      blank: "An additional 5% to add breathing room to your budget.",
+      coherent: `Fits our data range for similar ${primaryGenre} games.`,
+      below: `Below our data range for similar ${primaryGenre} games.`,
+      above: `Above our data range for similar ${primaryGenre} games.`,
     },
   });
 
