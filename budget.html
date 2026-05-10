@@ -451,12 +451,12 @@ let state = {
 function defaultFormData() {
   return {
     // Step 1 — Game
-    gameName: '', status: '', genre: [], releaseDate: '', similarGame: '',
+    gameName: '', status: '', genre: [], releaseDate: '',
     // Step 2 — Studio
     studioName: '', studioSize: '', studioCountry: '', fundingType: '',
     // Step 3 — Budget
     devTime: '',
-    devBudget: null, artBudget: null, musicBudget: null, locBudget: null, marketingBudget: null,
+    devBudget: null, artBudget: null, musicBudget: null, locBudget: null, marketingBudget: null, overheadBudget: null,
   };
 }
 
@@ -525,62 +525,129 @@ const COUNTRY_SALARIES = {
   'Spain':4200,'Italy':4000,'Netherlands':6500,'Sweden':6300,'Finland':6000,
   'Poland':3800,'Czechia':3500,'Slovenia':3000,'Brazil':2800,'Japan':5000,'Other':4500
 };
-const NARRATIVE_GENRES = ['RPG','Visual Novel','Adventure','Narrative'];
-const MECHANICAL_GENRES = ['Strategy','Roguelike','Card Game','Puzzle'];
+// ±50% band around our estimate. Below = orange flag (cascade defensively against
+// our estimate). Above = white amount (cascade with user value — likely scope choice).
+const FLAG_BAND = 0.5;
+
+function classifyLine(args) {
+  const { key, label, userVal, estimate, rationales } = args;
+  if (userVal == null) {
+    return {
+      line: { key, label, amount_usd: estimate, source: 'estimated', rationale: rationales.blank },
+      cascadeValue: estimate,
+    };
+  }
+  const ratio = estimate > 0 ? userVal / estimate : 1;
+  if (ratio < 1 - FLAG_BAND) {
+    return {
+      line: { key, label, amount_usd: userVal, source: 'below', rationale: rationales.below },
+      cascadeValue: estimate,
+    };
+  }
+  if (ratio > 1 + FLAG_BAND) {
+    return {
+      line: { key, label, amount_usd: userVal, source: 'above', rationale: rationales.above },
+      cascadeValue: userVal,
+    };
+  }
+  return {
+    line: { key, label, amount_usd: userVal, source: 'user', rationale: rationales.coherent },
+    cascadeValue: userVal,
+  };
+}
 
 function calcBudgetLocal(input) {
   const country = input.studioCountry || 'Other';
   const salary = COUNTRY_SALARIES[country] || COUNTRY_SALARIES['Other'];
   const studioSize = parseInt(input.studioSize) || 1;
   const devTime = parseInt(input.devTime) || 12;
+  const devs = `${studioSize} dev${studioSize===1?'':'s'}`;
+
+  // Dev & QA — anchor
   const devEst = salary * studioSize * devTime;
+  const dev = classifyLine({
+    key: 'dev', label: 'Development & QA',
+    userVal: input.devBudget,
+    estimate: devEst,
+    rationales: {
+      blank: `${country}: $${salary.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devEst.toLocaleString()}.`,
+      coherent: `Within ${country} salary range for ${devs} over ${devTime} months.`,
+      below: `Below ${country} costs for ${devs} × ${devTime} months, under-budgeted?`,
+      above: `Above ${country} costs, likely a senior team or extended scope.`,
+    },
+  });
 
-  const lines = [];
-  // Dev & QA
-  lines.push(input.devBudget != null
-    ? { key: 'dev', label: 'Development & QA', amount_usd: input.devBudget, source: 'user',
-        rationale: `As provided — within ${country} salary range for your team.` }
-    : { key: 'dev', label: 'Development & QA', amount_usd: devEst, source: 'estimated',
-        rationale: `${country} median salary ($${salary.toLocaleString()}/mo) × ${studioSize} dev${studioSize===1?'':'s'} × ${devTime} months.` });
+  // Art — 20% of Dev cascade
+  const artEst = Math.round(dev.cascadeValue * 0.20);
+  const art = classifyLine({
+    key: 'art', label: 'Art & Illustrations',
+    userVal: input.artBudget,
+    estimate: artEst,
+    rationales: {
+      blank: '20% of Dev, standard minimum rate for indie games.',
+      coherent: 'Within typical art share, proportional to your dev scope.',
+      below: 'Below standard costs, limited art scope?',
+      above: 'Above standard costs, likely an art-heavy scope or outsourced work.',
+    },
+  });
 
-  // Art
-  const narrativeHeavy = (input.genre || []).some(g => NARRATIVE_GENRES.includes(g));
-  const mechanical = (input.genre || []).some(g => MECHANICAL_GENRES.includes(g));
-  const artShare = narrativeHeavy ? 0.25 : mechanical ? 0.10 : 0.18;
-  lines.push(input.artBudget != null
-    ? { key: 'art', label: 'Art & Illustrations', amount_usd: input.artBudget, source: 'user',
-        rationale: 'As provided — within typical genre range.' }
-    : { key: 'art', label: 'Art & Illustrations', amount_usd: Math.round(devEst * artShare), source: 'estimated',
-        rationale: `Genre-typical share of dev cost (${Math.round(artShare*100)}%).` });
+  // Music — 5% of (Dev + Art) cascade
+  const musicEst = Math.round((dev.cascadeValue + art.cascadeValue) * 0.05);
+  const music = classifyLine({
+    key: 'music', label: 'Music & Sound',
+    userVal: input.musicBudget,
+    estimate: musicEst,
+    rationales: {
+      blank: '5% of Dev + Art, usually dedicated to custom soundtrack and SFX.',
+      coherent: 'Within typical audio share, fits a hybrid stock + custom approach.',
+      below: 'Below standard costs, stock music only?',
+      above: 'Above standard costs, likely custom-scored or licensed tracks.',
+    },
+  });
 
-  // Music
-  lines.push(input.musicBudget != null
-    ? { key: 'music', label: 'Music & Sound', amount_usd: input.musicBudget, source: 'user', rationale: 'As provided.' }
-    : { key: 'music', label: 'Music & Sound', amount_usd: 8000, source: 'estimated',
-        rationale: 'Comparables median; fallback $8,000.' });
+  // Localization — 5% of (Dev + Art + Music) cascade. $0 falls through to "below".
+  const locEst = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue) * 0.05);
+  const loc = classifyLine({
+    key: 'loc', label: 'Localization',
+    userVal: input.locBudget,
+    estimate: locEst,
+    rationales: {
+      blank: '5% of Dev + Art + Music, typical for 4 to 6 supported languages.',
+      coherent: 'Within typical localization share, fits 4 to 6 languages.',
+      below: 'Below standard costs, limited language coverage?',
+      above: 'Above standard costs, likely broad language coverage planned.',
+    },
+  });
 
-  // Localization
-  const productionSoFar = lines[0].amount_usd + lines[1].amount_usd + lines[2].amount_usd;
-  lines.push(input.locBudget != null
-    ? { key: 'loc', label: 'Localization', amount_usd: input.locBudget, source: 'user',
-        rationale: input.locBudget === 0 ? 'English-only — no localization budget.' : 'As provided.' }
-    : { key: 'loc', label: 'Localization', amount_usd: Math.round(productionSoFar * 0.07), source: 'estimated',
-        rationale: '7% of production sub-total (industry typical for 4–6 languages).' });
+  // Marketing — 15% of (Dev + Art + Music + Loc) cascade
+  const marketingEst = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue) * 0.15);
+  const marketing = classifyLine({
+    key: 'marketing', label: 'Marketing',
+    userVal: input.marketingBudget,
+    estimate: marketingEst,
+    rationales: {
+      blank: '15% of production subtotal, minimum industry standard.',
+      coherent: 'Within recommended marketing range, supports a real launch push.',
+      below: 'Below the 15% production minimum, risk of poor visibility on launch.',
+      above: 'Above the 15% minimum, strong visibility budget planned.',
+    },
+  });
 
-  // Marketing — minimum 10% of production sub-total
-  const productionSubtotal = productionSoFar + lines[3].amount_usd;
-  const marketingFloor = Math.round(productionSubtotal * 0.10);
-  lines.push(input.marketingBudget != null && input.marketingBudget >= marketingFloor
-    ? { key: 'marketing', label: 'Marketing', amount_usd: input.marketingBudget, source: 'user',
-        rationale: 'As provided — above the 10% production minimum.' }
-    : { key: 'marketing', label: 'Marketing', amount_usd: marketingFloor, source: 'estimated',
-        rationale: 'Industry minimum: 10% of production sub-total.' });
+  // Overhead — 5% of (Dev + Art + Music + Loc + Marketing) cascade
+  const overheadEst = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue + marketing.cascadeValue) * 0.05);
+  const overhead = classifyLine({
+    key: 'overhead', label: 'Overhead',
+    userVal: input.overheadBudget,
+    estimate: overheadEst,
+    rationales: {
+      blank: '5% of production + marketing, covers trailer, capsule art, legal, tools, contingency.',
+      coherent: 'Within typical overhead range, fits standard launch operations.',
+      below: 'Below standard overhead, limited contingency for unknowns?',
+      above: 'Above standard overhead, likely broader operations or larger contingency.',
+    },
+  });
 
-  // Overhead
-  const overheadAmount = Math.round((productionSubtotal + lines[4].amount_usd) * 0.10);
-  lines.push({ key: 'overhead', label: 'Overhead', amount_usd: overheadAmount, source: 'estimated',
-    rationale: '10% of production + marketing.' });
-
+  const lines = [dev.line, art.line, music.line, loc.line, marketing.line, overhead.line];
   const raw = lines.reduce((s, l) => s + l.amount_usd, 0);
   const total_usd = raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
   return { lines, total_usd };
@@ -683,6 +750,8 @@ function validateGame(d) {
     if (!norm) errs.releaseDate = 'Use a year-month, e.g. 2027-08 or 08/2027.';
     else d.releaseDate = norm;
   }
+  if (!d.devTime || parseInt(d.devTime) < 1) errs.devTime = 'Required.';
+  if (d.devTime && parseInt(d.devTime) > 160) errs.devTime = 'Cap is 160 months — try 60–72 if you mean a long project.';
   return errs;
 }
 function validateStudio(d) {
@@ -694,10 +763,7 @@ function validateStudio(d) {
   return errs;
 }
 function validateBudget(d) {
-  const errs = {};
-  if (!d.devTime || parseInt(d.devTime) < 1) errs.devTime = 'Required.';
-  if (d.devTime && parseInt(d.devTime) > 160) errs.devTime = 'Cap is 160 months — try 60–72 if you mean a long project.';
-  return errs;
+  return {};
 }
 
 // ────────────────── COMPONENTS — primitives ──────────────────
@@ -862,23 +928,30 @@ function StepIndicator(current) {
 // Step 1 — Game
 function WizardGame(errors) {
   const d = state.data;
+  // Auto-prefill / re-prefill dev time from release date until the user types a value.
+  // Once they do, _devTimeManual is true and we leave their value alone. Clearing the
+  // field flips the flag back so the prefill resumes (see oninput below).
+  if (!d._devTimeManual) {
+    const months = monthsUntilRelease(d.releaseDate);
+    if (months && months !== d.devTime) { d.devTime = months; saveState(); }
+  }
   return h('div', null,
-    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Game'),
+    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Your Game'),
     h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
-      'What game are you building?'),
-    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
+      'Tell us a bit more about the game you are building.'),
+    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:2rem;' },
       Field({ label: 'Game name', required: true, error: errors.gameName },
         h('input', { class: 'cs-input', value: d.gameName, placeholder: 'Ember Frontier', maxlength: 280,
           oninput: (e) => { state.data.gameName = e.target.value; saveState(); } })),
-      Field({ label: 'Status', required: true, error: errors.status },
+      Field({ label: 'Game Status', required: true, error: errors.status },
         Select({ value: d.status, placeholder: 'Select…', options: STATUSES,
           onChange: (v) => { state.data.status = v; saveState(); render(); } }))
     ),
-    Field({ label: 'Genre', required: true, error: errors.genre, helper: 'Pick all that apply.' },
+    Field({ label: 'Game Genre', required: true, error: errors.genre, helper: 'Pick all that apply.' },
       MultiSelect({ value: d.genre, options: GENRES,
         onChange: (g) => { state.data.genre = g; saveState(); render(); } })),
-    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
-      Field({ label: 'Release date', required: true, helper: 'YYYY-MM (e.g. 2027-08)', error: errors.releaseDate },
+    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:2rem;' },
+      Field({ label: 'Estimated Release Date', required: true, helper: 'YYYY-MM (e.g. 2027-08)', error: errors.releaseDate },
         h('input', { class: 'cs-input', type: 'text', inputmode: 'numeric', maxlength: 7,
           value: d.releaseDate || '', placeholder: 'YYYY-MM',
           oninput: (e) => {
@@ -886,11 +959,28 @@ function WizardGame(errors) {
             const formatted = raw.length >= 5 ? raw.slice(0, 4) + '-' + raw.slice(4) : raw;
             e.target.value = formatted;
             state.data.releaseDate = formatted;
+            if (!state.data._devTimeManual) {
+              const months = monthsUntilRelease(formatted);
+              if (months) {
+                state.data.devTime = months;
+                const dt = document.getElementById('cs-devtime-input');
+                if (dt) dt.value = months;
+              }
+            }
             saveState();
           } })),
-      Field({ label: 'Similar game', helper: 'Optional.' },
-        h('input', { class: 'cs-input', value: d.similarGame || '', placeholder: 'Hades, Stardew Valley, …', maxlength: 280,
-          oninput: (e) => { state.data.similarGame = e.target.value; saveState(); } }))
+      Field({ label: 'Remaining Dev Time (Months)', required: true, helper: 'Estimated from your release date.', error: errors.devTime },
+        h('input', { id: 'cs-devtime-input', class: 'cs-input', type: 'number', min: 1, max: 160, value: d.devTime || '', placeholder: '24',
+          oninput: (e) => {
+            if (e.target.value) {
+              state.data.devTime = parseInt(e.target.value);
+              state.data._devTimeManual = true;
+            } else {
+              state.data.devTime = '';
+              state.data._devTimeManual = false;
+            }
+            saveState();
+          } }))
     )
   );
 }
@@ -899,17 +989,17 @@ function WizardGame(errors) {
 function WizardStudio(errors) {
   const d = state.data;
   return h('div', null,
-    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Studio'),
+    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Your Studio'),
     h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
-      "What's the profile of your studio?"),
+      `Who's the team behind ${d.gameName || 'your game'}?`),
     Field({ label: 'Studio name', required: true, error: errors.studioName },
       h('input', { class: 'cs-input', value: d.studioName, placeholder: 'Ironvale Games', maxlength: 280,
         oninput: (e) => { state.data.studioName = e.target.value; saveState(); } })),
-    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' },
-      Field({ label: 'Studio size', required: true, helper: 'Headcount', error: errors.studioSize },
+    h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:2rem;' },
+      Field({ label: 'Number of Developers', required: true, helper: 'Programmers and QA only.', error: errors.studioSize },
         h('input', { class: 'cs-input', type: 'number', min: 1, value: d.studioSize || '', placeholder: '4',
           oninput: (e) => { state.data.studioSize = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
-      Field({ label: 'Country', required: true, error: errors.studioCountry },
+      Field({ label: 'Studio Country', required: true, error: errors.studioCountry },
         Select({
           value: d._countryOther ? 'Other' : d.studioCountry,
           placeholder: 'Select…',
@@ -926,38 +1016,45 @@ function WizardStudio(errors) {
           oninput: (e) => { state.data.studioCountry = e.target.value; saveState(); }
         }) : null),
     ),
-    Field({ label: 'Funding type', required: true, error: errors.fundingType },
+    Field({ label: `Funding Path for ${d.gameName || 'your game'}`, required: true, error: errors.fundingType },
       Select({ value: d.fundingType, placeholder: 'Select…', options: FUNDING_TYPES,
         onChange: (v) => { state.data.fundingType = v; saveState(); render(); } }))
   );
 }
 
 // Step 3 — Budget
+function monthsUntilRelease(releaseDate) {
+  if (!releaseDate || !/^\d{4}-\d{2}/.test(releaseDate)) return null;
+  const [y, m, day = '01'] = releaseDate.split('-');
+  const target = new Date(Number(y), Number(m) - 1, Number(day));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = (target - today) / (1000 * 60 * 60 * 24);
+  if (diffDays <= 0) return null;
+  return Math.max(1, Math.round(diffDays / 30.44));
+}
 function WizardBudget(errors) {
   const d = state.data;
+  const gameLabel = d.gameName || 'your game';
   const fields = {
-    devBudget:       { label: 'Dev & QA budget',       helper: 'If blank, we estimate from dev time and studio country.' },
-    artBudget:       { label: 'Art budget',            helper: 'If blank, we estimate from comparable games.' },
-    musicBudget:     { label: 'Music & sound budget',  helper: 'If blank, we estimate from comparable games.' },
-    locBudget:       { label: 'Localization budget',   helper: 'If blank, we estimate from comparable games.' },
-    marketingBudget: { label: 'Marketing budget',      helper: 'If blank, we apply the 10% minimum of production.' },
+    devBudget:       { label: 'Dev & QA budget',       helper: 'Programming, QA.' },
+    artBudget:       { label: 'Art budget',            helper: 'Characters, environments, UI, animations.' },
+    musicBudget:     { label: 'Music & sound budget',  helper: 'Soundtrack, SFX.' },
+    locBudget:       { label: 'Localization budget',   helper: 'Translation and store page localization.' },
+    marketingBudget: { label: 'Marketing budget',      helper: 'PR, social media, paid promotion, etc.' },
+    overheadBudget:  { label: 'Overhead budget',       helper: 'Trailer, capsule art, legal, tools, contingency.' },
   };
   const total = Object.keys(fields).reduce((s, k) => s + (parseInt(d[k]) || 0), 0);
   const currencyField = (key) => Field({ label: fields[key].label, helper: fields[key].helper },
     CurrencyInput({ value: d[key], onInput: (n) => { state.data[key] = n; saveState(); rerenderTotal(); } }));
-  const row = (a, b) => h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:1rem;' }, a, b);
+  const row = (a, b) => h('div', { class: 'grid-2', style: 'display:grid;grid-template-columns:1fr 1fr;gap:2rem;' }, a, b);
   return h('div', null,
-    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Budget'),
+    h('h2', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" }, 'Your Budget'),
     h('p', { style: "font-family:'Nunito',sans-serif;color:rgba(250,240,202,.6);font-size:0.93rem;line-height:1.65;margin-bottom:2rem;" },
-      "What's your expected budget for the game?"),
-    row(
-      Field({ label: 'Dev time (months)', required: true, helper: 'Past and remaining months of development.', error: errors.devTime },
-        h('input', { class: 'cs-input', type: 'number', min: 1, max: 160, value: d.devTime || '', placeholder: '24',
-          oninput: (e) => { state.data.devTime = e.target.value ? parseInt(e.target.value) : ''; saveState(); } })),
-      currencyField('devBudget')
-    ),
-    row(currencyField('artBudget'),  currencyField('musicBudget')),
-    row(currencyField('locBudget'),  currencyField('marketingBudget')),
+      `What funds do you need to ship ${gameLabel}?`),
+    row(currencyField('devBudget'),   currencyField('artBudget')),
+    row(currencyField('musicBudget'), currencyField('locBudget')),
+    row(currencyField('marketingBudget'), currencyField('overheadBudget')),
     h('div', { id: 'cs-budget-total', style: "border:2px solid rgba(23,190,187,.2);padding:1.2rem 1.5rem;display:flex;justify-content:space-between;align-items:center;margin-top:1rem;" },
       h('span', { style: "font-family:'Boogaloo',cursive;color:#17BEBB;font-size:0.85rem;letter-spacing:0.1em;text-transform:uppercase;" }, 'Total budget'),
       h('span', { style: "font-family:'Nunito',sans-serif;font-weight:700;color:#FAF0CA;font-size:1.2rem;" }, total > 0 ? '$' + total.toLocaleString() : '—'))
@@ -966,7 +1063,7 @@ function WizardBudget(errors) {
 function rerenderTotal() {
   const el = document.getElementById('cs-budget-total');
   if (!el) return;
-  const total = ['devBudget','artBudget','musicBudget','locBudget','marketingBudget']
+  const total = ['devBudget','artBudget','musicBudget','locBudget','marketingBudget','overheadBudget']
     .reduce((s, k) => s + (parseInt(state.data[k]) || 0), 0);
   el.children[1].textContent = total > 0 ? '$' + total.toLocaleString() : '—';
 }
@@ -1015,7 +1112,6 @@ async function onWizardNext() {
       status: state.data.status,
       genre: state.data.genre,
       releaseDate: state.data.releaseDate,
-      similarGame: state.data.similarGame && state.data.similarGame.trim() ? state.data.similarGame.trim() : undefined,
     };
     const res = await postJSON('/api/step1', body);
     if (res.ok && res.body && res.body.notionPageId) {
@@ -1053,6 +1149,7 @@ async function onWizardNext() {
       musicBudget:        state.data.musicBudget     != null ? state.data.musicBudget     : undefined,
       localizationBudget: state.data.locBudget       != null ? state.data.locBudget       : undefined,
       marketingBudget:    state.data.marketingBudget != null ? state.data.marketingBudget : undefined,
+      overheadBudget:     state.data.overheadBudget  != null ? state.data.overheadBudget  : undefined,
     });
   }
   state.page = 'loading';
@@ -1170,8 +1267,10 @@ async function fetchCaspianCards() {
 
 // ────────────────── PAGE: RESULTS ──────────────────
 const SOURCE_ICONS = {
-  user:      { symbol: '✓', color: '#17BEBB', label: 'You provided' },
-  estimated: { symbol: '·', color: '#FAF0CA', label: 'We estimated' },
+  estimated: { symbol: '·', color: '#FAF0CA', amountColor: '#FAF0CA', label: 'We estimated' },
+  user:      { symbol: '✓', color: '#17BEBB', amountColor: '#fff',    label: 'You provided' },
+  below:     { symbol: '⚠', color: '#FC7A1E', amountColor: '#FC7A1E', label: 'Below typical range' },
+  above:     { symbol: '↑', color: '#17BEBB', amountColor: '#fff',    label: 'Above typical range' },
 };
 
 function CardBudget(results) {
@@ -1182,7 +1281,7 @@ function CardBudget(results) {
     return h('div', { style: 'display:grid;grid-template-columns:24px 200px 130px 1fr;align-items:baseline;gap:0.6rem;padding:0.7rem 0;border-bottom:1px solid rgba(23,190,187,.08);' },
       h('span', { title: src.label, style: `color:${src.color};font-size:0.95rem;text-align:center;` }, src.symbol),
       h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, line.label),
-      h('span', { style: "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;text-align:right;" }, fmt(line.amount_usd)),
+      h('span', { style: `font-family:'Nunito',sans-serif;font-weight:600;color:${src.amountColor};font-size:0.95rem;text-align:right;` }, fmt(line.amount_usd)),
       h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, line.rationale)
     );
   });
@@ -1191,7 +1290,7 @@ function CardBudget(results) {
     h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1.5rem;' },
       lineRows,
       h('div', { style: 'display:flex;gap:1.2rem;margin-top:1rem;flex-wrap:wrap;' },
-        Object.values(SOURCE_ICONS).map(p => h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.4);display:flex;align-items:center;gap:0.3rem;" },
+        Object.values(SOURCE_ICONS).map(p => h('span', { style: `font-family:'Nunito',sans-serif;font-size:0.72rem;color:${p.amountColor};display:flex;align-items:center;gap:0.3rem;` },
           h('span', { style: `color:${p.color}` }, p.symbol), ' ', p.label)))
     ),
     h('div', { style: 'border-top:2px solid rgba(23,190,187,.15);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.5rem;' },

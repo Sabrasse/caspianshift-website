@@ -13,7 +13,6 @@ export interface Step1Body {
   status: GameStatus;
   genre: string[];
   releaseDate: string;          // YYYY-MM or YYYY-MM-DD
-  similarGame?: string;         // free-text game name; creates a comparables row
 }
 
 // Step 2 (Studio): PATCHes the row created in Step 1.
@@ -34,6 +33,7 @@ export interface Step3Body {
   musicBudget?: number;
   localizationBudget?: number;
   marketingBudget?: number;
+  overheadBudget?: number;
 }
 
 // ─── Notion row shape (subset we read/write) ────────────────────────
@@ -53,11 +53,12 @@ export interface NotionRow {
   musicBudget?: number;
   localizationBudget?: number;
   marketingBudget?: number;
+  overheadBudget?: number;
   preReleaseBudget?: number;
 }
 
 // ─── Result shape returned by /api/results ──────────────────────────
-export type Provenance = "user" | "estimated";
+export type Provenance = "user" | "estimated" | "below" | "above";
 
 export interface BudgetLine {
   key: "dev" | "art" | "music" | "loc" | "marketing" | "overhead";

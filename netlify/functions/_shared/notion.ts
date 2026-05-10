@@ -39,7 +39,7 @@ const P = {
   StudioName:    "Studio Name",
   Status:        "Status",
   Genre:         "Genre",
-  StudioSize:    "Studio Size",
+  StudioSize:    "Developers",
   StudioCountry: "Studio Country",
   ReleaseDate:   "Release Date",
   FundingType:   "Funding Type",
@@ -50,6 +50,7 @@ const P = {
   Music:         "Music Budget",
   Loc:           "Localization Budget",
   Marketing:     "Marketing Budget",
+  Overhead:      "Overhead Budget",
   PreRelease:    "Pre-Release Budget",
   SourceType:    "Source Type",
 };
@@ -86,31 +87,6 @@ export async function createStep1Row(body: Step1Body): Promise<{ notionPageId: s
   }
 }
 
-// ─── Step 1: create a comparable row for "Similar Game" if provided ─────
-export async function createComparable(gameName: string): Promise<void> {
-  const c = client();
-  if (!c) return;
-  const name = gameName.trim();
-  if (!name) return;
-  try {
-    // Don't duplicate if a row with this title already exists
-    const existing: any = await c.databases.query({
-      database_id: NOTION_DB_ID,
-      filter: { property: P.GameName, title: { equals: name } },
-      page_size: 1,
-    });
-    if (existing.results.length) return;
-    await c.pages.create({
-      parent: { database_id: NOTION_DB_ID },
-      properties: {
-        [P.GameName]:   { title: [{ text: { content: name } }] },
-        [P.SourceType]: { select: { name: "CS Pilot" } },
-      } as any,
-    });
-  } catch (e: any) {
-    console.error("[notion] createComparable failed", e?.message || e);
-  }
-}
 
 // ─── Step 2: PATCH studio fields by page id ─────────────────────────────
 export async function patchStep2(body: Step2Body): Promise<boolean> {
@@ -146,6 +122,7 @@ export async function patchStep3(body: Step3Body, preReleaseTotal: number): Prom
   if (body.musicBudget != null)        props[P.Music]     = { number: body.musicBudget };
   if (body.localizationBudget != null) props[P.Loc]       = { number: body.localizationBudget };
   if (body.marketingBudget != null)    props[P.Marketing] = { number: body.marketingBudget };
+  if (body.overheadBudget != null)     props[P.Overhead]  = { number: body.overheadBudget };
   try {
     await c.pages.update({ page_id: body.notionPageId, properties: props });
     return true;
@@ -178,6 +155,7 @@ export async function readRow(notionPageId: string): Promise<NotionRow | null> {
       musicBudget:        p[P.Music]?.number ?? undefined,
       localizationBudget: p[P.Loc]?.number ?? undefined,
       marketingBudget:    p[P.Marketing]?.number ?? undefined,
+      overheadBudget:     p[P.Overhead]?.number ?? undefined,
       preReleaseBudget:   p[P.PreRelease]?.number ?? undefined,
     };
   } catch (e: any) {

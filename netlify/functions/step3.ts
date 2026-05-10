@@ -22,7 +22,8 @@ export const handler: Handler = async (event) => {
     + (d.artBudget        || 0)
     + (d.musicBudget      || 0)
     + (d.localizationBudget || 0)
-    + (d.marketingBudget  || 0);
+    + (d.marketingBudget  || 0)
+    + (d.overheadBudget   || 0);
 
   const t0 = Date.now();
   const wrote = await patchStep3(d, preReleaseTotal);

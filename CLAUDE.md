@@ -20,16 +20,15 @@ Two-page marketing site with a serverless Funding Analysis tool. **No framework,
 
 ```
 step1 (POST)  ─→ creates Notion row, returns notionPageId
-                 also creates a "Similar Game" comparable row if provided
 step2 (POST)  ─→ PATCHes studio fields by notionPageId
 step3 (POST)  ─→ PATCHes budget fields by notionPageId; writes Pre-Release Budget
 results (GET) ─→ reads the Notion row, runs deterministic budget + revenue math, returns ResultsPayload
 caspian (GET) ─→ queries Publisher / Crowdfunding / Grant DB; returns ≤ 3 cards
 ```
 
-- `step1.ts` validates the Game body and calls `createStep1Row` to create the Notion row, returning `{ ok, notionPageId }`. If a `similarGame` string is provided, it kicks off a fire-and-forget `createComparable` that adds a separate row tagged `Source Type=CS Pilot` (no Steam URL — just the name).
+- `step1.ts` validates the Game body and calls `createStep1Row` to create the Notion row, returning `{ ok, notionPageId }`.
 - `step2.ts`, `step3.ts` — thin wrappers around `patchStep2` / `patchStep3` keyed by `notionPageId`. `step3.ts` computes `Pre-Release Budget = sum of user-provided line items (blank → 0)` per spec §4 and writes it to Notion alongside the line items.
-- `results.ts` — synchronous endpoint. Reads the row, applies the budget derivation rules (country salary × headcount × dev time for missing dev cost; genre-typical share for art; 10% production floor for marketing; 10% production+marketing for overhead), rounds the total ($5K bands under $200K, $10K bands above), and builds revenue scenarios. Hardcoded constants live in `_shared/types.ts`: `COPIES_SOLD = [500, 5000, 50000]`, `GRANT_AMOUNTS = [25000, 50000, 100000]`, `CROWDFUNDING_TIERS = [{$15}, {$25}, {$30}, {$50}]`. Crowdfunding backers per tier = `ceil(totalBudget / 4 / tier_price)` (equal-weight, Decisions Log #12).
+- `results.ts` — synchronous endpoint. Reads the row, applies the budget derivation rules: country salary × headcount × dev time for the Dev anchor; flat shares cascade off the running subtotal — Art = 20% of Dev, Music = 5% of (Dev + Art), Loc = 5% of (Dev + Art + Music), Marketing = 15% of (Dev + Art + Music + Loc), Overhead = 5% of (Dev + Art + Music + Loc + Marketing). Each line is classified blank/coherent/below/above against a ±50% band; below cascades defensively against the estimate, above cascades with the user value. Total rounds to $5K bands under $200K, $10K bands above. Hardcoded constants live in `_shared/types.ts`: `COPIES_SOLD = [500, 5000, 50000]`, `GRANT_AMOUNTS = [25000, 50000, 100000]`, `CROWDFUNDING_TIERS = [{$15}, {$25}, {$30}, {$50}]`. Crowdfunding backers per tier = `ceil(totalBudget / 4 / tier_price)` (equal-weight, Decisions Log #12).
 - `caspian.ts` — routes `Publisher` / `Crowdfunding` / `Grant` to the matching reference DB. Filter is `Genre` (multi-select) for Publisher/Crowdfunding and `Country` (select) for Grant. Card title comes from `Publisher Name` / `Crowdfunding Name` / `Grant Name`; description is auto-formatted from `Total Revenue` / `Raised Amount` / `Maximum Grant Amount`; tags are taken from the filter column. There is no per-card URL — every "Get in Touch" CTA links to `/#contact`.
 
 ### `netlify/functions/_shared/`
@@ -39,7 +38,7 @@ caspian (GET) ─→ queries Publisher / Crowdfunding / Grant DB; returns ≤ 3 
 - `http.ts` — response helpers + per-IP `rateLimit` Map.
 
 ### Notion DB schema (must exist)
-- **Game Case Studies** — main submissions DB. Columns referenced: `Game Name` (title), `Studio Name`, `Status`, `Genre`, `Studio Size`, `Studio Country`, `Release Date`, `Funding Type`, `Dev Time (months)`, `Dev and QA Budget`, `Art Budget`, `Music Budget`, `Localization Budget`, `Marketing Budget`, `Pre-Release Budget`, `Source Type`. New rows get `Source Type=CS Pilot`.
+- **Game Case Studies** — main submissions DB. Columns referenced: `Game Name` (title), `Studio Name`, `Status`, `Genre`, `Developers`, `Studio Country`, `Release Date`, `Funding Type`, `Dev Time (months)`, `Dev and QA Budget`, `Art Budget`, `Music Budget`, `Localization Budget`, `Marketing Budget`, `Overhead Budget`, `Pre-Release Budget`, `Source Type`. New rows get `Source Type=CS Pilot`.
 - **Publisher DB** — title `Publisher Name`, amount `Total Revenue`, filter `Genre` (multi-select).
 - **Crowdfunding DB** — title `Crowdfunding Name`, amount `Raised Amount`, filter `Genre` (multi-select).
 - **Grant DB** — title `Grant Name`, amount `Maximum Grant Amount`, filter `Country` (select).
