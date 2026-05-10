@@ -66,11 +66,15 @@ export interface BudgetLine {
   amount_usd: number;
   source: Provenance;
   rationale: string;
+  provided: number | null;  // user-submitted value, null if blank
+  revised: number;           // pure-estimate cascade (blanks-only)
 }
 
 export interface BudgetRevised {
   lines: BudgetLine[];
-  total_usd: number;
+  total_usd: number;          // cascade-aware total (drives revenue scenarios)
+  total_provided: number;      // sum of provided non-null values, raw
+  total_revised: number;       // sum of revised values, banded
 }
 
 // Hardcoded scenarios (Decisions Log #6/#7).

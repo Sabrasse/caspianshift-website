@@ -57,33 +57,41 @@ function classify(args: {
   };
 }
 
-function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number } {
+function band(raw: number): number {
+  return raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
+}
+
+function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number; total_provided: number; total_revised: number } {
   const country = row.studioCountry || "Other";
   const monthly = COUNTRY_SALARIES[country] ?? COUNTRY_SALARIES["Other"];
   const studioSize = row.studioSize || 1;
   const devTime = row.devTimeMonths || 12;
   const devs = `${studioSize} dev${studioSize === 1 ? "" : "s"}`;
 
+  // Single pure-estimate cascade (anchored on country × team × time). Every line is
+  // classified against the same pure value that's displayed in the Revised column —
+  // one source of truth, no dual-cascade drift.
+
   // Dev & QA — anchor
-  const devEstimate = monthly * studioSize * devTime;
+  const devRevised = monthly * studioSize * devTime;
   const dev = classify({
     key: "dev", label: "Development & QA",
     userVal: row.devQaBudget,
-    estimate: devEstimate,
+    estimate: devRevised,
     rationales: {
-      blank: `${country}: $${monthly.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devEstimate.toLocaleString()}.`,
+      blank: `${country}: $${monthly.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devRevised.toLocaleString()}.`,
       coherent: `Within ${country} salary range for ${devs} over ${devTime} months.`,
       below: `Below ${country} costs for ${devs} × ${devTime} months, under-budgeted?`,
       above: `Above ${country} costs, likely a senior team or extended scope.`,
     },
   });
 
-  // Art — 20% of Dev cascade
-  const artEstimate = Math.round(dev.cascadeValue * 0.20);
+  // Art — 20% of Dev
+  const artRevised = Math.round(devRevised * 0.20);
   const art = classify({
     key: "art", label: "Art & Illustrations",
     userVal: row.artBudget,
-    estimate: artEstimate,
+    estimate: artRevised,
     rationales: {
       blank: "20% of Dev, standard minimum rate for indie games.",
       coherent: "Within typical art share, proportional to your dev scope.",
@@ -92,40 +100,40 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number 
     },
   });
 
-  // Music — 5% of (Dev + Art) cascade
-  const musicEstimate = Math.round((dev.cascadeValue + art.cascadeValue) * 0.05);
+  // Music — 5% of (Dev + Art)
+  const musicRevised = Math.round((devRevised + artRevised) * 0.05);
   const music = classify({
     key: "music", label: "Music & Sound",
     userVal: row.musicBudget,
-    estimate: musicEstimate,
+    estimate: musicRevised,
     rationales: {
       blank: "5% of Dev + Art, usually dedicated to custom soundtrack and SFX.",
       coherent: "Within typical audio share, fits a hybrid stock + custom approach.",
       below: "Below standard costs, stock music only?",
-      above: "Above standard costs, likely custom-scored or licensed tracks.",
+      above: "Above standard costs, likely custom-scored.",
     },
   });
 
-  // Localization — 5% of (Dev + Art + Music) cascade. $0 falls through to "below".
-  const locEstimate = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue) * 0.05);
+  // Localization — 5% of (Dev + Art + Music)
+  const locRevised = Math.round((devRevised + artRevised + musicRevised) * 0.05);
   const loc = classify({
     key: "loc", label: "Localization",
     userVal: row.localizationBudget,
-    estimate: locEstimate,
+    estimate: locRevised,
     rationales: {
       blank: "5% of Dev + Art + Music, typical for 4 to 6 supported languages.",
       coherent: "Within typical localization share, fits 4 to 6 languages.",
       below: "Below standard costs, limited language coverage?",
-      above: "Above standard costs, likely broad language coverage planned.",
+      above: "Above standard costs, likely broad language coverage.",
     },
   });
 
-  // Marketing — 15% of (Dev + Art + Music + Loc) cascade
-  const marketingEstimate = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue) * 0.15);
+  // Marketing — 15% of (Dev + Art + Music + Loc)
+  const marketingRevised = Math.round((devRevised + artRevised + musicRevised + locRevised) * 0.15);
   const marketing = classify({
     key: "marketing", label: "Marketing",
     userVal: row.marketingBudget,
-    estimate: marketingEstimate,
+    estimate: marketingRevised,
     rationales: {
       blank: "15% of production subtotal, minimum industry standard.",
       coherent: "Within recommended marketing range, supports a real launch push.",
@@ -134,24 +142,38 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number 
     },
   });
 
-  // Overhead — 5% of (Dev + Art + Music + Loc + Marketing) cascade
-  const overheadEstimate = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue + marketing.cascadeValue) * 0.05);
+  // Overhead — 5% of (Dev + Art + Music + Loc + Marketing)
+  const overheadRevised = Math.round((devRevised + artRevised + musicRevised + locRevised + marketingRevised) * 0.05);
   const overhead = classify({
     key: "overhead", label: "Overhead",
     userVal: row.overheadBudget,
-    estimate: overheadEstimate,
+    estimate: overheadRevised,
     rationales: {
-      blank: "5% of production + marketing, covers trailer, capsule art, legal, tools, contingency.",
+      blank: "5% of production + marketing, covers trailer, tools, etc.",
       coherent: "Within typical overhead range, fits standard launch operations.",
       below: "Below standard overhead, limited contingency for unknowns?",
       above: "Above standard overhead, likely broader operations or larger contingency.",
     },
   });
 
-  const lines = [dev.line, art.line, music.line, loc.line, marketing.line, overhead.line];
-  const raw = lines.reduce((s, l) => s + l.amount_usd, 0);
-  const total_usd = raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
-  return { lines, total_usd };
+  const provideds: (number | null)[] = [
+    row.devQaBudget ?? null, row.artBudget ?? null, row.musicBudget ?? null,
+    row.localizationBudget ?? null, row.marketingBudget ?? null, row.overheadBudget ?? null,
+  ];
+  const reviseds = [devRevised, artRevised, musicRevised, locRevised, marketingRevised, overheadRevised];
+  const baseLines = [dev.line, art.line, music.line, loc.line, marketing.line, overhead.line];
+
+  const lines: BudgetLine[] = baseLines.map((l, i) => ({ ...l, provided: provideds[i], revised: reviseds[i] }));
+  // Hybrid total: only coherent ('user') passes through the user's value (we accept it);
+  // blank, below and above all use the pure estimate (we fill in / push back). Drives revenue scenarios.
+  const hybridRaw = lines.reduce((s, l) => {
+    const useProvided = l.source === "user" && l.provided != null;
+    return s + (useProvided ? (l.provided as number) : l.revised);
+  }, 0);
+  const total_usd = band(hybridRaw);
+  const total_provided = provideds.reduce((s: number, v) => s + (v ?? 0), 0);
+  const total_revised = total_usd; // alias for the frontend payload
+  return { lines, total_usd, total_provided, total_revised };
 }
 
 function buildRevenue(fundingType: NotionRow["fundingType"], totalBudget: number): RevenueSimulation {

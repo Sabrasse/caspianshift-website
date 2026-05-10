@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Funding Analysis — Caspian Shift</title>
+  <title>Funding Analysis</title>
   <meta name="description" content="Free funding analysis for indie game studios. Get a revised budget, revenue simulation, and personalized funding strategy in 60 seconds.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='6' fill='%230D0112'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' font-weight='bold' text-anchor='middle' fill='%2317BEBB'>CS</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -319,6 +319,19 @@
       .cs-revsim-cell { font-size: 0.78rem !important; }
       .cs-caspian-grid { grid-template-columns: 1fr !important; }
     }
+    /* Budget Revised table — collapse to stacked layout on narrow viewports. */
+    @media (max-width: 640px) {
+      .cs-budget-row {
+        grid-template-columns: 1fr 1fr !important;
+        column-gap: 1rem !important;
+        row-gap: 0.4rem !important;
+        padding: 0.8rem 0 !important;
+      }
+      .cs-budget-row .cs-budget-label,
+      .cs-budget-row .cs-budget-details { grid-column: 1 / -1 !important; text-align: left !important; }
+      .cs-budget-header { display: none !important; }
+      .cs-budget-divider { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -556,6 +569,10 @@ function classifyLine(args) {
   };
 }
 
+function bandLocal(raw) {
+  return raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
+}
+
 function calcBudgetLocal(input) {
   const country = input.studioCountry || 'Other';
   const salary = COUNTRY_SALARIES[country] || COUNTRY_SALARIES['Other'];
@@ -563,26 +580,30 @@ function calcBudgetLocal(input) {
   const devTime = parseInt(input.devTime) || 12;
   const devs = `${studioSize} dev${studioSize===1?'':'s'}`;
 
+  // Single pure-estimate cascade (anchored on country × team × time). Every line is
+  // classified against the same pure value that's displayed in the Revised column —
+  // one source of truth, no dual-cascade drift.
+
   // Dev & QA — anchor
-  const devEst = salary * studioSize * devTime;
+  const devRevised = salary * studioSize * devTime;
   const dev = classifyLine({
     key: 'dev', label: 'Development & QA',
     userVal: input.devBudget,
-    estimate: devEst,
+    estimate: devRevised,
     rationales: {
-      blank: `${country}: $${salary.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devEst.toLocaleString()}.`,
+      blank: `${country}: $${salary.toLocaleString()}/month × ${devs} × ${devTime} months ≈ $${devRevised.toLocaleString()}.`,
       coherent: `Within ${country} salary range for ${devs} over ${devTime} months.`,
       below: `Below ${country} costs for ${devs} × ${devTime} months, under-budgeted?`,
       above: `Above ${country} costs, likely a senior team or extended scope.`,
     },
   });
 
-  // Art — 20% of Dev cascade
-  const artEst = Math.round(dev.cascadeValue * 0.20);
+  // Art — 20% of Dev
+  const artRevised = Math.round(devRevised * 0.20);
   const art = classifyLine({
     key: 'art', label: 'Art & Illustrations',
     userVal: input.artBudget,
-    estimate: artEst,
+    estimate: artRevised,
     rationales: {
       blank: '20% of Dev, standard minimum rate for indie games.',
       coherent: 'Within typical art share, proportional to your dev scope.',
@@ -591,40 +612,40 @@ function calcBudgetLocal(input) {
     },
   });
 
-  // Music — 5% of (Dev + Art) cascade
-  const musicEst = Math.round((dev.cascadeValue + art.cascadeValue) * 0.05);
+  // Music — 5% of (Dev + Art)
+  const musicRevised = Math.round((devRevised + artRevised) * 0.05);
   const music = classifyLine({
     key: 'music', label: 'Music & Sound',
     userVal: input.musicBudget,
-    estimate: musicEst,
+    estimate: musicRevised,
     rationales: {
       blank: '5% of Dev + Art, usually dedicated to custom soundtrack and SFX.',
       coherent: 'Within typical audio share, fits a hybrid stock + custom approach.',
       below: 'Below standard costs, stock music only?',
-      above: 'Above standard costs, likely custom-scored or licensed tracks.',
+      above: 'Above standard costs, likely custom-scored.',
     },
   });
 
-  // Localization — 5% of (Dev + Art + Music) cascade. $0 falls through to "below".
-  const locEst = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue) * 0.05);
+  // Localization — 5% of (Dev + Art + Music)
+  const locRevised = Math.round((devRevised + artRevised + musicRevised) * 0.05);
   const loc = classifyLine({
     key: 'loc', label: 'Localization',
     userVal: input.locBudget,
-    estimate: locEst,
+    estimate: locRevised,
     rationales: {
       blank: '5% of Dev + Art + Music, typical for 4 to 6 supported languages.',
       coherent: 'Within typical localization share, fits 4 to 6 languages.',
       below: 'Below standard costs, limited language coverage?',
-      above: 'Above standard costs, likely broad language coverage planned.',
+      above: 'Above standard costs, likely broad language coverage.',
     },
   });
 
-  // Marketing — 15% of (Dev + Art + Music + Loc) cascade
-  const marketingEst = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue) * 0.15);
+  // Marketing — 15% of (Dev + Art + Music + Loc)
+  const marketingRevised = Math.round((devRevised + artRevised + musicRevised + locRevised) * 0.15);
   const marketing = classifyLine({
     key: 'marketing', label: 'Marketing',
     userVal: input.marketingBudget,
-    estimate: marketingEst,
+    estimate: marketingRevised,
     rationales: {
       blank: '15% of production subtotal, minimum industry standard.',
       coherent: 'Within recommended marketing range, supports a real launch push.',
@@ -633,24 +654,37 @@ function calcBudgetLocal(input) {
     },
   });
 
-  // Overhead — 5% of (Dev + Art + Music + Loc + Marketing) cascade
-  const overheadEst = Math.round((dev.cascadeValue + art.cascadeValue + music.cascadeValue + loc.cascadeValue + marketing.cascadeValue) * 0.05);
+  // Overhead — 5% of (Dev + Art + Music + Loc + Marketing)
+  const overheadRevised = Math.round((devRevised + artRevised + musicRevised + locRevised + marketingRevised) * 0.05);
   const overhead = classifyLine({
     key: 'overhead', label: 'Overhead',
     userVal: input.overheadBudget,
-    estimate: overheadEst,
+    estimate: overheadRevised,
     rationales: {
-      blank: '5% of production + marketing, covers trailer, capsule art, legal, tools, contingency.',
+      blank: '5% of production + marketing, covers trailer, tools, etc.',
       coherent: 'Within typical overhead range, fits standard launch operations.',
       below: 'Below standard overhead, limited contingency for unknowns?',
       above: 'Above standard overhead, likely broader operations or larger contingency.',
     },
   });
 
-  const lines = [dev.line, art.line, music.line, loc.line, marketing.line, overhead.line];
-  const raw = lines.reduce((s, l) => s + l.amount_usd, 0);
-  const total_usd = raw > 200000 ? Math.round(raw / 10000) * 10000 : Math.round(raw / 5000) * 5000;
-  return { lines, total_usd };
+  const provideds = [
+    input.devBudget ?? null, input.artBudget ?? null, input.musicBudget ?? null,
+    input.locBudget ?? null, input.marketingBudget ?? null, input.overheadBudget ?? null,
+  ];
+  const reviseds = [devRevised, artRevised, musicRevised, locRevised, marketingRevised, overheadRevised];
+  const baseLines = [dev.line, art.line, music.line, loc.line, marketing.line, overhead.line];
+  const lines = baseLines.map((l, i) => Object.assign({}, l, { provided: provideds[i], revised: reviseds[i] }));
+  // Hybrid total: only coherent ('user') passes through the user's value (we accept it);
+  // blank, below and above all use the pure estimate (we fill in / push back).
+  const hybridRaw = lines.reduce((s, l) => {
+    const useProvided = l.source === 'user' && l.provided != null;
+    return s + (useProvided ? l.provided : l.revised);
+  }, 0);
+  const total_usd = bandLocal(hybridRaw);
+  const total_provided = provideds.reduce((s, v) => s + (v == null ? 0 : v), 0);
+  const total_revised = total_usd;
+  return { lines, total_usd, total_provided, total_revised };
 }
 
 function calcRevenueLocal(fundingType, totalBudget) {
@@ -1275,30 +1309,99 @@ const SOURCE_ICONS = {
 
 function CardBudget(results) {
   const lines = (results.budget && results.budget.lines) || [];
-  const total = (results.budget && results.budget.total_usd) || 0;
+  const totalProvided = (results.budget && results.budget.total_provided != null) ? results.budget.total_provided : 0;
+  // Hybrid revised total: only coherent ('user') passes through the user's value;
+  // blank, below and above all use the pure estimate. Banded for clarity at the end.
+  const hybridRaw = lines.reduce((s, l) => {
+    const revisedVal = l.revised != null ? l.revised : (l.amount_usd || 0);
+    const useProvided = l.source === 'user' && l.provided != null;
+    return s + (useProvided ? l.provided : revisedVal);
+  }, 0);
+  const totalRevised = bandLocal(hybridRaw);
+  // Total Provided color: orange if any line is out-of-band (below or above), teal otherwise.
+  const anyOutOfBand = lines.some(l => l.source === 'below' || l.source === 'above');
+  const totalProvidedColor = anyOutOfBand ? '#FC7A1E' : '#17BEBB';
+  const labelW = '160px';
+  const numW = '180px';
+  const revW = '180px';
+  const colGap = '1.8rem';
+  const rowGrid = `${labelW} ${numW} ${revW} 1fr`;
+  const rowStyle = `display:grid;grid-template-columns:${rowGrid};align-items:baseline;gap:${colGap};padding:0.55rem 0;border-bottom:1px solid rgba(23,190,187,.08);`;
+  // Header cells now match the first-column label style (Boogaloo, 0.95rem, white) for visual cohesion.
+  const headerCellStyle = "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;";
+  const headerStyle = `display:grid;grid-template-columns:${rowGrid};align-items:baseline;gap:${colGap};padding:0.4rem 0 1rem 0;border-bottom:1px solid rgba(23,190,187,.25);`;
+  const header = h('div', { class: 'cs-budget-row cs-budget-header', style: headerStyle },
+    h('span', { class: 'cs-budget-label' }, ''),
+    h('span', { style: headerCellStyle }, 'Provided'),
+    h('span', { style: headerCellStyle }, 'Revised'),
+    h('span', { class: 'cs-budget-details', style: headerCellStyle }, 'Details')
+  );
+  const fmtRange = (lo, hi) => fmt(Math.round(lo / 1000) * 1000) + ' – ' + fmt(Math.round(hi / 1000) * 1000);
   const lineRows = lines.map(line => {
-    const src = SOURCE_ICONS[line.source] || SOURCE_ICONS.estimated;
-    return h('div', { style: 'display:grid;grid-template-columns:24px 200px 130px 1fr;align-items:baseline;gap:0.6rem;padding:0.7rem 0;border-bottom:1px solid rgba(23,190,187,.08);' },
-      h('span', { title: src.label, style: `color:${src.color};font-size:0.95rem;text-align:center;` }, src.symbol),
-      h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, line.label),
-      h('span', { style: `font-family:'Nunito',sans-serif;font-weight:600;color:${src.amountColor};font-size:0.95rem;text-align:right;` }, fmt(line.amount_usd)),
-      h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, line.rationale)
+    const provided = line.provided != null ? line.provided : null;
+    // If revised is missing (older API), fall back to amount_usd so the column is never blank.
+    const revised = line.revised != null ? line.revised : (line.amount_usd || 0);
+    // Below + above = orange (out of band, we substitute our estimate). Coherent = teal.
+    const providedColor = (line.source === 'below' || line.source === 'above') ? '#FC7A1E' : '#17BEBB';
+    const providedDisplay = provided == null ? '—' : fmt(provided);
+    // Coherent → show the ±50% band (lighter weight, smaller — it's a confirmation, not a counter-amount).
+    const isCoherent = line.source === 'user' && provided != null;
+    const revisedDisplay = isCoherent ? fmtRange(revised * 0.5, revised * 1.5) : fmt(revised);
+    const revisedStyle = isCoherent
+      ? "font-family:'Nunito',sans-serif;font-weight:500;color:#FAF0CA;font-size:0.85rem;"
+      : "font-family:'Nunito',sans-serif;font-weight:600;color:#FAF0CA;font-size:0.95rem;";
+    return h('div', { class: 'cs-budget-row', style: rowStyle },
+      h('span', { class: 'cs-budget-label', style: "font-family:'Boogaloo',cursive;font-size:0.95rem;color:#fff;letter-spacing:0.02em;" }, line.label),
+      h('span', { style: `font-family:'Nunito',sans-serif;font-weight:600;color:${provided == null ? 'rgba(250,240,202,.35)' : providedColor};font-size:0.95rem;` }, providedDisplay),
+      h('span', { style: revisedStyle }, revisedDisplay),
+      h('span', { class: 'cs-budget-details', style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.55);line-height:1.5;" }, line.rationale || '')
     );
   });
+  // Total row Details cell: delta (revised − provided) + rounded label.
+  const delta = totalRevised - totalProvided;
+  const deltaPct = totalProvided > 0 ? Math.round((Math.abs(delta) / totalProvided) * 100) : 0;
+  const showDelta = totalProvided > 0 && delta !== 0;
+  const deltaArrow = delta > 0 ? '↑' : '↓';
+  const deltaSign = delta > 0 ? '+' : '−';
+  const deltaText = showDelta ? `${deltaSign}${fmt(Math.abs(delta))} (${deltaArrow} ${deltaPct}%)` : '';
+  const totalDetailsCell = h('span', { class: 'cs-budget-details', style: "display:flex;flex-direction:row;align-items:baseline;gap:0.6rem;flex-wrap:wrap;line-height:1.3;" },
+    showDelta ? h('span', { style: "font-family:'Nunito',sans-serif;font-size:0.82rem;color:rgba(250,240,202,.65);font-weight:500;" }, deltaText) : null
+  );
+  const totalRow = h('div', { class: 'cs-budget-row cs-budget-total', style: `border-top:2px solid rgba(23,190,187,.15);padding:1.2rem 2rem;display:grid;grid-template-columns:${rowGrid};align-items:baseline;gap:${colGap};` },
+    h('span', { class: 'cs-budget-label', style: "font-family:'Boogaloo',cursive;font-size:clamp(1.1rem,2.4vw,1.6rem);color:#fff;letter-spacing:0.02em;" }, 'Total'),
+    h('span', { style: `font-family:'Boogaloo',cursive;font-size:clamp(1.2rem,2.6vw,1.7rem);color:${totalProvidedColor};letter-spacing:0.02em;` }, totalProvided > 0 ? fmt(totalProvided) : '—'),
+    h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.2rem,2.6vw,1.7rem);color:#FAF0CA;letter-spacing:0.02em;" }, fmt(totalRevised)),
+    totalDetailsCell
+  );
+  // Vertical dividers sit centered in the gap between adjacent columns.
+  // left = card-inner left padding (2rem) + cumulative track widths + half col-gap.
+  const dividerStyle = (left) => `position:absolute;left:${left};top:2.5rem;bottom:0;width:1px;background:rgba(23,190,187,.18);pointer-events:none;`;
+  const dividerProvRev = `calc(2rem + ${labelW} + ${colGap} + ${numW} + (${colGap} / 2))`;
+  const dividerRevDet  = `calc(2rem + ${labelW} + ${colGap} + ${numW} + ${colGap} + ${revW} + (${colGap} / 2))`;
+  // Legend inside the card, below the total row — single colored words mapped to each provenance state.
+  const sep = () => h('span', { style: 'color:rgba(250,240,202,.25);margin:0 0.9rem;' }, '·');
+  const legend = h('div', { style: 'display:flex;flex-wrap:wrap;align-items:center;font-family:Nunito,sans-serif;font-size:0.82rem;font-weight:600;letter-spacing:0.04em;padding:1.2rem 2rem 1.4rem;border-top:1px solid rgba(23,190,187,.08);line-height:1.5;' },
+    h('span', { style: 'color:#17BEBB;' }, 'Consistent'),
+    sep(),
+    h('span', { style: 'color:#FC7A1E;' }, 'Warning'),
+    sep(),
+    h('span', { style: 'color:#FAF0CA;' }, 'Revised')
+  );
+  // Wrapper holds the absolutely-positioned dividers so they end at the bottom of the total
+  // row (not at the bottom of the legend that follows).
+  const tableArea = h('div', { style: 'position:relative;' },
+    h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1rem;' },
+      header,
+      lineRows
+    ),
+    totalRow,
+    h('div', { class: 'cs-budget-divider', style: dividerStyle(dividerProvRev) }),
+    h('div', { class: 'cs-budget-divider', style: dividerStyle(dividerRevDet) })
+  );
   return h('div', { class: 'cs-card' },
     h('span', { class: 'cs-card-tag' }, 'Budget Revised'),
-    h('div', { class: 'cs-card-inner', style: 'padding:2.5rem 2rem 1.5rem;' },
-      lineRows,
-      h('div', { style: 'display:flex;gap:1.2rem;margin-top:1rem;flex-wrap:wrap;' },
-        Object.values(SOURCE_ICONS).map(p => h('span', { style: `font-family:'Nunito',sans-serif;font-size:0.72rem;color:${p.amountColor};display:flex;align-items:center;gap:0.3rem;` },
-          h('span', { style: `color:${p.color}` }, p.symbol), ' ', p.label)))
-    ),
-    h('div', { style: 'border-top:2px solid rgba(23,190,187,.15);padding:1.5rem 2rem;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.5rem;' },
-      h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.4rem,3vw,2rem);color:#fff;letter-spacing:0.02em;" }, 'Total revised budget'),
-      h('div', null,
-        h('span', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.6rem,3.5vw,2.4rem);color:#17BEBB;letter-spacing:0.02em;" }, fmt(total)),
-        h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.72rem;color:rgba(250,240,202,.35);text-align:right;" }, 'Rounded for clarity'))
-    )
+    tableArea,
+    legend
   );
 }
 
