@@ -1,27 +1,20 @@
-// Notion wrapper — Game Case Studies (writes) + Publisher / Crowdfunding / Grant (reads).
+// Notion wrapper — Game Case Studies (writes + reads).
 //
 // Env:
-//   NOTION_API_KEY              — internal-integration token
-//   NOTION_DB_ID                — Game Case Studies (default kept for back-compat)
-//   NOTION_PUBLISHER_DB_ID      — Publisher recommendations DB
-//   NOTION_CROWDFUNDING_DB_ID   — Crowdfunding recommendations DB
-//   NOTION_GRANT_DB_ID          — Grant recommendations DB
+//   NOTION_API_KEY  — internal-integration token
+//   NOTION_DB_ID    — Game Case Studies (default kept for back-compat)
 //
-// If NOTION_API_KEY is missing, every operation is a no-op that returns null/empty —
+// If NOTION_API_KEY is missing, every operation is a no-op that returns null —
 // the rest of the pipeline keeps working in mock mode (handy for local dev).
 
 import { Client } from "@notionhq/client";
 import type {
   Step1Body, Step2Body, Step3Body,
   NotionRow, GameStatus, FundingType,
-  CaspianCard, CaspianFundingType,
 } from "./types";
 
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
 const NOTION_DB_ID = process.env.NOTION_DB_ID || "34abb949947480b2b326c2fe922f384c";
-const NOTION_PUBLISHER_DB_ID    = process.env.NOTION_PUBLISHER_DB_ID || "";
-const NOTION_CROWDFUNDING_DB_ID = process.env.NOTION_CROWDFUNDING_DB_ID || "";
-const NOTION_GRANT_DB_ID        = process.env.NOTION_GRANT_DB_ID || "";
 
 let _client: Client | null = null;
 function client(): Client | null {
@@ -55,13 +48,6 @@ const P = {
   SourceType:    "Source Type",
 };
 
-/** Property names on the three reference DBs. */
-const R = {
-  Publisher:    { title: "Publisher Name",    amount: "Total Revenue",        filter: "Genre" },
-  Crowdfunding: { title: "Crowdfunding Name", amount: "Raised Amount",        filter: "Genre" },
-  Grant:        { title: "Grant Name",        amount: "Maximum Grant Amount", filter: "Country" },
-} as const;
-
 // ─── Step 1: create the Notion row, return its page id ──────────────────
 export async function createStep1Row(body: Step1Body): Promise<{ notionPageId: string | null }> {
   const c = client();
@@ -93,15 +79,14 @@ export async function patchStep2(body: Step2Body): Promise<boolean> {
   const c = client();
   if (!c) return false;
   try {
-    await c.pages.update({
-      page_id: body.notionPageId,
-      properties: {
-        [P.StudioName]:    { rich_text:   [{ text: { content: body.studioName } }] },
-        [P.StudioSize]:    { number:      body.studioSize },
-        [P.StudioCountry]: { select:      { name: body.studioCountry } },
-        [P.FundingType]:   { select:      { name: body.fundingType } },
-      } as any,
-    });
+    const props: any = {
+      [P.StudioName]:    { rich_text:   [{ text: { content: body.studioName } }] },
+      [P.StudioSize]:    { number:      body.studioSize },
+      [P.StudioCountry]: { select:      { name: body.studioCountry } },
+      [P.FundingType]:   { multi_select: body.fundingType.map(name => ({ name })) },
+    };
+    if (body.steamPageUrl) props[P.SteamUrl] = { url: body.steamPageUrl };
+    await c.pages.update({ page_id: body.notionPageId, properties: props });
     return true;
   } catch (e: any) {
     console.error("[notion] patchStep2 failed", e?.message || e);
@@ -148,7 +133,8 @@ export async function readRow(notionPageId: string): Promise<NotionRow | null> {
       studioName:    p[P.StudioName]?.rich_text?.[0]?.plain_text || "",
       studioSize:    p[P.StudioSize]?.number || 1,
       studioCountry: p[P.StudioCountry]?.select?.name || "Other",
-      fundingType:   (p[P.FundingType]?.select?.name || "Self-Funded") as FundingType,
+      fundingType:   ((p[P.FundingType]?.multi_select || []).map((g: any) => g.name)) as FundingType[],
+      steamPageUrl:  p[P.SteamUrl]?.url ?? undefined,
       devTimeMonths:      p[P.DevTime]?.number ?? undefined,
       devQaBudget:        p[P.DevQa]?.number ?? undefined,
       artBudget:          p[P.Art]?.number ?? undefined,
@@ -164,78 +150,3 @@ export async function readRow(notionPageId: string): Promise<NotionRow | null> {
   }
 }
 
-// ─── Caspian Shift recommendation cards ─────────────────────────────────
-function dbConfigFor(fundingType: CaspianFundingType): { id: string; props: typeof R.Publisher } | null {
-  if (fundingType === "Publisher")    return NOTION_PUBLISHER_DB_ID    ? { id: NOTION_PUBLISHER_DB_ID,    props: R.Publisher }    : null;
-  if (fundingType === "Crowdfunding") return NOTION_CROWDFUNDING_DB_ID ? { id: NOTION_CROWDFUNDING_DB_ID, props: R.Crowdfunding } : null;
-  if (fundingType === "Grant")        return NOTION_GRANT_DB_ID        ? { id: NOTION_GRANT_DB_ID,        props: R.Grant }        : null;
-  return null;
-}
-
-function formatAmountDescription(fundingType: CaspianFundingType, amount: number | null | undefined): string {
-  if (amount == null) {
-    if (fundingType === "Publisher")    return "Active publisher";
-    if (fundingType === "Crowdfunding") return "Past campaign";
-    return "Active grant program";
-  }
-  const human =
-    amount >= 1_000_000 ? `$${(amount / 1_000_000).toFixed(amount >= 10_000_000 ? 0 : 1)}M`
-    : amount >= 1_000   ? `$${Math.round(amount / 1_000)}K`
-    : `$${amount.toLocaleString()}`;
-  if (fundingType === "Publisher")    return `${human} lifetime revenue`;
-  if (fundingType === "Crowdfunding") return `${human} raised`;
-  return `Up to ${human}`;
-}
-
-export async function queryCaspianCards(
-  fundingType: CaspianFundingType,
-  opts: { genre?: string; country?: string },
-): Promise<CaspianCard[]> {
-  const c = client();
-  if (!c) return [];
-  const cfg = dbConfigFor(fundingType);
-  if (!cfg) return [];
-  const filterValue = fundingType === "Grant" ? opts.country : opts.genre;
-  const filter = filterValue
-    ? (fundingType === "Grant"
-        ? { property: cfg.props.filter, select:       { equals:   filterValue } }
-        : { property: cfg.props.filter, multi_select: { contains: filterValue } })
-    : undefined;
-  try {
-    const res: any = await c.databases.query({
-      database_id: cfg.id,
-      ...(filter ? { filter } : {}),
-      page_size: 3,
-    });
-    return (res.results || []).slice(0, 3).map((page: any) => {
-      const p = page.properties || {};
-      const titleProp = p[cfg.props.title];
-      const amountProp = p[cfg.props.amount];
-      const filterProp = p[cfg.props.filter];
-
-      const title = titleProp?.title?.[0]?.plain_text
-        || titleProp?.rich_text?.[0]?.plain_text
-        || "Untitled";
-      const amount: number | null = typeof amountProp?.number === "number" ? amountProp.number : null;
-
-      // Tags: filter column value (genre multi-select or country select)
-      const tags: string[] = [];
-      if (fundingType === "Grant") {
-        if (filterProp?.select?.name) tags.push(filterProp.select.name);
-      } else {
-        for (const g of (filterProp?.multi_select || []).slice(0, 2)) {
-          if (g?.name) tags.push(g.name);
-        }
-      }
-
-      return {
-        title,
-        description: formatAmountDescription(fundingType, amount),
-        tags,
-      };
-    });
-  } catch (e: any) {
-    console.error("[notion] queryCaspianCards failed", e?.message || e);
-    return [];
-  }
-}

@@ -21,7 +21,8 @@ export interface Step2Body {
   studioName: string;
   studioSize: number;
   studioCountry: string;
-  fundingType: FundingType;
+  fundingType: FundingType[];
+  steamPageUrl?: string;
 }
 
 // Step 3 (Budget): PATCHes the row and writes Pre-Release Budget total.
@@ -46,7 +47,8 @@ export interface NotionRow {
   studioName: string;
   studioSize: number;
   studioCountry: string;
-  fundingType: FundingType;
+  fundingType: FundingType[];
+  steamPageUrl?: string;
   devTimeMonths?: number;
   devQaBudget?: number;
   artBudget?: number;
@@ -79,62 +81,27 @@ export interface BudgetRevised {
 
 // Hardcoded scenarios (Decisions Log #6/#7).
 export const COPIES_SOLD = [500, 5000, 50000] as const;
-export const GRANT_AMOUNTS = [25000, 50000, 100000] as const;
-export const CROWDFUNDING_TIERS = [
-  { label: "Tier 1", price: 15 },
-  { label: "Tier 2", price: 25 },
-  { label: "Tier 3", price: 30 },
-  { label: "Tier 4", price: 50 },
-] as const;
 
 export interface ScenarioBase {
-  copies: number;
-  price: number;
-  gross: number;
-  steam_share: number;
+  copies_sold: number;
+  gross_revenue: number;
+  net_revenue: number;
   studio_share: number;
 }
-export interface ScenarioPublisher extends ScenarioBase {
-  publisher_recoupment: number;
-  publisher_share: number;
-}
-export interface ScenarioGrant extends ScenarioBase {
-  grant_amount: number;
-  remaining_gap: number;
-}
 
-export interface CrowdfundingTier {
-  label: string;
+export interface RevenueSimulation {
   price: number;
-  backers: number;
+  scenarios: { conservative: ScenarioBase; realistic: ScenarioBase; optimistic: ScenarioBase };
 }
-export interface CrowdfundingResult {
-  tiers: CrowdfundingTier[];
-  total_backers: number;
-  total_raised: number;
-}
-
-export type RevenueSimulation =
-  | { funding_path: "Self-Funded";   price: number; scenarios: { conservative: ScenarioBase;      realistic: ScenarioBase;      optimistic: ScenarioBase } }
-  | { funding_path: "Publisher";     price: number; scenarios: { conservative: ScenarioPublisher; realistic: ScenarioPublisher; optimistic: ScenarioPublisher } }
-  | { funding_path: "Grant";         price: number; scenarios: { conservative: ScenarioGrant;     realistic: ScenarioGrant;     optimistic: ScenarioGrant } }
-  | { funding_path: "Crowdfunding";  price: number; crowdfunding: CrowdfundingResult };
 
 export interface ResultsPayload {
   status: "ready";
   studio_name: string;
   game_name: string;
-  funding_type: FundingType;
+  studio_country: string;
+  genre: string[];
+  funding_type: FundingType[];
   budget: BudgetRevised;
   revenue: RevenueSimulation;
   generatedAt: string;
-}
-
-// ─── Caspian Shift recommendation cards ─────────────────────────────
-export type CaspianFundingType = "Publisher" | "Crowdfunding" | "Grant";
-
-export interface CaspianCard {
-  title: string;
-  description: string;
-  tags: string[];
 }

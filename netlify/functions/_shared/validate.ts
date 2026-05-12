@@ -13,7 +13,8 @@ export const Step2Schema = z.object({
   studioName: z.string().min(1, "Studio name is required").max(280),
   studioSize: z.number().int().min(1, "Studio size must be at least 1"),
   studioCountry: z.string().min(1),
-  fundingType: z.enum(["Self-Funded","Crowdfunding","Publisher","Grant"]),
+  fundingType: z.array(z.enum(["Self-Funded","Crowdfunding","Publisher","Grant"])).min(1, "Pick at least one funding path"),
+  steamPageUrl: z.union([z.string().url(), z.literal("")]).optional(),
 });
 
 export const Step3Schema = z.object({
@@ -29,12 +30,6 @@ export const Step3Schema = z.object({
 
 export const ResultsQuerySchema = z.object({
   notionPageId: z.string().min(1),
-});
-
-export const CaspianQuerySchema = z.object({
-  fundingType: z.enum(["Publisher","Crowdfunding","Grant"]),
-  genre: z.string().min(1).optional(),
-  country: z.string().min(1).optional(),
 });
 
 /** Build a 400 JSON response from a ZodError. */
