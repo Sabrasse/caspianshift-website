@@ -5,7 +5,7 @@ import type { Handler } from "@netlify/functions";
 import { ResultsQuerySchema, zodError } from "./_shared/validate";
 import { readRow } from "./_shared/notion";
 import {
-  COPIES_SOLD, GRANT_AMOUNTS, CROWDFUNDING_TIERS,
+  COPIES_SOLD,
   type NotionRow, type BudgetLine, type ResultsPayload, type RevenueSimulation,
 } from "./_shared/types";
 import { ok, bad, notFound, methodNotAllowed, log } from "./_shared/http";
@@ -177,70 +177,17 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
   return { lines, total_usd, total_provided, total_revised };
 }
 
-function buildRevenue(fundingType: NotionRow["fundingType"], totalBudget: number): RevenueSimulation {
+function buildRevenue(): RevenueSimulation {
   const price = DEFAULT_PRICE;
   const buildBase = (copies: number) => {
-    const gross = price * copies;
-    const steam_share = gross * STEAM_CUT;
-    return { copies, price, gross, steam_share, studio_share: gross - steam_share };
+    const gross_revenue = price * copies;
+    const net_revenue = gross_revenue * (1 - STEAM_CUT);
+    return { copies_sold: copies, gross_revenue, net_revenue, studio_share: net_revenue };
   };
-
-  if (fundingType === "Self-Funded") {
-    const [c, r, o] = COPIES_SOLD;
-    return {
-      funding_path: "Self-Funded", price,
-      scenarios: { conservative: buildBase(c), realistic: buildBase(r), optimistic: buildBase(o) },
-    };
-  }
-
-  if (fundingType === "Publisher") {
-    const recoupment = totalBudget;
-    const buildPub = (copies: number) => {
-      const base = buildBase(copies);
-      const net = base.gross - base.steam_share;
-      const postRecoup = Math.max(net - recoupment, 0);
-      return {
-        ...base,
-        publisher_recoupment: recoupment,
-        publisher_share: postRecoup * 0.30,
-        studio_share: postRecoup * 0.70,
-      };
-    };
-    const [c, r, o] = COPIES_SOLD;
-    return {
-      funding_path: "Publisher", price,
-      scenarios: { conservative: buildPub(c), realistic: buildPub(r), optimistic: buildPub(o) },
-    };
-  }
-
-  if (fundingType === "Grant") {
-    const [g1, g2, g3] = GRANT_AMOUNTS;
-    const buildGrant = (copies: number, grantAmount: number) => {
-      const base = buildBase(copies);
-      return {
-        ...base,
-        grant_amount: grantAmount,
-        remaining_gap: Math.max(totalBudget - grantAmount, 0),
-      };
-    };
-    const [c, r, o] = COPIES_SOLD;
-    return {
-      funding_path: "Grant", price,
-      scenarios: { conservative: buildGrant(c, g1), realistic: buildGrant(r, g2), optimistic: buildGrant(o, g3) },
-    };
-  }
-
-  // Crowdfunding — equal-weight tier distribution to reach total budget revised
-  const tiers = CROWDFUNDING_TIERS.map(t => ({
-    label: t.label,
-    price: t.price,
-    backers: Math.ceil(totalBudget / 4 / t.price),
-  }));
-  const total_backers = tiers.reduce((s, t) => s + t.backers, 0);
-  const total_raised = tiers.reduce((s, t) => s + t.backers * t.price, 0);
+  const [c, r, o] = COPIES_SOLD;
   return {
-    funding_path: "Crowdfunding", price,
-    crowdfunding: { tiers, total_backers, total_raised },
+    price,
+    scenarios: { conservative: buildBase(c), realistic: buildBase(r), optimistic: buildBase(o) },
   };
 }
 
@@ -257,15 +204,17 @@ export const handler: Handler = async (event) => {
     log("results", { notionPageId: parsed.data.notionPageId, status: "not-found" });
     return notFound("Submission not found");
   }
-  if (!row.fundingType || !row.studioName) {
+  if (!row.fundingType?.length || !row.studioName) {
     return bad("Submission incomplete — Studio step missing");
   }
   const budget = deriveBudget(row);
-  const revenue = buildRevenue(row.fundingType, budget.total_usd);
+  const revenue = buildRevenue();
   const payload: ResultsPayload = {
     status: "ready",
     studio_name: row.studioName,
     game_name: row.gameName,
+    studio_country: row.studioCountry,
+    genre: row.genre || [],
     funding_type: row.fundingType,
     budget,
     revenue,
