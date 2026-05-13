@@ -63,8 +63,8 @@
     }
     .nav-logo:hover svg { transform: rotate(45deg); }
 
-    /* ─── NAV RIGHT SIDE ─── */
-    .nav-right {
+    /* ─── NAV SIDES ─── */
+    .nav-left, .nav-right {
       display: flex;
       align-items: center;
       gap: 1.6rem;
@@ -92,7 +92,7 @@
       display: inline-block;
     }
     @media (max-width: 720px) {
-      .nav-right { gap: 0.9rem; }
+      .nav-left, .nav-right { gap: 0.9rem; }
       .nav-link .nav-link-tag { display: none; }
     }
     @media (max-width: 480px) {
@@ -464,24 +464,26 @@
 
 <!-- ════════ NAV ════════ -->
 <nav>
-  <a href="#" class="nav-logo">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-      <!-- North needle — teal -->
-      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-      <!-- South needle — orange -->
-      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-      <!-- Tick marks -->
-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-    </svg>
-    Caspian Shift
-  </a>
+  <div class="nav-left">
+    <a href="#" class="nav-logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
+        <!-- North needle — teal -->
+        <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
+        <!-- South needle — orange -->
+        <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
+        <!-- Tick marks -->
+        <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
+        <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
+        <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
+        <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
+      </svg>
+      Caspian Shift
+    </a>
+    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Free</span></a>
+  </div>
   <div class="nav-right">
-    <a href="/budget" class="nav-link">Funding Analysis<span class="nav-link-tag">Free</span></a>
     <a href="#contact" class="btn-pill">Get in Touch</a>
   </div>
 </nav>
@@ -500,7 +502,7 @@
     </h1>
 
     <p class="hero-sub fade-in d2">
-      Funding, campaigns, launches —<br>we come in at the moments that matter.
+      Funding, campaigns, launches:<br>we come in at the moments that matter.
     </p>
 
     <a href="#contact" class="btn-pill hero-cta fade-in d3">Get in Touch →</a>
@@ -644,7 +646,7 @@
       </p>
     </div>
     <div style="white-space:nowrap;">
-      <a href="/budget" class="btn-pill" style="font-size:1.1rem;padding:.65rem 1.7rem;">Start free analysis →</a>
+      <a href="/funding" class="btn-pill" style="font-size:1.1rem;padding:.65rem 1.7rem;">Start free analysis →</a>
     </div>
   </div>
 </div>

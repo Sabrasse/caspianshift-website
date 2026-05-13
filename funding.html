@@ -63,8 +63,8 @@
       filter: invert(0.7) sepia(1) saturate(3) hue-rotate(140deg);
     }
 
-    /* Nav */
-    nav.cs-nav {
+    /* Nav — class names match index.html so the nav markup is copy-paste compatible */
+    nav {
       position: fixed; inset: 0 0 auto 0; z-index: 200;
       display: flex; align-items: center; justify-content: space-between;
       padding: 1rem 2.5rem;
@@ -73,21 +73,16 @@
       border-bottom: 2px solid rgba(23,190,187,0.18);
       transition: box-shadow 0.2s;
     }
-    nav.cs-nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
-    .cs-nav-logo {
+    nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
+    .nav-logo {
       font-family: 'Boogaloo', cursive; font-size: 1.45rem; color: var(--white);
       text-decoration: none; letter-spacing: 0.08em;
       display: flex; align-items: center; gap: 0.6rem;
     }
-    .cs-nav-logo svg { width: 24px; height: 24px; flex-shrink: 0; transition: transform .5s ease; }
-    .cs-nav-logo:hover svg { transform: rotate(45deg); }
-    .cs-nav-right { display: flex; align-items: center; gap: 1.6rem; }
-    .cs-nav-tag {
-      font-family: 'Boogaloo', cursive; font-size: 0.82rem;
-      color: var(--teal); letter-spacing: 0.22em; text-transform: uppercase;
-    }
-    /* Nav link with "Free" tag — matches index.html */
-    .cs-nav-link {
+    .nav-logo svg { width: 24px; height: 24px; flex-shrink: 0; transition: transform .5s ease; }
+    .nav-logo:hover svg { transform: rotate(45deg); }
+    .nav-left, .nav-right { display: flex; align-items: center; gap: 1.6rem; }
+    .nav-link {
       font-family: 'Boogaloo', cursive;
       color: var(--cream);
       text-decoration: none;
@@ -95,8 +90,8 @@
       letter-spacing: 0.04em;
       transition: color .2s;
     }
-    .cs-nav-link:hover { color: var(--teal); }
-    .cs-nav-link-tag {
+    .nav-link:hover { color: var(--teal); }
+    .nav-link-tag {
       background: var(--teal);
       color: var(--bg);
       font-size: 0.62rem;
@@ -110,13 +105,13 @@
       display: inline-block;
     }
     @media (max-width: 720px) {
-      .cs-nav-link-tag { display: none; }
+      .nav-link-tag { display: none; }
     }
     @media (max-width: 480px) {
-      .cs-nav-link { display: none; }
+      .nav-link { display: none; }
     }
-    /* Footer matches index.html */
-    .cs-footer {
+    /* Footer — class names match index.html */
+    footer {
       max-width: 1100px;
       margin: 0 auto;
       padding: 2rem 2rem 3rem;
@@ -127,23 +122,23 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
-    .cs-footer-logo { text-decoration: none; }
-    .cs-footer-copy {
+    .footer-logo { text-decoration: none; }
+    .footer-copy {
       text-align: center;
       font-size: .78rem;
       color: rgba(250,240,202,.35);
       font-family: 'Nunito', sans-serif;
     }
-    .cs-footer-link {
+    .footer-link {
       color: rgba(250,240,202,.45);
       text-decoration: none;
       font-size: .85rem;
       transition: color .2s;
     }
-    .cs-footer-link:hover { color: var(--teal); }
+    .footer-link:hover { color: var(--teal); }
     @media (max-width: 640px) {
-      nav.cs-nav { padding: .8rem 1.2rem; }
-      .cs-footer { flex-direction: column; text-align: center; gap: 0.6rem; }
+      nav { padding: .8rem 1.2rem; }
+      footer { flex-direction: column; text-align: center; gap: 0.6rem; }
     }
     .btn-pill {
       background: var(--red); color: var(--white); border: 2px solid var(--red);
@@ -328,7 +323,7 @@
       position: relative; margin-bottom: 3.5rem;
     }
     .cs-card.orange { border-color: var(--orange); box-shadow: 6px 6px 0 var(--orange); background: rgba(252,122,30,.03); }
-    .cs-card.red    { border-color: var(--red);    box-shadow: 6px 6px 0 var(--red);    background: rgba(213,41,65,.03); }
+    .cs-card.red    { border: none;                box-shadow: none;                    background: transparent; }
     .cs-card-tag {
       position: absolute; top: -1px; right: 1.5rem;
       background: var(--teal); color: var(--bg);
@@ -415,8 +410,7 @@
 
     /* Mobile tweaks */
     @media (max-width: 720px) {
-      .cs-nav-tag { display: none; }
-      .cs-nav-right { gap: 0.9rem; }
+      .nav-left, .nav-right { gap: 0.9rem; }
       .grid-2 { grid-template-columns: 1fr !important; }
       .grid-3 { grid-template-columns: 1fr !important; }
       .grid-revsim-row { grid-template-columns: 110px repeat(3, 1fr) !important; font-size: 0.78rem; }
@@ -424,7 +418,9 @@
       .cs-card-inner { padding: 2rem 1.25rem 1.5rem !important; }
       .cs-revsim-cell { font-size: 0.78rem !important; }
       .cs-caspian-grid { grid-template-columns: 1fr !important; }
+      .cs-fp-grid { grid-template-columns: 1fr !important; }
     }
+    /* Funding Path · pitch link CTA — fills with the card's red on hover. */
     /* Budget Revised table — collapse to stacked layout on narrow viewports. */
     @media (max-width: 640px) {
       .cs-budget-row {
@@ -453,22 +449,24 @@
 <body>
 
 <!-- ─── NAV ─── -->
-<nav class="cs-nav" id="cs-nav">
-  <a href="/" class="cs-nav-logo">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-    </svg>
-    Caspian Shift
-  </a>
-  <div class="cs-nav-right">
-    <a href="/budget" class="cs-nav-link">Funding Analysis<span class="cs-nav-link-tag">Free</span></a>
+<nav id="cs-nav">
+  <div class="nav-left">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
+        <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
+        <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
+        <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
+        <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
+        <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
+        <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
+        <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
+      </svg>
+      Caspian Shift
+    </a>
+    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Free</span></a>
+  </div>
+  <div class="nav-right">
     <a href="/#contact" class="btn-pill">Get in Touch</a>
   </div>
 </nav>
@@ -477,8 +475,8 @@
 <main id="cs-app" role="main"></main>
 
 <!-- ─── FOOTER ─── -->
-<footer class="cs-footer">
-  <a href="/" class="cs-nav-logo cs-footer-logo">
+<footer>
+  <a href="/" class="nav-logo footer-logo">
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
       <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
@@ -491,8 +489,8 @@
     </svg>
     Caspian Shift
   </a>
-  <span class="cs-footer-copy">© 2026 Caspian Shift. All rights reserved.</span>
-  <a href="/#contact" class="cs-footer-link">Get in touch →</a>
+  <span class="footer-copy">© 2026 Caspian Shift. All rights reserved.</span>
+  <a href="/#contact" class="footer-link">Get in touch →</a>
 </footer>
 
 <script>
@@ -507,7 +505,7 @@
 // ────────────────── CONSTANTS ──────────────────
 const COUNTRIES = [
   'United States','Canada','United Kingdom','France','Germany','Spain','Italy',
-  'Netherlands','Sweden','Finland','Poland','Czechia','Slovenia','Brazil','Japan'
+  'Netherlands','Sweden','Finland','Poland','Czechia','Slovenia','Mexico','Brazil','Japan','Australia'
 ];
 const STATUSES = ['Concept','Prototype','Vertical Slice','Demo','In Development','Alpha','Beta'];
 const GENRES = [
@@ -658,7 +656,8 @@ async function getJSON(path) {
 const COUNTRY_SALARIES = {
   'United States':9500,'Canada':7200,'United Kingdom':6800,'France':5500,'Germany':6200,
   'Spain':4200,'Italy':4000,'Netherlands':6500,'Sweden':6300,'Finland':6000,
-  'Poland':3800,'Czechia':3500,'Slovenia':3000,'Brazil':2800,'Japan':5000,'Other':4500
+  'Poland':3800,'Czechia':3500,'Slovenia':3000,'Mexico':3000,'Brazil':2800,'Japan':5000,
+  'Australia':6500,'Other':4500
 };
 // ±50% band around our estimate. Below = orange flag (cascade defensively against
 // our estimate). Above = white amount (cascade with user value — likely scope choice).
@@ -825,18 +824,49 @@ function calcRevenueLocal() {
   };
 }
 
+// Mock mode fallback: 3 deterministic publishers when the page runs without a backend
+// (file:// or no NOTION_API_KEY). Real cards come from the Publishers Notion DB via /api/results.
+const MOCK_PUBLISHERS = [
+  { name: 'Northwind Publishing', country: 'Germany', budget: 'Medium', genres: ['Adventure','Simulation'], releasedGames: 22, totalRevenue: 120000000, pitchLink: 'https://example.com/northwind/pitch' },
+  { name: 'Mantis Studios',       country: 'France',  budget: 'Medium', genres: ['Adventure','RPG'],        releasedGames: 14, totalRevenue:  45000000, pitchLink: 'https://example.com/mantis/pitch' },
+  { name: 'Lakeshore Press',      country: 'USA',     budget: 'Medium', genres: ['Simulation'],             releasedGames:  8, totalRevenue:  24000000, pitchLink: null },
+];
+
+// Mock grants — tagged with the user's country at build time so the mock honors the
+// country-hide rule (no country selected → no grants).
+function buildMockGrants(country) {
+  if (!country) return [];
+  return [
+    { name: 'Creative Europe MEDIA', country, type: 'Grant',      applicationCadence: 'Annual',  link: 'https://example.com/creative-europe' },
+    { name: 'National Games Fund',   country, type: 'Grant',      applicationCadence: 'Rolling', link: 'https://example.com/national-games-fund' },
+    { name: 'Cultural Tax Credit',   country, type: 'Tax Credit', applicationCadence: 'Annual',  link: null },
+  ];
+}
+
 function buildLocalResults() {
   const budget = calcBudgetLocal(state.data);
   const revenue = calcRevenueLocal();
+  const set = new Set(state.data.fundingType || []);
+  const country = state.data.studioCountry || '';
+  const funding_paths = [];
+  if (set.has('Publisher')) funding_paths.push({ kind: 'publisher', items: MOCK_PUBLISHERS });
+  if (set.has('Grant')) {
+    const grants = buildMockGrants(country);
+    if (grants.length) funding_paths.push({ kind: 'grant', items: grants });
+  }
+  if (funding_paths.length === 0) {
+    funding_paths.push({ kind: set.has('Crowdfunding') ? 'crowdfunding' : 'self' });
+  }
   return {
     status: 'ready',
     studio_name: state.data.studioName || 'Your studio',
     game_name: state.data.gameName || 'Your game',
-    studio_country: state.data.studioCountry || '',
+    studio_country: country,
     genre: state.data.genre || [],
     funding_type: state.data.fundingType || [],
     budget,
     revenue,
+    funding_paths,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -1121,9 +1151,9 @@ function PageLanding() {
         </svg>` }),
       h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:1rem;" }, 'Free funding analysis'),
       h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1.05;color:#fff;margin-bottom:1.5rem;letter-spacing:0.02em;",
-        html: 'Is your game <span style="color:#FC7A1E;">funded right?</span><br><span style="color:#17BEBB;">Find out in 60 seconds.</span>' }),
+        html: "Is your <span style=\"color:#FC7A1E;\">budget realistic?</span><br><span style=\"color:#17BEBB;\">Find out in 60 seconds.</span>" }),
       h('p', { style: "font-family:'Nunito',sans-serif;font-size:clamp(.95rem,2.2vw,1.12rem);color:rgba(250,240,202,.78);line-height:1.75;max-width:520px;margin:0 auto 2.5rem;font-weight:600;" },
-        "We'll return a revised budget, four funding-path simulations, and three matched recommendations."),
+        "Budget, revenue, paths: a second opinion before any funding decision."),
       h('button', { class: 'btn-pill', style: 'padding:0.85rem 2.5rem;font-size:1.2rem;',
         onclick: () => { state.page = 'wizard'; state.step = 0; saveState(); render(); window.scrollTo(0,0); }
       }, 'Start your analysis →')
@@ -1671,6 +1701,128 @@ function CardRevenue(results) {
   );
 }
 
+// Compact dollar formatter for publisher totals: $X.XB / $X.XM / $XK / $X.
+function fmtRevenueShort(n) {
+  const v = Number(n) || 0;
+  if (v >= 1_000_000_000) return '$' + (v / 1_000_000_000).toFixed(1) + 'B';
+  if (v >= 1_000_000)     return '$' + (v / 1_000_000).toFixed(1) + 'M';
+  if (v >= 1_000)         return '$' + Math.round(v / 1_000) + 'K';
+  return '$' + v.toLocaleString();
+}
+
+// Funding Path · 3-tile section. Rendered once per section in funding_paths.
+// Publisher / Grant → real Notion data; Crowdfunding / Self → structured placeholder shells until copy lands.
+function CardFundingPath(section, results) {
+  const fp = section || { kind: 'self' };
+
+  const gameLabel = ((results.game_name || '') + '').trim() || 'your game';
+  const subtitleByKind = {
+    publisher:    `Publishers matching ${gameLabel}`,
+    grant:        `Grants matching ${gameLabel}`,
+    crowdfunding: 'Crowdfunding your project',
+    self:         'Funding the project yourself',
+  };
+  const subtitle = subtitleByKind[fp.kind] || subtitleByKind.self;
+  const ordinal = (i) => i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
+
+  // Neutral tile shell — lets the red card frame carry the section accent.
+  // align-self:stretch on the divider keeps it full-width even when the parent
+  // centers its children (used for the publisher / grant variants).
+  const tileShell = 'border:1px solid rgba(250,240,202,.18);background:rgba(250,240,202,.02);padding:1.6rem 1.3rem 1.4rem;display:flex;flex-direction:column;gap:.85rem;min-height:230px;';
+  const accentTileShell = tileShell + 'border:3px solid var(--orange);box-shadow:6px 6px 0 var(--orange);background:rgba(252,122,30,.04);position:relative;align-items:center;text-align:center;';
+  const numberTagStyle = "position:absolute;top:-1px;right:1rem;background:var(--orange);color:#fff;font-family:'Boogaloo',cursive;font-size:.7rem;padding:.15rem .55rem;letter-spacing:.05em;line-height:1.4;";
+  const dividerStyle = 'margin-top:auto;padding-top:1.1rem;display:flex;flex-direction:column;gap:.6rem;align-self:stretch;';
+  const chipStyle = 'display:inline-block;font-family:\'Nunito\',sans-serif;font-size:.68rem;letter-spacing:.04em;padding:.18rem .55rem;background:rgba(250,240,202,.06);border:1px solid rgba(250,240,202,.18);color:rgba(250,240,202,.72);';
+  const headlineStyle = "font-family:'Boogaloo',cursive;font-size:1.4rem;color:#fff;letter-spacing:.02em;line-height:1.2;";
+  const eyebrowStyle = "font-family:'Boogaloo',cursive;font-size:.7rem;color:rgba(250,240,202,.5);letter-spacing:.14em;text-transform:uppercase;";
+  const statStyle = "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#FAF0CA;letter-spacing:.02em;line-height:1.2;text-align:center;";
+
+  // Application Cadence → human phrase. Falls back to the raw value if unknown.
+  function cadencePhrase(c) {
+    if (!c) return null;
+    if (c === 'Annual')    return 'Applies annually';
+    if (c === 'Quarterly') return 'Applies quarterly';
+    if (c === 'Rolling')   return 'Rolling applications';
+    if (c === 'One-off')   return 'One-off application';
+    return c;
+  }
+
+  function publisherTile(p, i) {
+    return h('div', { style: accentTileShell },
+      h('span', { style: numberTagStyle }, ordinal(i)),
+      h('div', { style: headlineStyle }, p.name),
+      p.country ? h('div', { style: eyebrowStyle }, p.country) : null,
+      (p.genres && p.genres.length)
+        ? h('div', { style: 'display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:.25rem;' },
+            p.genres.slice(0, 3).map(g => h('span', { style: chipStyle }, g)))
+        : null,
+      h('div', { style: dividerStyle },
+        h('div', { style: statStyle }, fmtRevenueShort(p.totalRevenue) + ' revenue'),
+        h('div', { style: statStyle }, fmtCommas(p.releasedGames) + ' game' + (p.releasedGames === 1 ? '' : 's') + ' released'),
+        p.pitchLink
+          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: p.pitchLink, target: '_blank', rel: 'noopener noreferrer' }, 'Pitch link →')
+          : null
+      )
+    );
+  }
+
+  // Grant tile — mirrors publisher tile structure (Name / Country eyebrow / Type chip /
+  // stat lines / CTA), but with one stat line (Application Cadence) since grants don't
+  // have a revenue/release-count equivalent.
+  function grantTile(g, i) {
+    return h('div', { style: accentTileShell },
+      h('span', { style: numberTagStyle }, ordinal(i)),
+      h('div', { style: headlineStyle }, g.name),
+      g.country ? h('div', { style: eyebrowStyle }, g.country) : null,
+      g.type
+        ? h('div', { style: 'display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:.25rem;' },
+            h('span', { style: chipStyle }, g.type))
+        : null,
+      h('div', { style: dividerStyle },
+        cadencePhrase(g.applicationCadence)
+          ? h('div', { style: statStyle }, cadencePhrase(g.applicationCadence))
+          : null,
+        g.link
+          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: g.link, target: '_blank', rel: 'noopener noreferrer' }, 'Grant link →')
+          : null
+      )
+    );
+  }
+
+  // Placeholder tile — kept structurally similar to the publisher tile so we know
+  // the layout proportions are right before real copy lands. Reads as intentional
+  // placeholder, not a render bug.
+  function placeholderTile(i) {
+    return h('div', { style: tileShell },
+      h('span', { style: 'display:inline-block;font-family:\'Boogaloo\',cursive;font-size:.68rem;letter-spacing:.1em;padding:.2rem .55rem;background:var(--orange);color:#fff;text-transform:uppercase;align-self:flex-start;' }, 'Coming soon'),
+      h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:rgba(255,255,255,.55);letter-spacing:.02em;line-height:1.2;" }, 'Tile ' + (i + 1)),
+      h('div', { style: "font-family:'Nunito',sans-serif;font-size:.82rem;color:rgba(250,240,202,.4);line-height:1.55;font-style:italic;" }, 'Copy for this card is being finalized.'),
+      h('div', { style: dividerStyle },
+        h('div', { style: "font-family:'Nunito',sans-serif;font-size:.75rem;color:rgba(250,240,202,.35);" }, 'Detail line · pending')
+      )
+    );
+  }
+
+  let tiles;
+  if (fp.kind === 'publisher') {
+    const items = (fp.items || []).slice(0, 3);
+    tiles = items.length
+      ? items.map(publisherTile)
+      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(250,240,202,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No publisher matched yet'));
+  } else if (fp.kind === 'grant') {
+    tiles = (fp.items || []).slice(0, 3).map(grantTile);
+  } else {
+    tiles = [0, 1, 2].map(placeholderTile);
+  }
+
+  return h('div', { class: 'cs-card red' },
+    h('div', { class: 'cs-card-inner', style: 'padding:1.5rem 0 2rem;' },
+      h('h3', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.3rem,2.8vw,1.8rem);color:#fff;letter-spacing:.02em;margin:0 0 2.5rem;line-height:1.2;" }, subtitle),
+      h('div', { class: 'cs-fp-grid', style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:4rem;' }, tiles)
+    )
+  );
+}
+
 // Team voice card — centered column stack, used between data sections to alternate hard
 // numbers with human commentary. `accent` is 'teal' (default) or 'orange'.
 // The avatar div carries the initial as transparent text so it shows if the bg image fails.
@@ -1723,6 +1875,7 @@ function PageResults() {
   const genreLabel = genres.length === 2 ? `${genres[0]} and ${genres[1]}` : (genres[0] || 'indie');
   const revisedBudgetLabel = fmt(r.budget && r.budget.total_usd ? r.budget.total_usd : 0);
   const countryLabel = r.studio_country || 'your country';
+  const gameLabel = ((r.game_name || '') + '').trim() || 'your game';
   // Pick Keyvan's copy by funding path: Publisher > Crowdfunding > Grant > Self-Funded.
   // Each variant is split { opener, restBefore, restAfter } so we can hard-break after
   // the first sentence AND tint the budget number cream to match the Revised total.
@@ -1763,6 +1916,39 @@ function PageResults() {
       v.restAfter,
     ),
   ];
+  // Vanille's copy — same dominant-path priority as Keyvan. Two paragraphs, gameName
+  // tinted cream in para 2 to mirror the budget callout in Keyvan's card.
+  const vanilleCopyByVariant = {
+    publisher: {
+      para1: `Every publisher meeting turns on one slide: the revenue projection.`,
+      para2Before: `Get the numbers wrong and the advance is too small, the recoup too long, or the deal stalls at the second call. Here's what a revenue scenario would look like for `,
+      para2After: `.`,
+    },
+    crowdfunding: {
+      para1: `A funded campaign tells you people want the game, it doesn't tell you the game can sustain a studio.`,
+      para2Before: `That part lives in what happens after launch and in the numbers you build the campaign around. Here's what a revenue scenario would look like for `,
+      para2After: `.`,
+    },
+    grant: {
+      para1: `Grant panels don't ask for revenue projections, but they think about them anyway, they're funding projects that can stand up once the grant money runs out.`,
+      para2Before: `The same numbers matter on your side, here's what a revenue scenario would look like for `,
+      para2After: `.`,
+    },
+    self: {
+      para1: `Self-funding means every month you don't ship is a month off your own runway.`,
+      para2Before: `Whether that works comes down to one number: how many copies the game actually moves, here's what a revenue scenario would look like for `,
+      para2After: `.`,
+    },
+  };
+  const vv = vanilleCopyByVariant[keyvanVariant];
+  const vanilleCopy = [
+    vv.para1,
+    h('span', { style: 'display:block;margin-top:.6rem;' },
+      vv.para2Before,
+      h('span', { style: 'color:#FAF0CA;' }, gameLabel),
+      vv.para2After,
+    ),
+  ];
   return h('section', { class: 'cs-results', style: 'max-width:1100px;margin:0 auto;padding:6rem 2rem 4rem;' },
     h('div', { style: 'margin-bottom:1.5rem;' },
       h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08;color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" },
@@ -1779,12 +1965,11 @@ function PageResults() {
       name: 'Keyvan', role: 'Co-founder', accent: 'teal', avatar: AVATAR_KEYVAN,
       copy: keyvanCopy,
     }),
-    CardRevenue(r),
+    (r.funding_paths || []).map(s => CardFundingPath(s, r)),
     CardTeam({
       eyebrow: 'On your funding paths',
       name: 'Vanille', role: 'Co-founder', accent: 'orange', avatar: AVATAR_VANILLE,
-      copy: "Each funding path looks clean on paper. The deal terms behind them are not. I've read enough publisher contracts and grant rules to know which scenarios survive a slow quarter and which ones quietly transfer the risk to you.",
-      ctaLabel: "Let's talk funding strategy →"
+      copy: vanilleCopy,
     }),
     CardTeamJoint({
       eyebrow: 'Where to start',

@@ -94,6 +94,34 @@ export interface RevenueSimulation {
   scenarios: { conservative: ScenarioBase; realistic: ScenarioBase; optimistic: ScenarioBase };
 }
 
+// ─── Funding Path sections (rendered after the budget) ──────────────────
+// Real-data sections (Publisher, Grant) stack when both are selected; otherwise a
+// single placeholder card (Crowdfunding or Self) renders.
+export type BudgetBucket = "Low" | "Medium" | "High";
+
+export interface PublisherCard {
+  name: string;
+  country: string;
+  budget: BudgetBucket | null;
+  genres: string[];
+  releasedGames: number;
+  totalRevenue: number;
+  pitchLink: string | null;
+}
+
+export interface GrantCard {
+  name: string;
+  country: string;                // The matched country (single, derived from user's studio country)
+  type: string | null;            // Grant | Award | Tax Credit | Repayable Advance
+  applicationCadence: string | null;  // Annual | Quarterly | One-off | Rolling
+  link: string | null;
+}
+
+export type FundingPathSection =
+  | { kind: "publisher"; items: PublisherCard[] }
+  | { kind: "grant"; items: GrantCard[] }
+  | { kind: "crowdfunding" | "self" };
+
 export interface ResultsPayload {
   status: "ready";
   studio_name: string;
@@ -103,5 +131,6 @@ export interface ResultsPayload {
   funding_type: FundingType[];
   budget: BudgetRevised;
   revenue: RevenueSimulation;
+  funding_paths: FundingPathSection[];
   generatedAt: string;
 }
