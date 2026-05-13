@@ -1,5 +1,5 @@
 # Netlify configuration for caspianshift.com
-# /budget routes to budget.html and /api/* routes to functions.
+# /funding routes to funding.html and /api/* routes to functions.
 
 [build]
   publish = "."
@@ -10,13 +10,13 @@
 
 # ── Pretty URLs ─────────────────────────────────────────────────
 [[redirects]]
-  from = "/budget"
-  to = "/budget.html"
+  from = "/funding"
+  to = "/funding.html"
   status = 200
 
 [[redirects]]
-  from = "/budget/"
-  to = "/budget.html"
+  from = "/funding/"
+  to = "/funding.html"
   status = 200
 
 # ── API routing ─────────────────────────────────────────────────
@@ -35,6 +35,6 @@
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
 
 [[headers]]
-  for = "/budget*"
+  for = "/funding*"
   [headers.values]
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"

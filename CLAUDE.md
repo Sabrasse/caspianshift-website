@@ -4,17 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm run dev` — `netlify dev` on http://localhost:8888. Serves the static HTML and runs the functions locally; `/api/*` rewrites and `/budget` redirects only work through this proxy (not via opening the file directly).
+- `npm run dev` — `netlify dev` on http://localhost:8888. Serves the static HTML and runs the functions locally; `/api/*` rewrites and `/funding` redirects only work through this proxy (not via opening the file directly).
 - `npm run deploy` — `netlify deploy --prod`.
 - No test suite, no lint, no build step. Functions are bundled by Netlify with esbuild from TS at deploy time (see `netlify.toml`); `tsc` is only used by the editor — there is no compile step to run.
 
 ## Architecture
 
-Two-page marketing site with a serverless Funding Analysis tool. **No framework, no build pipeline** — `index.html` and `budget.html` are hand-written vanilla HTML/CSS/JS files served as-is by Netlify (`publish = "."`). The Funding Analysis is a 3-step wizard backed by Netlify Functions in `netlify/functions/`.
+Two-page marketing site with a serverless Funding Analysis tool. **No framework, no build pipeline** — `index.html` and `funding.html` are hand-written vanilla HTML/CSS/JS files served as-is by Netlify (`publish = "."`). The Funding Analysis is a 3-step wizard backed by Netlify Functions in `netlify/functions/`.
 
 ### Frontend
 - `index.html` — marketing site (sections: hero, services, about, contact).
-- `budget.html` — single-file SPA built with a tiny `h(tag, attrs, ...children)` helper instead of React. State machine has four pages (`landing → wizard → loading → results`) and persists to `localStorage` under `cs_funding_tool_v2` / `cs_funding_pageid_v2`. Wizard steps: **Game (1) → Studio (2) → Budget (3)**. Step 1 returns a `notionPageId`; steps 2 and 3 PATCH that page id directly. After step 3, a single `GET /api/results?notionPageId=…` returns the full payload (no polling). The page falls back to `buildLocalResults()` (deterministic mirror of `results.ts`) when opened on `file://` or against an unconfigured backend.
+- `funding.html` — single-file SPA built with a tiny `h(tag, attrs, ...children)` helper instead of React. State machine has four pages (`landing → wizard → loading → results`) and persists to `localStorage` under `cs_funding_tool_v2` / `cs_funding_pageid_v2`. Wizard steps: **Game (1) → Studio (2) → Budget (3)**. Step 1 returns a `notionPageId`; steps 2 and 3 PATCH that page id directly. After step 3, a single `GET /api/results?notionPageId=…` returns the full payload (no polling). The page falls back to `buildLocalResults()` (deterministic mirror of `results.ts`) when opened on `file://` or against an unconfigured backend.
 
 ### Backend (Netlify Functions, TypeScript)
 
@@ -45,9 +45,9 @@ results (GET) ─→ reads the Notion row, runs deterministic budget + revenue m
 When adding a new external integration, follow this pattern — never hard-fail on a missing key.
 
 ### Routing (`netlify.toml`)
-- `/budget` and `/budget/` rewrite to `/budget.html` (status 200, not 301 — preserves the URL).
+- `/funding` and `/funding/` rewrite to `/funding.html` (status 200, not 301 — preserves the URL).
 - `/api/*` rewrites to `/.netlify/functions/:splat`.
-- Stricter CSP applies to `/budget*` only (`connect-src 'self'`); `index.html` keeps the looser site-wide policy.
+- Stricter CSP applies to `/funding*` only (`connect-src 'self'`); `index.html` keeps the looser site-wide policy.
 
 ## Conventions
 

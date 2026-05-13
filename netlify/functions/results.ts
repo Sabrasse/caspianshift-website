@@ -3,18 +3,20 @@
 
 import type { Handler } from "@netlify/functions";
 import { ResultsQuerySchema, zodError } from "./_shared/validate";
-import { readRow } from "./_shared/notion";
+import { readRow, queryPublishers, queryGrants } from "./_shared/notion";
 import {
   COPIES_SOLD,
   type NotionRow, type BudgetLine, type ResultsPayload, type RevenueSimulation,
+  type FundingPathSection, type BudgetBucket,
+  type FundingType,
 } from "./_shared/types";
 import { ok, bad, notFound, methodNotAllowed, log } from "./_shared/http";
 
 const COUNTRY_SALARIES: Record<string, number> = {
   "United States": 9500, "Canada": 7200, "United Kingdom": 6800, "France": 5500,
   "Germany": 6200, "Netherlands": 6500, "Sweden": 6300, "Finland": 6000,
-  "Spain": 4200, "Italy": 4000, "Japan": 5000, "Poland": 3800, "Czechia": 3500,
-  "Slovenia": 3000, "Brazil": 2800, "Other": 4500,
+  "Australia": 6500, "Spain": 4200, "Italy": 4000, "Japan": 5000, "Poland": 3800,
+  "Czechia": 3500, "Slovenia": 3000, "Mexico": 3000, "Brazil": 2800, "Other": 4500,
 };
 const DEFAULT_PRICE = 19.99;
 const STEAM_CUT = 0.30;
@@ -177,6 +179,61 @@ function deriveBudget(row: NotionRow): { lines: BudgetLine[]; total_usd: number;
   return { lines, total_usd, total_provided, total_revised };
 }
 
+// Bucket the user's revised budget for matching against the Publishers DB Budget select.
+// Thresholds: < $100K = Low, $100K–$500K = Medium, > $500K = High.
+function bucketBudget(amount: number): BudgetBucket {
+  if (amount < 100_000) return "Low";
+  if (amount <= 500_000) return "Medium";
+  return "High";
+}
+
+// User form uses long-form country names ("United States"); the Publishers DB uses
+// short forms ("USA"). Aliases the few divergent cases so country matching works.
+const COUNTRY_TO_PUB_DB: Record<string, string> = {
+  "United States":  "USA",
+  "United Kingdom": "UK",
+  "Czechia":        "Czech",
+};
+function aliasCountryForPublishers(c: string): string {
+  return COUNTRY_TO_PUB_DB[c] || c;
+}
+
+// The Grants DB uses "UK" and "Czech Republic" — diverges from publishers in the Czech case.
+const COUNTRY_TO_GRANT_DB: Record<string, string> = {
+  "United Kingdom": "UK",
+  "Czechia":        "Czech Republic",
+};
+function aliasCountryForGrants(c: string): string {
+  return COUNTRY_TO_GRANT_DB[c] || c;
+}
+
+// Builds the funding-path sections in render order: Publisher first (if selected),
+// Grant second (if selected AND has country matches). When neither real-data path
+// applies, falls back to a single placeholder card for Crowdfunding/Self.
+async function buildFundingPaths(row: NotionRow, totalUsd: number): Promise<FundingPathSection[]> {
+  const set = new Set(row.fundingType || []);
+  const sections: FundingPathSection[] = [];
+
+  if (set.has("Publisher")) {
+    const items = await queryPublishers({
+      country:      aliasCountryForPublishers(row.studioCountry),
+      budgetBucket: bucketBudget(totalUsd),
+      genres:       row.genre || [],
+    });
+    sections.push({ kind: "publisher", items });
+  }
+
+  if (set.has("Grant")) {
+    const items = await queryGrants({ country: aliasCountryForGrants(row.studioCountry) });
+    if (items.length > 0) sections.push({ kind: "grant", items });
+  }
+
+  if (sections.length === 0) {
+    sections.push({ kind: set.has("Crowdfunding") ? "crowdfunding" : "self" });
+  }
+  return sections;
+}
+
 function buildRevenue(): RevenueSimulation {
   const price = DEFAULT_PRICE;
   const buildBase = (copies: number) => {
@@ -209,6 +266,7 @@ export const handler: Handler = async (event) => {
   }
   const budget = deriveBudget(row);
   const revenue = buildRevenue();
+  const funding_paths = await buildFundingPaths(row, budget.total_usd);
   const payload: ResultsPayload = {
     status: "ready",
     studio_name: row.studioName,
@@ -218,8 +276,18 @@ export const handler: Handler = async (event) => {
     funding_type: row.fundingType,
     budget,
     revenue,
+    funding_paths,
     generatedAt: new Date().toISOString(),
   };
-  log("results", { notionPageId: parsed.data.notionPageId, status: "ready", total: budget.total_usd, ms: Date.now() - t0 });
+  const pubSection = funding_paths.find(s => s.kind === "publisher");
+  const grantSection = funding_paths.find(s => s.kind === "grant");
+  log("results", {
+    notionPageId: parsed.data.notionPageId, status: "ready",
+    total: budget.total_usd,
+    fundingPaths: funding_paths.map(s => s.kind).join(","),
+    publishers: pubSection && pubSection.kind === "publisher" ? pubSection.items.length : 0,
+    grants:     grantSection && grantSection.kind === "grant" ? grantSection.items.length : 0,
+    ms: Date.now() - t0,
+  });
   return ok(payload);
 };
