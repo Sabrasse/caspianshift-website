@@ -3,7 +3,7 @@
 
 import type { Handler } from "@netlify/functions";
 import { ResultsQuerySchema, zodError } from "./_shared/validate";
-import { readRow, queryPublishers, queryGrants } from "./_shared/notion";
+import { readRow, queryPublishers, queryGrants, queryCrowdfunding } from "./_shared/notion";
 import {
   COPIES_SOLD,
   type NotionRow, type BudgetLine, type ResultsPayload, type RevenueSimulation,
@@ -187,50 +187,43 @@ function bucketBudget(amount: number): BudgetBucket {
   return "High";
 }
 
-// User form uses long-form country names ("United States"); the Publishers DB uses
-// short forms ("USA"). Aliases the few divergent cases so country matching works.
-const COUNTRY_TO_PUB_DB: Record<string, string> = {
-  "United States":  "USA",
-  "United Kingdom": "UK",
-  "Czechia":        "Czech",
-};
-function aliasCountryForPublishers(c: string): string {
-  return COUNTRY_TO_PUB_DB[c] || c;
-}
+// Country matching is now done via the shared Countries DB page id (relation), so
+// no per-DB name aliasing is needed — Publishers/Grants link to the same country page
+// as Game Case Studies.
 
-// The Grants DB uses "UK" and "Czech Republic" — diverges from publishers in the Czech case.
-const COUNTRY_TO_GRANT_DB: Record<string, string> = {
-  "United Kingdom": "UK",
-  "Czechia":        "Czech Republic",
-};
-function aliasCountryForGrants(c: string): string {
-  return COUNTRY_TO_GRANT_DB[c] || c;
-}
-
-// Builds the funding-path sections in render order: Publisher first (if selected),
-// Grant second (if selected AND has country matches). When neither real-data path
-// applies, falls back to a single placeholder card for Crowdfunding/Self.
+// Builds one funding-path section per selected funding type, in render order:
+// Publisher → Grant → Crowdfunding → Self-Funded. Grant is skipped if it has no
+// country matches (the tile renderer has no empty state). If the user selected
+// nothing renderable, falls back to a single Self placeholder.
 async function buildFundingPaths(row: NotionRow, totalUsd: number): Promise<FundingPathSection[]> {
   const set = new Set(row.fundingType || []);
   const sections: FundingPathSection[] = [];
 
   if (set.has("Publisher")) {
     const items = await queryPublishers({
-      country:      aliasCountryForPublishers(row.studioCountry),
-      budgetBucket: bucketBudget(totalUsd),
-      genres:       row.genre || [],
+      countryPageId: row.studioCountryPageId,
+      budgetBucket:  bucketBudget(totalUsd),
+      genrePageIds:  row.genrePageIds || [],
     });
     sections.push({ kind: "publisher", items });
   }
 
   if (set.has("Grant")) {
-    const items = await queryGrants({ country: aliasCountryForGrants(row.studioCountry) });
+    const items = row.studioCountryPageId
+      ? await queryGrants({ countryPageId: row.studioCountryPageId })
+      : [];
     if (items.length > 0) sections.push({ kind: "grant", items });
   }
 
-  if (sections.length === 0) {
-    sections.push({ kind: set.has("Crowdfunding") ? "crowdfunding" : "self" });
+  if (set.has("Crowdfunding")) {
+    const items = await queryCrowdfunding({
+      genrePageIds: row.genrePageIds || [],
+    });
+    sections.push({ kind: "crowdfunding", items });
   }
+  if (set.has("Self-Funded"))  sections.push({ kind: "self" });
+
+  if (sections.length === 0) sections.push({ kind: "self" });
   return sections;
 }
 
@@ -281,12 +274,14 @@ export const handler: Handler = async (event) => {
   };
   const pubSection = funding_paths.find(s => s.kind === "publisher");
   const grantSection = funding_paths.find(s => s.kind === "grant");
+  const crowdSection = funding_paths.find(s => s.kind === "crowdfunding");
   log("results", {
     notionPageId: parsed.data.notionPageId, status: "ready",
     total: budget.total_usd,
     fundingPaths: funding_paths.map(s => s.kind).join(","),
-    publishers: pubSection && pubSection.kind === "publisher" ? pubSection.items.length : 0,
-    grants:     grantSection && grantSection.kind === "grant" ? grantSection.items.length : 0,
+    publishers:   pubSection   && pubSection.kind   === "publisher"    ? pubSection.items.length   : 0,
+    grants:       grantSection && grantSection.kind === "grant"        ? grantSection.items.length : 0,
+    crowdfunding: crowdSection && crowdSection.kind === "crowdfunding" ? crowdSection.items.length : 0,
     ms: Date.now() - t0,
   });
   return ok(payload);

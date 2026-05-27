@@ -508,7 +508,9 @@ const COUNTRIES = [
   'Netherlands','Sweden','Finland','Poland','Czechia','Slovenia','Mexico','Brazil','Japan','Australia'
 ];
 const STATUSES = ['Concept','Prototype','Vertical Slice','Demo','In Development','Alpha','Beta'];
-const GENRES = [
+// Picker seed list. Swapped at boot by /api/genres so the form stays in sync with
+// the Notion Genres DB; kept as a hardcoded fallback for file:// / mock-mode runs.
+let GENRES = [
   'Action','Adventure','RPG','Strategy','Simulation','Puzzle','Platformer','Horror',
   'Visual Novel','Narrative','Fighting','Shooter','Racing','Sports','Roguelike',
   'Tower Defense','Management','Turn-Based','Dungeon Crawler','Detective','Cozy',
@@ -832,6 +834,13 @@ const MOCK_PUBLISHERS = [
   { name: 'Lakeshore Press',      country: 'USA',     budget: 'Medium', genres: ['Simulation'],             releasedGames:  8, totalRevenue:  24000000, pitchLink: null },
 ];
 
+// Mock crowdfunding — 3 deterministic campaigns for file:// / no-backend runs.
+const MOCK_CROWDFUNDING = [
+  { name: 'Sunset Harbor',  genres: ['Adventure','Cozy'],     raisedAmount: 320000, backers: 8400, campaignUrl: 'https://example.com/sunset-harbor' },
+  { name: 'Iron Crown',     genres: ['RPG','Strategy'],       raisedAmount: 215000, backers: 5200, campaignUrl: 'https://example.com/iron-crown' },
+  { name: 'Paper Skylines', genres: ['Simulation','Puzzle'],  raisedAmount: 145000, backers: 3100, campaignUrl: null },
+];
+
 // Mock grants — tagged with the user's country at build time so the mock honors the
 // country-hide rule (no country selected → no grants).
 function buildMockGrants(country) {
@@ -854,9 +863,9 @@ function buildLocalResults() {
     const grants = buildMockGrants(country);
     if (grants.length) funding_paths.push({ kind: 'grant', items: grants });
   }
-  if (funding_paths.length === 0) {
-    funding_paths.push({ kind: set.has('Crowdfunding') ? 'crowdfunding' : 'self' });
-  }
+  if (set.has('Crowdfunding')) funding_paths.push({ kind: 'crowdfunding', items: MOCK_CROWDFUNDING });
+  if (set.has('Self-Funded'))  funding_paths.push({ kind: 'self' });
+  if (funding_paths.length === 0) funding_paths.push({ kind: 'self' });
   return {
     status: 'ready',
     studio_name: state.data.studioName || 'Your studio',
@@ -1137,23 +1146,27 @@ function PageLanding() {
           <rect x="1" y="4" width="14" height="1" fill="#17BEBB"/>
           <rect x="1" y="5" width="14" height="1" fill="#17BEBB"/>
           <rect x="1" y="6" width="14" height="1" fill="#0D9E9B"/>
-          <rect x="7" y="6" width="2"  height="1" fill="#FAF0CA"/>
+          <rect x="7" y="6" width="2" height="1" fill="#FAF0CA"/>
           <rect x="1" y="7" width="14" height="7" fill="#0D0112"/>
           <rect x="1" y="7" width="14" height="1" fill="#0D9E9B"/>
           <rect x="1" y="13" width="14" height="1" fill="#0D9E9B"/>
           <rect x="1" y="7" width="1" height="7" fill="#0D9E9B"/>
           <rect x="14" y="7" width="1" height="7" fill="#0D9E9B"/>
-          <rect x="6" y="9"  width="4" height="3" fill="#FC7A1E"/>
-          <rect x="7" y="8"  width="2" height="1" fill="#FC7A1E"/>
+          <rect x="6" y="9" width="4" height="3" fill="#FC7A1E"/>
+          <rect x="7" y="8" width="2" height="1" fill="#FC7A1E"/>
           <rect x="7" y="10" width="2" height="1" fill="#0D0112"/>
           <rect x="3" y="10" width="2" height="2" fill="#FC7A1E"/>
           <rect x="11" y="10" width="2" height="2" fill="#FC7A1E"/>
+          <rect x="3" y="11" width="2" height="1" fill="#E06010"/>
+          <rect x="11" y="11" width="2" height="1" fill="#E06010"/>
+          <rect x="3" y="3" width="1" height="1" fill="#FAF0CA"/>
+          <rect x="5" y="2" width="1" height="1" fill="#FAF0CA"/>
         </svg>` }),
       h('span', { style: "font-family:'Boogaloo',cursive;font-size:0.82rem;color:#17BEBB;letter-spacing:0.22em;text-transform:uppercase;display:block;margin-bottom:1rem;" }, 'Free funding analysis'),
       h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1.05;color:#fff;margin-bottom:1.5rem;letter-spacing:0.02em;",
         html: "Is your <span style=\"color:#FC7A1E;\">budget realistic?</span><br><span style=\"color:#17BEBB;\">Find out in 60 seconds.</span>" }),
       h('p', { style: "font-family:'Nunito',sans-serif;font-size:clamp(.95rem,2.2vw,1.12rem);color:rgba(250,240,202,.78);line-height:1.75;max-width:520px;margin:0 auto 2.5rem;font-weight:600;" },
-        "Budget, revenue, paths: a second opinion before any funding decision."),
+        "Your second opinion before any funding decision."),
       h('button', { class: 'btn-pill', style: 'padding:0.85rem 2.5rem;font-size:1.2rem;',
         onclick: () => { state.page = 'wizard'; state.step = 0; saveState(); render(); window.scrollTo(0,0); }
       }, 'Start your analysis →')
@@ -1719,7 +1732,7 @@ function CardFundingPath(section, results) {
   const subtitleByKind = {
     publisher:    `Publishers matching ${gameLabel}`,
     grant:        `Grants matching ${gameLabel}`,
-    crowdfunding: 'Crowdfunding your project',
+    crowdfunding: `Crowdfunding campaigns matching ${gameLabel}`,
     self:         'Funding the project yourself',
   };
   const subtitle = subtitleByKind[fp.kind] || subtitleByKind.self;
@@ -1761,6 +1774,27 @@ function CardFundingPath(section, results) {
         h('div', { style: statStyle }, fmtCommas(p.releasedGames) + ' game' + (p.releasedGames === 1 ? '' : 's') + ' released'),
         p.pitchLink
           ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: p.pitchLink, target: '_blank', rel: 'noopener noreferrer' }, 'Pitch link →')
+          : null
+      )
+    );
+  }
+
+  // Crowdfunding tile — mirrors publisher tile structure (Name headline / genre chips /
+  // two stat lines / external CTA), with Raised Amount + Backers as the stats and the
+  // Campaign URL as the link-out.
+  function crowdfundingTile(cf, i) {
+    return h('div', { style: accentTileShell },
+      h('span', { style: numberTagStyle }, ordinal(i)),
+      h('div', { style: headlineStyle }, cf.name),
+      (cf.genres && cf.genres.length)
+        ? h('div', { style: 'display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:.25rem;' },
+            cf.genres.slice(0, 3).map(g => h('span', { style: chipStyle }, g)))
+        : null,
+      h('div', { style: dividerStyle },
+        h('div', { style: statStyle }, fmtRevenueShort(cf.raisedAmount) + ' raised'),
+        h('div', { style: statStyle }, fmtCommas(cf.backers) + ' backer' + (cf.backers === 1 ? '' : 's')),
+        cf.campaignUrl
+          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: cf.campaignUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Campaign link →')
           : null
       )
     );
@@ -1811,6 +1845,11 @@ function CardFundingPath(section, results) {
       : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(250,240,202,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No publisher matched yet'));
   } else if (fp.kind === 'grant') {
     tiles = (fp.items || []).slice(0, 3).map(grantTile);
+  } else if (fp.kind === 'crowdfunding') {
+    const items = (fp.items || []).slice(0, 3);
+    tiles = items.length
+      ? items.map(crowdfundingTile)
+      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(250,240,202,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No campaign matched yet'));
   } else {
     tiles = [0, 1, 2].map(placeholderTile);
   }
@@ -1894,7 +1933,7 @@ function PageResults() {
     publisher: {
       opener:     `Most studios contact publishers before they know what their project costs.`,
       restBefore: `That's how bad deals get signed. With `,
-      restAfter:  ` to work from, here are three publishers from our database who fund ${genreLabel} projects and back studios in ${countryLabel}.`,
+      restAfter:  ` to work from, here are three publishers from our database who fund ${genreLabel} games.`,
     },
     grant: {
       opener:     `Most studios apply for grants before they know what their project costs, that's how applications get rejected for asking the wrong amount.`,
@@ -2015,7 +2054,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Don't auto-resume into loading or results across reload — drop back to wizard if mid-flow.
   if (state.page === 'loading' || state.page === 'results') state.page = 'wizard';
   render();
+  loadGenres();
 });
+
+// Pull the genre list from the Notion Genres DB so the picker stays authoritative.
+// Falls back silently to the hardcoded seed list on file:// / mock-mode / network error.
+async function loadGenres() {
+  const res = await getJSON('/api/genres');
+  if (!res.ok || !res.body || !Array.isArray(res.body.genres) || res.body.genres.length === 0) return;
+  GENRES = res.body.genres;
+  render();
+}
 
 // Expose a small handle for debugging
 window.__cs_funding = { state, render, calcBudgetLocal, calcRevenueLocal };

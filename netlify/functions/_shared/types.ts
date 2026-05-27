@@ -43,10 +43,12 @@ export interface NotionRow {
   gameName: string;
   status: GameStatus;
   genre: string[];
+  genrePageIds?: string[];        // Notion page ids of the related Genre rows (relation → Genres DB)
   releaseDate: string;
   studioName: string;
   studioSize: number;
   studioCountry: string;
+  studioCountryPageId?: string;   // Notion page id of the related Country row (relation → Countries DB)
   fundingType: FundingType[];
   steamPageUrl?: string;
   devTimeMonths?: number;
@@ -117,10 +119,19 @@ export interface GrantCard {
   link: string | null;
 }
 
+export interface CrowdfundingCard {
+  name: string;
+  genres: string[];
+  raisedAmount: number;            // USD
+  backers: number;
+  campaignUrl: string | null;
+}
+
 export type FundingPathSection =
   | { kind: "publisher"; items: PublisherCard[] }
   | { kind: "grant"; items: GrantCard[] }
-  | { kind: "crowdfunding" | "self" };
+  | { kind: "crowdfunding"; items: CrowdfundingCard[] }
+  | { kind: "self" };
 
 export interface ResultsPayload {
   status: "ready";
