@@ -22,7 +22,7 @@ Subtitle: *"What game are you building?"*
 
 - **Game Name** → `Game Name` column (text, required)
 - **Status** → `Status` column (select, required)
-- **Genre** → `Genre` column (multi-select, required)
+- **Genre** → `Genres` column (relation → Genres DB, required)
 - **Release Date** → `Release Date` column (date, required)
 - **Similar Game** → creates a comparables row with `Steam Page URL` populated (optional)
 
