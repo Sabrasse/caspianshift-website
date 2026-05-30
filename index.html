@@ -332,7 +332,8 @@
       padding: .2rem .8rem;
       letter-spacing: .05em;
     }
-    .t-badge.level-3 { background: var(--red); color: var(--white); }
+    .t-badge.orange  { background: var(--orange); color: var(--bg); }
+    .t-badge.level-3 { background: var(--red);    color: var(--white); }
 
     /* ─── ABOUT ─── */
     .about-grid {
@@ -481,7 +482,7 @@
       </svg>
       Caspian Shift
     </a>
-    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Free</span></a>
+    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Beta</span></a>
   </div>
   <div class="nav-right">
     <a href="#contact" class="btn-pill">Get in Touch</a>
@@ -664,33 +665,7 @@
   <h2 class="section-title reveal">Real studios, real results</h2>
   <p class="section-sub reveal" style="max-width:800px;">We work with studios across different genres and funding paths.</p>
 
-  <div class="testimonials-grid">
-
-    <div class="t-card reveal">
-      <span class="t-badge">Level 1</span>
-      <div class="t-bigquote">"</div>
-      <p class="t-text">They helped us build a much stronger pitch and identify the right moment to approach publishers. A very productive and smooth collaboration from start to finish.</p>
-      <div class="t-author">One More Turn Studio</div>
-      <div class="t-game">Shattered Paradise</div>
-    </div>
-
-    <div class="t-card reveal">
-      <span class="t-badge level-3">Level 3</span>
-      <div class="t-bigquote">"</div>
-      <p class="t-text">The work done was great and very insightful. It helped us identify what was holding our game back and gave us a clear direction before our launch.</p>
-      <div class="t-author">Jerfas Studio</div>
-      <div class="t-game">Homam: An Inventor's Fist</div>
-    </div>
-
-    <div class="t-card reveal">
-      <span class="t-badge level-3">Level 3</span>
-      <div class="t-bigquote">"</div>
-      <p class="t-text">They highlighted specific gaps on our Steam page we would have missed, and the feedback was practical enough to act on immediately.</p>
-      <div class="t-author">Poisheesh</div>
-      <div class="t-game">Cauldron Caution</div>
-    </div>
-
-  </div>
+  <div id="cs-testimonials-mount"></div>
 </div>
 
 
@@ -795,7 +770,15 @@
 </footer>
 
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+<script src="/assets/testimonials.js"></script>
+<script>
+  // ── Testimonials (shared with /funding) ──
+  // Mount before the scroll observer below so the freshly-built cards are
+  // picked up by document.querySelectorAll('.reveal') on first pass.
+  const _csTMount = document.getElementById('cs-testimonials-mount');
+  if (_csTMount) _csTMount.replaceWith(window.renderCsTestimonials({ reveal: true }));
+
   // ── Scroll reveal ──
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });

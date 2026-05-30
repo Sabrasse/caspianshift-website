@@ -444,9 +444,65 @@
       }
       .cs-budget-subrow .cs-budget-label { grid-column: 1 / -1 !important; }
     }
+
+    /* ─── TESTIMONIALS (mirrored from index.html so the shared
+           /assets/testimonials.js renderer produces identical cards here) ─── */
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1.5rem;
+    }
+    .t-card {
+      background: rgba(250,240,202,.03);
+      border: 2.5px solid rgba(250,240,202,.16);
+      padding: 1.75rem;
+      transition: border-color .2s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .t-author { margin-top: auto; }
+    .t-card:hover { border-color: rgba(250,240,202,.4); }
+    .t-bigquote {
+      font-family: 'Boogaloo', cursive;
+      font-size: 3rem;
+      color: var(--orange);
+      line-height: .7;
+      margin-bottom: .5rem;
+    }
+    .t-text {
+      color: var(--cream);
+      font-size: .97rem;
+      line-height: 1.68;
+      font-style: italic;
+      margin-bottom: 1.2rem;
+    }
+    .t-author { font-family: 'Boogaloo', cursive; color: var(--white); font-size: 1rem; }
+    .t-game   { font-size: .78rem; color: rgba(250,240,202,.45); margin-bottom: .55rem; }
+    .t-badge {
+      position: absolute;
+      top: -1px; right: 1.5rem;
+      background: var(--teal);
+      color: var(--bg);
+      font-family: 'Boogaloo', cursive;
+      font-size: .78rem;
+      padding: .2rem .8rem;
+      letter-spacing: .05em;
+    }
+    .t-badge.orange  { background: var(--orange); color: var(--bg); }
+    .t-badge.level-3 { background: var(--red);    color: var(--white); }
   </style>
 </head>
 <body>
+
+<!-- ─── Hidden static form (Netlify scans this at build time so the JS-rendered
+       email form below works). Field names must match what the dynamic form posts. -->
+<form name="funding-contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
+  <input type="email" name="email" />
+  <input type="text"  name="game" />
+  <input type="text"  name="notionPageId" />
+  <input type="text"  name="bot-field" />
+</form>
 
 <!-- ─── NAV ─── -->
 <nav id="cs-nav">
@@ -464,7 +520,7 @@
       </svg>
       Caspian Shift
     </a>
-    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Free</span></a>
+    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Beta</span></a>
   </div>
   <div class="nav-right">
     <a href="/#contact" class="btn-pill">Get in Touch</a>
@@ -493,6 +549,7 @@
   <a href="/#contact" class="footer-link">Get in touch →</a>
 </footer>
 
+<script src="/assets/testimonials.js"></script>
 <script>
 'use strict';
 /* ─────────────────────────────────────────────────────────────────────
@@ -1370,14 +1427,25 @@ function PageWizard() {
         state.step > 0
           ? h('button', { class: 'btn-outline', onclick: () => { state.step--; saveState(); window.__cs_errors = {}; render(); } }, '← Back')
           : h('div'),
-        h('button', { class: 'btn-pill', style: 'padding:0.55rem 2rem;', onclick: onWizardNext },
-          state.step < 2 ? 'Continue →' : 'Run analysis →')
+        (() => {
+          // Transient flag (window.__cs_submitting) mirrors window.__cs_errors:
+          // not persisted, just used to disable the button + signal in-flight work.
+          const submitting = !!window.__cs_submitting;
+          const idleLabel = state.step < 2 ? 'Continue →' : 'Run analysis →';
+          return h('button', {
+            class: 'btn-pill',
+            style: 'padding:0.55rem 2rem;' + (submitting ? 'opacity:.65;cursor:wait;' : ''),
+            disabled: submitting,
+            onclick: submitting ? null : onWizardNext,
+          }, submitting ? 'Saving…' : idleLabel);
+        })()
       )
     )
   );
 }
 
 async function onWizardNext() {
+  if (window.__cs_submitting) return;
   const validators = [validateGame, validateStudio, validateBudget];
   const errs = validators[state.step](state.data);
   window.__cs_errors = errs;
@@ -1390,57 +1458,71 @@ async function onWizardNext() {
     return;
   }
 
-  if (state.step === 0) {
-    // Step 1 — Game: create the Notion row, persist notionPageId
-    const body = {
-      gameName: state.data.gameName.trim(),
-      status: state.data.status,
-      genre: state.data.genre,
-      releaseDate: state.data.releaseDate,
-    };
-    const res = await postJSON('/api/step1', body);
-    if (res.ok && res.body && res.body.notionPageId) {
-      state.notionPageId = res.body.notionPageId;
+  // Flip the in-flight flag, re-render so the button shows "Saving…", then
+  // clear it after the POST settles (whichever step it was).
+  window.__cs_submitting = true;
+  render();
+  try {
+    if (state.step === 0) {
+      // Step 1 — Game: create the Notion row, persist notionPageId
+      const body = {
+        gameName: state.data.gameName.trim(),
+        status: state.data.status,
+        genre: state.data.genre,
+        releaseDate: state.data.releaseDate,
+      };
+      const res = await postJSON('/api/step1', body);
+      if (res.ok && res.body && res.body.notionPageId) {
+        state.notionPageId = res.body.notionPageId;
+        saveState();
+      }
+      state.step = 1;
       saveState();
+      return;
     }
-    state.step = 1;
-    saveState(); render(); window.scrollTo(0, 0);
-    return;
-  }
 
-  if (state.step === 1) {
-    // Step 2 — Studio: PATCH by pageId
+    if (state.step === 1) {
+      // Step 2 — Studio: PATCH by pageId
+      if (state.notionPageId) {
+        await postJSON('/api/step2', {
+          notionPageId: state.notionPageId,
+          studioName: state.data.studioName.trim(),
+          studioSize: parseInt(state.data.studioSize),
+          studioCountry: state.data.studioCountry,
+          fundingType: state.data.fundingType || [],
+          steamPageUrl: (state.data.steamPageUrl || '').trim(),
+        });
+      }
+      state.step = 2;
+      saveState();
+      return;
+    }
+
+    // Step 3 — Budget: PATCH by pageId, then go to loading + fetch results
     if (state.notionPageId) {
-      await postJSON('/api/step2', {
+      await postJSON('/api/step3', {
         notionPageId: state.notionPageId,
-        studioName: state.data.studioName.trim(),
-        studioSize: parseInt(state.data.studioSize),
-        studioCountry: state.data.studioCountry,
-        fundingType: state.data.fundingType || [],
-        steamPageUrl: (state.data.steamPageUrl || '').trim(),
+        devTimeMonths: parseInt(state.data.devTime),
+        devQaBudget:        state.data.devBudget       != null ? state.data.devBudget       : undefined,
+        artBudget:          state.data.artBudget       != null ? state.data.artBudget       : undefined,
+        musicBudget:        state.data.musicBudget     != null ? state.data.musicBudget     : undefined,
+        localizationBudget: state.data.locBudget       != null ? state.data.locBudget       : undefined,
+        marketingBudget:    state.data.marketingBudget != null ? state.data.marketingBudget : undefined,
+        overheadBudget:     state.data.overheadBudget  != null ? state.data.overheadBudget  : undefined,
       });
     }
-    state.step = 2;
-    saveState(); render(); window.scrollTo(0, 0);
-    return;
+    state.page = 'loading';
+    render(); window.scrollTo(0, 0);
+    fetchResultsAndRender();
+  } finally {
+    window.__cs_submitting = false;
+    // For steps 1 and 2 (still inside the wizard) we need to re-render to
+    // flip the button back; for step 3 we've already moved to the loading
+    // page so the button no longer exists, but render() is cheap and safe.
+    if (state.page === 'wizard') {
+      render(); window.scrollTo(0, 0);
+    }
   }
-
-  // Step 3 — Budget: PATCH by pageId, then go to loading + fetch results
-  if (state.notionPageId) {
-    await postJSON('/api/step3', {
-      notionPageId: state.notionPageId,
-      devTimeMonths: parseInt(state.data.devTime),
-      devQaBudget:        state.data.devBudget       != null ? state.data.devBudget       : undefined,
-      artBudget:          state.data.artBudget       != null ? state.data.artBudget       : undefined,
-      musicBudget:        state.data.musicBudget     != null ? state.data.musicBudget     : undefined,
-      localizationBudget: state.data.locBudget       != null ? state.data.locBudget       : undefined,
-      marketingBudget:    state.data.marketingBudget != null ? state.data.marketingBudget : undefined,
-      overheadBudget:     state.data.overheadBudget  != null ? state.data.overheadBudget  : undefined,
-    });
-  }
-  state.page = 'loading';
-  render(); window.scrollTo(0, 0);
-  fetchResultsAndRender();
 }
 
 // ────────────────── PAGE: LOADING ──────────────────
@@ -1742,8 +1824,19 @@ function CardFundingPath(section, results) {
   // align-self:stretch on the divider keeps it full-width even when the parent
   // centers its children (used for the publisher / grant variants).
   const tileShell = 'border:1px solid rgba(250,240,202,.18);background:rgba(250,240,202,.02);padding:1.6rem 1.3rem 1.4rem;display:flex;flex-direction:column;gap:.85rem;min-height:230px;';
-  const accentTileShell = tileShell + 'border:3px solid var(--orange);box-shadow:6px 6px 0 var(--orange);background:rgba(252,122,30,.04);position:relative;align-items:center;text-align:center;';
-  const numberTagStyle = "position:absolute;top:-1px;right:1rem;background:var(--orange);color:#fff;font-family:'Boogaloo',cursive;font-size:.7rem;padding:.15rem .55rem;letter-spacing:.05em;line-height:1.4;";
+  // Each funding-path tile type gets its own accent so publisher / crowdfunding / grant
+  // read as distinct sections while still using the existing palette (orange / teal / cream).
+  // The outer card keeps the red frame; tile colors are picked to avoid colliding with it.
+  const accentShell = (color, tint) =>
+    tileShell + `border:3px solid ${color};box-shadow:6px 6px 0 ${color};background:${tint};position:relative;align-items:center;text-align:center;`;
+  const accentTag = (bg, fg) =>
+    `position:absolute;top:-1px;right:1rem;background:${bg};color:${fg};font-family:'Boogaloo',cursive;font-size:.7rem;padding:.15rem .55rem;letter-spacing:.05em;line-height:1.4;`;
+  const publisherShell    = accentShell('var(--orange)', 'rgba(252,122,30,.04)');
+  const publisherTag      = accentTag('var(--orange)', '#fff');
+  const crowdfundingShell = accentShell('var(--red)',    'rgba(213,41,65,.04)');
+  const crowdfundingTag   = accentTag('var(--red)',    '#fff');
+  const grantShell        = accentShell('var(--cream)',  'rgba(250,240,202,.04)');
+  const grantTag          = accentTag('var(--cream)',  'var(--bg)');
   const dividerStyle = 'margin-top:auto;padding-top:1.1rem;display:flex;flex-direction:column;gap:.6rem;align-self:stretch;';
   const chipStyle = 'display:inline-block;font-family:\'Nunito\',sans-serif;font-size:.68rem;letter-spacing:.04em;padding:.18rem .55rem;background:rgba(250,240,202,.06);border:1px solid rgba(250,240,202,.18);color:rgba(250,240,202,.72);';
   const headlineStyle = "font-family:'Boogaloo',cursive;font-size:1.4rem;color:#fff;letter-spacing:.02em;line-height:1.2;";
@@ -1761,8 +1854,8 @@ function CardFundingPath(section, results) {
   }
 
   function publisherTile(p, i) {
-    return h('div', { style: accentTileShell },
-      h('span', { style: numberTagStyle }, ordinal(i)),
+    return h('div', { style: publisherShell },
+      h('span', { style: publisherTag }, ordinal(i)),
       h('div', { style: headlineStyle }, p.name),
       p.country ? h('div', { style: eyebrowStyle }, p.country) : null,
       (p.genres && p.genres.length)
@@ -1783,8 +1876,8 @@ function CardFundingPath(section, results) {
   // two stat lines / external CTA), with Raised Amount + Backers as the stats and the
   // Campaign URL as the link-out.
   function crowdfundingTile(cf, i) {
-    return h('div', { style: accentTileShell },
-      h('span', { style: numberTagStyle }, ordinal(i)),
+    return h('div', { style: crowdfundingShell },
+      h('span', { style: crowdfundingTag }, ordinal(i)),
       h('div', { style: headlineStyle }, cf.name),
       (cf.genres && cf.genres.length)
         ? h('div', { style: 'display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:.25rem;' },
@@ -1794,7 +1887,7 @@ function CardFundingPath(section, results) {
         h('div', { style: statStyle }, fmtRevenueShort(cf.raisedAmount) + ' raised'),
         h('div', { style: statStyle }, fmtCommas(cf.backers) + ' backer' + (cf.backers === 1 ? '' : 's')),
         cf.campaignUrl
-          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: cf.campaignUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Campaign link →')
+          ? h('a', { class: 'cs-about-cta', style: 'border:none;align-self:center;color:var(--red);border-bottom-color:rgba(213,41,65,.35);', href: cf.campaignUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Campaign link →')
           : null
       )
     );
@@ -1804,8 +1897,8 @@ function CardFundingPath(section, results) {
   // stat lines / CTA), but with one stat line (Application Cadence) since grants don't
   // have a revenue/release-count equivalent.
   function grantTile(g, i) {
-    return h('div', { style: accentTileShell },
-      h('span', { style: numberTagStyle }, ordinal(i)),
+    return h('div', { style: grantShell },
+      h('span', { style: grantTag }, ordinal(i)),
       h('div', { style: headlineStyle }, g.name),
       g.country ? h('div', { style: eyebrowStyle }, g.country) : null,
       g.type
@@ -1817,7 +1910,7 @@ function CardFundingPath(section, results) {
           ? h('div', { style: statStyle }, cadencePhrase(g.applicationCadence))
           : null,
         g.link
-          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: g.link, target: '_blank', rel: 'noopener noreferrer' }, 'Grant link →')
+          ? h('a', { class: 'cs-about-cta', style: 'border:none;align-self:center;color:var(--cream);border-bottom-color:rgba(250,240,202,.35);', href: g.link, target: '_blank', rel: 'noopener noreferrer' }, 'Grant link →')
           : null
       )
     );
@@ -1887,7 +1980,7 @@ function CardTeamJoint({ accent, copy, eyebrow, ctaLabel }) {
   const isOrange = accent === 'orange';
   const o = isOrange ? ' orange' : '';
   return h('div', { class: 'cs-about-card' },
-    eyebrow ? h('span', { class: 'cs-about-eyebrow' + o }, eyebrow) : null,
+    eyebrow ? h('span', { class: 'cs-about-eyebrow' + o, style: 'color:var(--red);' }, eyebrow) : null,
     h('div', { class: 'cs-about-avatars' },
       h('div', {
         class: 'cs-about-avatar' + o,
@@ -1899,7 +1992,7 @@ function CardTeamJoint({ accent, copy, eyebrow, ctaLabel }) {
       }, 'V')
     ),
     h('h3', null, 'Keyvan & Vanille'),
-    h('div', { class: 'cs-about-role' + o }, 'Co-founders'),
+    h('div', { class: 'cs-about-role' + o, style: 'color:var(--red);' }, 'Co-founders'),
     h('p', { class: 'cs-about-quote' + o }, copy),
     ctaLabel ? h('a', { class: 'cs-about-cta' + o, href: '/#contact' }, ctaLabel) : null
   );
@@ -1916,78 +2009,67 @@ function PageResults() {
   const countryLabel = r.studio_country || 'your country';
   const gameLabel = ((r.game_name || '') + '').trim() || 'your game';
   // Pick Keyvan's copy by funding path: Publisher > Crowdfunding > Grant > Self-Funded.
-  // Each variant is split { opener, restBefore, restAfter } so we can hard-break after
-  // the first sentence AND tint the budget number cream to match the Revised total.
+  // Vanille's copy below also branches on this variant.
   const fundingSet = new Set(r.funding_type || []);
   const keyvanVariant =
       fundingSet.has('Publisher')    ? 'publisher'
     : fundingSet.has('Crowdfunding') ? 'crowdfunding'
     : fundingSet.has('Grant')        ? 'grant'
     :                                  'self';
-  const keyvanCopyByVariant = {
-    self: {
-      opener:     `Most self-funded studios decide what they can afford before they know what the project actually costs, that's how teams burn out twelve months in.`,
-      restBefore: `With `,
-      restAfter:  ` to work from, here's where ${genreLabel} projects at this scale tend to run lean and where they bleed cash.`,
-    },
-    publisher: {
-      opener:     `Most studios contact publishers before they know what their project costs.`,
-      restBefore: `That's how bad deals get signed. With `,
-      restAfter:  ` to work from, here are three publishers from our database who fund ${genreLabel} games.`,
-    },
-    grant: {
-      opener:     `Most studios apply for grants before they know what their project costs, that's how applications get rejected for asking the wrong amount.`,
-      restBefore: `With `,
-      restAfter:  ` to work from, here's what ${genreLabel} teams at this scale should be looking for and the eligibility traps studios in ${countryLabel} miss most often.`,
-    },
-    crowdfunding: {
-      opener:     `Most studios launch a crowdfunding campaign before they know what their project costs, that's how campaigns under-ask and over-promise.`,
-      restBefore: `With `,
-      restAfter:  ` to work from, here's what a credible ${genreLabel} campaign looks like at this scale for a studio in ${countryLabel}: target, tiers and the math that holds them up.`,
-    },
+  // Funding-path label for the testimonial: single path → its noun, multiple → "funding paths".
+  const pathNounByVariant = {
+    publisher:    'publishers',
+    crowdfunding: 'crowdfunding campaigns',
+    grant:        'grants',
+    self:         'funding paths',
   };
-  const v = keyvanCopyByVariant[keyvanVariant];
+  const fundingPathLabel = fundingSet.size > 1 ? 'funding paths' : pathNounByVariant[keyvanVariant];
   const keyvanCopy = [
-    v.opener,
+    `Congrats! Having a coherent budget is the first step on your funding path journey.`,
     h('span', { style: 'display:block;margin-top:.6rem;' },
-      v.restBefore,
-      h('span', { style: 'color:#FAF0CA;' }, revisedBudgetLabel),
-      v.restAfter,
-    ),
-  ];
-  // Vanille's copy — same dominant-path priority as Keyvan. Two paragraphs, gameName
-  // tinted cream in para 2 to mirror the budget callout in Keyvan's card.
-  const vanilleCopyByVariant = {
-    publisher: {
-      para1: `Every publisher meeting turns on one slide: the revenue projection.`,
-      para2Before: `Get the numbers wrong and the advance is too small, the recoup too long, or the deal stalls at the second call. Here's what a revenue scenario would look like for `,
-      para2After: `.`,
-    },
-    crowdfunding: {
-      para1: `A funded campaign tells you people want the game, it doesn't tell you the game can sustain a studio.`,
-      para2Before: `That part lives in what happens after launch and in the numbers you build the campaign around. Here's what a revenue scenario would look like for `,
-      para2After: `.`,
-    },
-    grant: {
-      para1: `Grant panels don't ask for revenue projections, but they think about them anyway, they're funding projects that can stand up once the grant money runs out.`,
-      para2Before: `The same numbers matter on your side, here's what a revenue scenario would look like for `,
-      para2After: `.`,
-    },
-    self: {
-      para1: `Self-funding means every month you don't ship is a month off your own runway.`,
-      para2Before: `Whether that works comes down to one number: how many copies the game actually moves, here's what a revenue scenario would look like for `,
-      para2After: `.`,
-    },
-  };
-  const vv = vanilleCopyByVariant[keyvanVariant];
-  const vanilleCopy = [
-    vv.para1,
-    h('span', { style: 'display:block;margin-top:.6rem;' },
-      vv.para2Before,
+      `Take a look below, we've shortlisted a few relevant `,
+      h('span', { style: 'color:#FAF0CA;' }, fundingPathLabel),
+      ` for `,
       h('span', { style: 'color:#FAF0CA;' }, gameLabel),
-      vv.para2After,
+      `.`,
     ),
   ];
+  // Vanille's copy — same dominant-path priority as Keyvan (publisher > crowdfunding
+  // > grant > self). Publisher / Crowdfunding / Grant get the 3-line "you did the
+  // hard part / now the grind / we help" shape, each with its own task-grind list.
+  // Self-funded keeps a two-paragraph shape with gameName tinted cream in para 2 to
+  // mirror the budget callout in Keyvan's card.
+  const vanilleTaskList = {
+    publisher:    `All you have to do now is make a pitch deck, contact publishers, make a first meeting, make a second meeting, wait, wait more, update your vertical slice, wait even more, and start back.`,
+    crowdfunding: `All you have to do now is build a community, make a trailer, design tier rewards, set up your campaign page, launch, post daily updates, answer every backer, ship physical rewards, push the delivery date, and start back.`,
+    grant:        `All you have to do now is find eligible grants, read the guidelines, write the application, gather supporting documents, wait, wait more, get rejected, find another grant, wait even more, and start back.`,
+  };
+  const vanilleSelfCopy = {
+    para1: `Self-funding means every month you don't ship is a month off your own runway.`,
+    para2Before: `Whether that works comes down to one number: how many copies the game actually moves, here's what a revenue scenario would look like for `,
+    para2After: `.`,
+  };
+  let vanilleCopy;
+  if (vanilleTaskList[keyvanVariant]) {
+    const line = (text) => h('span', { style: 'display:block;margin-top:.6rem;' }, text);
+    vanilleCopy = [
+      `You did the most difficult part!`,
+      line(vanilleTaskList[keyvanVariant]),
+      h('span', { style: 'display:block;margin-top:.6rem;' },
+        `That's where `,
+        h('span', { style: 'color:var(--orange);' }, `we come in to give you a hand`),
+      ),
+    ];
+  } else {
+    vanilleCopy = [
+      vanilleSelfCopy.para1,
+      h('span', { style: 'display:block;margin-top:.6rem;' },
+        vanilleSelfCopy.para2Before,
+        h('span', { style: 'color:#FAF0CA;' }, gameLabel),
+        vanilleSelfCopy.para2After,
+      ),
+    ];
+  }
   return h('section', { class: 'cs-results', style: 'max-width:1100px;margin:0 auto;padding:6rem 2rem 4rem;' },
     h('div', { style: 'margin-bottom:1.5rem;' },
       h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08;color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" },
@@ -2010,22 +2092,69 @@ function PageResults() {
       name: 'Vanille', role: 'Co-founder', accent: 'orange', avatar: AVATAR_VANILLE,
       copy: vanilleCopy,
     }),
+    // Shared with index.html via /assets/testimonials.js — single source of truth
+    // for the three studio cards, rendered here directly under Vanille's note.
+    // margin-bottom matches the 3.5rem rhythm used by .cs-card / .cs-about-card
+    // so the gap above (from Vanille's margin-bottom) and below (to CardTeamJoint)
+    // both come out to 3.5rem like every other section.
+    typeof window.renderCsTestimonials === 'function'
+      ? h('div', { style: 'margin-bottom:3.5rem;' }, window.renderCsTestimonials())
+      : null,
     CardTeamJoint({
       eyebrow: 'Where to start',
       accent: 'teal',
-      copy: "These matches are a starting point, not an outreach list. Cold pitching with no plan is how indie deals die. If you want help shaping the pitch, the deck, or a campaign that actually converts — that's our day job. Tell us where you're at and we'll point you at the next right step.",
-      ctaLabel: "Book a working session →"
+      copy: [
+        `We came in at key moments to help you out with your business challenges.`,
+        h('span', { style: 'display:block;margin-top:.6rem;' },
+          `From helping you outline your funding paths to supporting your game release, we provide tailor made services based on your needs.`),
+        h('span', { style: 'display:block;margin-top:.6rem;' },
+          `Let's talk about `,
+          h('span', { style: 'color:var(--red);' }, gameLabel),
+        ),
+      ],
     }),
-    h('div', { style: 'text-align:center;margin-top:0.5rem;' },
-      h('button', { class: 'btn-outline', style: 'padding:0.45rem 1.2rem;font-size:0.85rem;',
-        onclick: () => {
-          if (!confirm('Reset and start over? Your current analysis will be discarded.')) return;
-          clearStoredFlow();
-          state = { page: 'landing', step: 0, notionPageId: null, data: defaultFormData(), results: null };
-          render(); window.scrollTo(0, 0);
-        }
-      }, 'Run another analysis')
-    )
+    // Frictionless contact: just email + submit. The hidden static form near
+    // <body> registers this name with Netlify at build time. Hidden inputs
+    // carry `game` and `notionPageId` so the lead lands with context.
+    h('form', {
+      name: 'funding-contact',
+      method: 'POST',
+      'data-netlify': 'true',
+      'netlify-honeypot': 'bot-field',
+      style: 'max-width:520px;margin:0 auto 3.5rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:stretch;',
+      onsubmit: async (e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+        try {
+          await fetch('/', { method: 'POST', body: new FormData(form) });
+        } catch (_) { /* fall through to success-style ack — Netlify queues retries */ }
+        const ack = h('div', {
+          style: 'max-width:520px;margin:0 auto 3.5rem;text-align:center;padding:1.25rem 1rem;border:2px solid var(--teal);background:rgba(23,190,187,.04);'
+        },
+          h('div', { style: "font-family:'Boogaloo',cursive;color:var(--teal);font-size:1.2rem;margin-bottom:.3rem;letter-spacing:.02em;" }, 'Message received!'),
+          h('div', { style: "font-family:'Nunito',sans-serif;font-size:.92rem;color:rgba(250,240,202,.75);" }, "We'll be in touch shortly."),
+        );
+        form.replaceWith(ack);
+      },
+    },
+      h('input', { type: 'hidden', name: 'form-name', value: 'funding-contact' }),
+      h('p', { style: 'display:none;' },
+        h('label', null, "Don't fill this out: ", h('input', { name: 'bot-field' }))),
+      h('input', { type: 'hidden', name: 'game', value: gameLabel }),
+      h('input', { type: 'hidden', name: 'notionPageId', value: state.notionPageId || '' }),
+      h('input', {
+        type: 'email', name: 'email', required: true,
+        placeholder: 'hello@studio.com',
+        class: 'cs-input',
+        style: 'flex:1 1 240px;',
+      }),
+      h('button', {
+        type: 'submit', class: 'btn-pill',
+        style: 'padding:.65rem 1.6rem;font-size:1rem;flex-shrink:0;',
+      }, 'Get in touch →'),
+    ),
   );
 }
 
