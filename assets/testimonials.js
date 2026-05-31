@@ -5,21 +5,21 @@
 
 window.CS_TESTIMONIALS = [
   {
-    tag: 'Pitch',
-    tagClass: 'orange',
+    tag: 'Funding',
+    tagClass: '',
     quote: 'They helped us build a much stronger pitch and identify the right moment to approach publishers. A very productive and smooth collaboration from start to finish.',
     author: 'One More Turn Studio',
     game: 'Shattered Paradise',
   },
   {
-    tag: 'Marketing',
-    tagClass: 'level-3',
+    tag: 'Marketing & PR',
+    tagClass: 'orange',
     quote: 'The work done was great and very insightful. It helped us identify what was holding our game back and gave us a clear direction before our launch.',
     author: 'Jerfas Studio',
     game: "Homam: An Inventor's Fist",
   },
   {
-    tag: 'Marketing',
+    tag: 'Content Creation',
     tagClass: 'level-3',
     quote: 'They highlighted specific gaps on our Steam page we would have missed, and the feedback was practical enough to act on immediately.',
     author: 'Poisheesh',
@@ -36,7 +36,9 @@ window.renderCsTestimonials = function (opts) {
   grid.className = 'testimonials-grid';
   for (const t of window.CS_TESTIMONIALS) {
     const card = document.createElement('div');
-    card.className = 't-card' + (reveal ? ' reveal' : '');
+    card.className = 't-card'
+      + (t.tagClass ? ' ' + t.tagClass : '')
+      + (reveal ? ' reveal' : '');
 
     const badge = document.createElement('span');
     badge.className = 't-badge' + (t.tagClass ? ' ' + t.tagClass : '');
@@ -44,7 +46,7 @@ window.renderCsTestimonials = function (opts) {
     card.appendChild(badge);
 
     const big = document.createElement('div');
-    big.className = 't-bigquote';
+    big.className = 't-bigquote' + (t.tagClass ? ' ' + t.tagClass : '');
     big.textContent = '"';
     card.appendChild(big);
 
