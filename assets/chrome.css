@@ -1,0 +1,123 @@
+/* Shared nav + footer styles, loaded by every page that uses the chrome partial.
+   Color tokens (--bg, --white, --cream, --teal, --red, --orange) are resolved
+   from the host page's :root, so the file works without redeclaring them. */
+
+/* ─── NAV ─── */
+nav {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2.5rem;
+  background: rgba(13,1,18,0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 2px solid rgba(23,190,187,0.18);
+  transition: box-shadow 0.2s;
+}
+nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
+
+.nav-logo {
+  font-family: 'Boogaloo', cursive;
+  font-size: 1.45rem;
+  color: var(--white);
+  text-decoration: none;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: color .2s;
+}
+.nav-logo:hover { color: var(--cream); }
+.nav-logo svg {
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  transition: transform .5s ease;
+}
+.nav-logo:hover svg { transform: rotate(45deg); }
+
+.nav-left, .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+}
+.nav-left { gap: 2.6rem; }
+
+.nav-link {
+  font-family: 'Boogaloo', cursive;
+  color: var(--white);
+  text-decoration: none;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  transition: color .2s;
+}
+.nav-link:hover { color: var(--cream); }
+/* Active state — set on the link matching the current page so the nav doubles
+   as a "you are here" indicator. Cream matches the hover color, so it reads
+   like the link is permanently hovered while you're on its page. */
+.nav-logo.active,
+.nav-link.active { color: var(--cream); }
+.nav-link-tag {
+  background: var(--red);
+  color: var(--white);
+  border: 1px solid var(--red);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.4rem;
+  border-radius: 2px;
+  vertical-align: middle;
+  transform: translateY(-1px);
+  display: inline-block;
+  transition: background .2s, color .2s;
+}
+/* When the parent link is hovered or active (current page), the Beta pill
+   swaps to the inverted state, mirroring the .btn-pill hover so they read
+   as the same component family. */
+.nav-link:hover .nav-link-tag,
+.nav-link.active .nav-link-tag {
+  background: transparent;
+  color: var(--red);
+}
+
+@media (max-width: 720px) {
+  .nav-left, .nav-right { gap: 0.9rem; }
+  .nav-link-tag { display: none; }
+}
+@media (max-width: 480px) {
+  .nav-link { display: none; }
+}
+
+/* ─── FOOTER ─── */
+footer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 2rem 3rem;
+  border-top: 1px solid rgba(23,190,187,.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.footer-copy {
+  text-align: center;
+  font-size: .78rem;
+  color: rgba(250,240,202,.35);
+  font-family: 'Nunito', sans-serif;
+}
+.footer-link {
+  color: rgba(250,240,202,.45);
+  text-decoration: none;
+  font-size: .85rem;
+  transition: color .2s;
+}
+.footer-link:hover { color: var(--cream); }
+
+@media (max-width: 640px) {
+  nav { padding: .8rem 1.2rem; }
+  footer { flex-direction: column; text-align: center; gap: 0.6rem; }
+}

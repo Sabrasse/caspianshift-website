@@ -5,9 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Caspian Shift</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='6' fill='%230D0112'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' font-weight='bold' text-anchor='middle' fill='%2317BEBB'>CS</text></svg>">
+  <!-- Hotjar Tracking Code for Caspian Shift -->
+  <script>
+      (function(h,o,t,j,a,r){
+          h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+          h._hjSettings={hjid:6721927,hjsv:6};
+          a=o.getElementsByTagName('head')[0];
+          r=o.createElement('script');r.async=1;
+          r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+          a.appendChild(r);
+      })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/chrome.css">
+  <script defer src="/assets/chrome.js"></script>
   <style>
     :root {
       --bg:     #0D0112;
@@ -33,71 +46,7 @@
       letter-spacing: 0.02em;
     }
 
-    /* ─── NAV ─── */
-    nav {
-      position: fixed;
-      inset: 0 0 auto 0;
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 2.5rem;
-      background: rgba(13,1,18,0.88);
-      backdrop-filter: blur(10px);
-      border-bottom: 2px solid rgba(23,190,187,0.18);
-    }
-    .nav-logo {
-      font-family: 'Boogaloo', cursive;
-      font-size: 1.45rem;
-      color: var(--white);
-      text-decoration: none;
-      letter-spacing: 0.08em;
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    .nav-logo svg {
-      width: 24px; height: 24px;
-      flex-shrink: 0;
-      transition: transform .5s ease;
-    }
-    .nav-logo:hover svg { transform: rotate(45deg); }
-
-    /* ─── NAV SIDES ─── */
-    .nav-left, .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 1.6rem;
-    }
-    .nav-link {
-      font-family: 'Boogaloo', cursive;
-      color: var(--cream);
-      text-decoration: none;
-      font-size: 1rem;
-      letter-spacing: 0.04em;
-      transition: color .2s;
-    }
-    .nav-link:hover { color: var(--teal); }
-    .nav-link .nav-link-tag {
-      background: var(--teal);
-      color: var(--bg);
-      font-size: 0.62rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      padding: 0.1rem 0.4rem;
-      margin-left: 0.4rem;
-      border-radius: 2px;
-      vertical-align: middle;
-      transform: translateY(-1px);
-      display: inline-block;
-    }
-    @media (max-width: 720px) {
-      .nav-left, .nav-right { gap: 0.9rem; }
-      .nav-link .nav-link-tag { display: none; }
-    }
-    @media (max-width: 480px) {
-      .nav-link { display: none; }
-    }
+    /* Nav + footer styles live in /assets/chrome.css (loaded above) so both pages share them. */
 
     .btn-pill {
       background: var(--red);
@@ -230,7 +179,7 @@
     }
     .section-label {
       display: inline-block;
-      color: var(--teal);
+      color: var(--cream);
       font-family: 'Boogaloo', cursive;
       font-size: .82rem;
       letter-spacing: .22em;
@@ -362,14 +311,14 @@
     .about-info p { color: var(--white); font-size: .93rem; line-height: 1.68; }
 
     /* ─── CONTACT ─── */
-    #contact .section-title { text-align: center; }
+    #contact .section-title { text-align: center; margin-bottom: 2.5rem; }
 
     .contact-form {
       max-width: 560px;
       margin: 0 auto;
     }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-group { margin-bottom: 1.2rem; }
+    .form-group { margin-bottom: 1.5rem; }
     .form-group label {
       display: block;
       font-family: 'Boogaloo', cursive;
@@ -465,29 +414,6 @@
       font-style: italic;
     }
 
-    /* ─── FOOTER ─── */
-    footer {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 2rem 3rem;
-      border-top: 1px solid rgba(23,190,187,.12);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .footer-logo { font-family: 'Boogaloo', cursive; font-size: 1.2rem; color: var(--teal); }
-    .footer-copy { font-size: .78rem; color: rgba(250,240,202,.35); }
-    .footer-links { display: flex; gap: 1.5rem; }
-    .footer-links a {
-      color: rgba(250,240,202,.45);
-      text-decoration: none;
-      font-size: .85rem;
-      transition: color .2s;
-    }
-    .footer-links a:hover { color: var(--teal); }
-
     /* ─── SCROLL REVEAL ─── */
     .reveal {
       opacity: 0;
@@ -510,39 +436,13 @@
     /* ─── RESPONSIVE ─── */
     @media (max-width: 640px) {
       .form-row { grid-template-columns: 1fr; }
-      footer { flex-direction: column; text-align: center; }
-      .footer-links { justify-content: center; }
-      nav { padding: .8rem 1.2rem; }
     }
   </style>
 </head>
 <body>
 
-<!-- ════════ NAV ════════ -->
-<nav>
-  <div class="nav-left">
-    <a href="#" class="nav-logo">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-        <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-        <!-- North needle — teal -->
-        <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-        <!-- South needle — orange -->
-        <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-        <!-- Tick marks -->
-        <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-        <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-        <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-        <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      </svg>
-      Caspian Shift
-    </a>
-    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Beta</span></a>
-  </div>
-  <div class="nav-right">
-    <a href="#contact" class="btn-pill">Get in Touch</a>
-  </div>
-</nav>
+<!-- ════════ NAV ════════ Mounted by /assets/chrome.js -->
+<div data-cs-nav></div>
 
 
 <!-- ════════ HERO ════════ -->
@@ -614,6 +514,7 @@
       </div>
       <h3>Funding Scouting</h3>
       <p><span style="color:var(--white);display:block;margin-bottom:.5rem;">The earlier we're in touch, the better.</span>Let us help you map your budget and build your pitch deck for partners. We'll reach out to professionals and work with you to secure your funding.</p>
+      <a href="/funding" class="btn-pill" style="margin-top:1.4rem;font-size:.92rem;padding:.5rem 1.25rem;">Try our Funding Analysis Tool</a>
     </div>
 
     <div class="service-card card-orange reveal">
@@ -697,6 +598,39 @@
 </div>
 
 
+<!-- ════════ CONTACT ════════ -->
+<div class="section-wrap" id="contact">
+  <span class="section-label" style="display:block;text-align:center">Get in touch</span>
+  <h2 class="section-title reveal">Ready to shift course?</h2>
+
+  <form class="contact-form reveal" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+    <input type="hidden" name="form-name" value="contact">
+    <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
+
+    <div class="form-group">
+      <label for="email">Your Email</label>
+      <input type="email" id="email" name="email" placeholder="hello@studio.com" required>
+    </div>
+
+    <div class="form-group">
+      <label for="service">What you're looking for <span style="font-family:'Nunito',sans-serif;font-size:.75rem;opacity:.45;letter-spacing:0;">optional</span></label>
+      <div id="service-mss" class="cs-mss"
+           data-options="Funding Scouting,Marketing &amp; PR,Content Creation"
+           data-placeholder="Pick one or more…"></div>
+      <input type="hidden" id="service" name="service" value="">
+    </div>
+
+    <button type="submit" class="btn-pill" style="display:block;width:30%;margin:0 auto;font-size:1.1rem;padding:.85rem;border-radius:999px;justify-content:center;">Get in Touch</button>
+  </form>
+
+  <div id="form-success" style="display:none; text-align:center; padding: 3rem 1rem;">
+    <div style="font-size:2.5rem; margin-bottom:1rem;">🧭</div>
+    <h3 style="font-family:'Boogaloo',cursive; font-size:2rem; color:var(--teal); margin-bottom:.75rem;">Message received!</h3>
+    <p style="color:var(--white); font-size:1rem; line-height:1.7;">We'll be in touch shortly.<br>In the meantime, feel free to explore the rest of the page.</p>
+  </div>
+</div>
+
+
 <!-- ════════ ABOUT ════════ -->
 <div class="section-wrap" id="about">
   <span class="section-label">Who we are</span>
@@ -724,73 +658,8 @@
 </div>
 
 
-<!-- ════════ CONTACT ════════ -->
-<div class="section-wrap" id="contact">
-  <span class="section-label" style="display:block;text-align:center">Get in touch</span>
-  <h2 class="section-title reveal">Ready to shift course?</h2>
-
-  <form class="contact-form reveal" name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field">
-    <input type="hidden" name="form-name" value="contact">
-    <p style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></p>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label for="name">Your name</label>
-        <input type="text" id="name" name="name" placeholder="Who should we reach out to?" required>
-      </div>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="hello@studio.com" required>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="game">Game name <span style="font-family:'Nunito',sans-serif;font-size:.75rem;opacity:.45;letter-spacing:0;">optional</span></label>
-      <input type="text" id="game" name="game" placeholder="Game name or Steam page URL">
-    </div>
-
-    <div class="form-group">
-      <label for="service">What you're looking for <span style="font-family:'Nunito',sans-serif;font-size:.75rem;opacity:.45;letter-spacing:0;">optional</span></label>
-      <div id="service-mss" class="cs-mss"
-           data-options="Funding Scouting,Marketing &amp; PR,Content Creation"
-           data-placeholder="Pick one or more…"></div>
-      <input type="hidden" id="service" name="service" value="">
-    </div>
-
-    <div class="form-group">
-      <label for="message">What's your biggest challenge right now? <span style="font-family:'Nunito',sans-serif;font-size:.75rem;opacity:.45;letter-spacing:0;">optional</span></label>
-      <textarea id="message" name="message" placeholder="Funding, publisher outreach, Steam page, launch — anything goes."></textarea>
-    </div>
-
-    <button type="submit" class="btn-pill" style="width:100%;font-size:1.1rem;padding:.85rem;border-radius:999px;justify-content:center;">Get in Touch</button>
-  </form>
-
-  <div id="form-success" style="display:none; text-align:center; padding: 3rem 1rem;">
-    <div style="font-size:2.5rem; margin-bottom:1rem;">🧭</div>
-    <h3 style="font-family:'Boogaloo',cursive; font-size:2rem; color:var(--teal); margin-bottom:.75rem;">Message received!</h3>
-    <p style="color:var(--white); font-size:1rem; line-height:1.7;">We'll be in touch shortly.<br>In the meantime, feel free to explore the rest of the page.</p>
-  </div>
-</div>
-
-
-<!-- ════════ FOOTER ════════ -->
-<footer>
-  <a href="#" class="nav-logo" style="text-decoration:none;">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-    </svg>
-    Caspian Shift
-  </a>
-  <span class="footer-copy">© 2026 Caspian Shift. All rights reserved.</span>
-  <a href="#contact" class="footer-links" style="color:rgba(250,240,202,.45);text-decoration:none;font-size:.85rem;transition:color .2s;">Get in touch</a>
-</footer>
+<!-- ════════ FOOTER ════════ Mounted by /assets/chrome.js -->
+<div data-cs-footer></div>
 
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>

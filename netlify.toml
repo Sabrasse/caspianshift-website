@@ -37,4 +37,5 @@
 [[headers]]
   for = "/funding*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'"
+    # Hotjar: needs script-src + connect-src + img-src allowances on its CDN/recording domains.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.hotjar.com https://script.hotjar.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com https://*.hotjar.com; img-src 'self' data: https://*.hotjar.com; connect-src 'self' https://*.hotjar.com https://*.hotjar.io wss://*.hotjar.com; frame-src https://vars.hotjar.com"
