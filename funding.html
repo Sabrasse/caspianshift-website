@@ -6,9 +6,22 @@
   <title>Funding Analysis</title>
   <meta name="description" content="Free funding analysis for indie game studios. Get a revised budget, revenue simulation, and personalized funding strategy in 60 seconds.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='6' fill='%230D0112'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' font-weight='bold' text-anchor='middle' fill='%2317BEBB'>CS</text></svg>">
+  <!-- Hotjar Tracking Code for Caspian Shift -->
+  <script>
+      (function(h,o,t,j,a,r){
+          h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+          h._hjSettings={hjid:6721927,hjsv:6};
+          a=o.getElementsByTagName('head')[0];
+          r=o.createElement('script');r.async=1;
+          r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+          a.appendChild(r);
+      })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/chrome.css">
+  <script defer src="/assets/chrome.js"></script>
   <style>
     :root {
       --bg:     #0D0112;
@@ -88,83 +101,7 @@
       filter: invert(0.7) sepia(1) saturate(3) hue-rotate(140deg);
     }
 
-    /* Nav — class names match index.html so the nav markup is copy-paste compatible */
-    nav {
-      position: fixed; inset: 0 0 auto 0; z-index: 200;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 2.5rem;
-      background: rgba(13,1,18,0.88);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-      border-bottom: 2px solid rgba(23,190,187,0.18);
-      transition: box-shadow 0.2s;
-    }
-    nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
-    .nav-logo {
-      font-family: 'Boogaloo', cursive; font-size: 1.45rem; color: var(--white);
-      text-decoration: none; letter-spacing: 0.08em;
-      display: flex; align-items: center; gap: 0.6rem;
-    }
-    .nav-logo svg { width: 24px; height: 24px; flex-shrink: 0; transition: transform .5s ease; }
-    .nav-logo:hover svg { transform: rotate(45deg); }
-    .nav-left, .nav-right { display: flex; align-items: center; gap: 1.6rem; }
-    .nav-link {
-      font-family: 'Boogaloo', cursive;
-      color: var(--cream);
-      text-decoration: none;
-      font-size: 1rem;
-      letter-spacing: 0.04em;
-      transition: color .2s;
-    }
-    .nav-link:hover { color: var(--teal); }
-    .nav-link-tag {
-      background: var(--teal);
-      color: var(--bg);
-      font-size: 0.62rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      padding: 0.1rem 0.4rem;
-      margin-left: 0.4rem;
-      border-radius: 2px;
-      vertical-align: middle;
-      transform: translateY(-1px);
-      display: inline-block;
-    }
-    @media (max-width: 720px) {
-      .nav-link-tag { display: none; }
-    }
-    @media (max-width: 480px) {
-      .nav-link { display: none; }
-    }
-    /* Footer — class names match index.html */
-    footer {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 2rem 3rem;
-      border-top: 1px solid rgba(23,190,187,.12);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .footer-logo { text-decoration: none; }
-    .footer-copy {
-      text-align: center;
-      font-size: .78rem;
-      color: rgba(250,240,202,.35);
-      font-family: 'Nunito', sans-serif;
-    }
-    .footer-link {
-      color: rgba(250,240,202,.45);
-      text-decoration: none;
-      font-size: .85rem;
-      transition: color .2s;
-    }
-    .footer-link:hover { color: var(--teal); }
-    @media (max-width: 640px) {
-      nav { padding: .8rem 1.2rem; }
-      footer { flex-direction: column; text-align: center; gap: 0.6rem; }
-    }
+    /* Nav + footer styles live in /assets/chrome.css (loaded above) so both pages share them. */
     .btn-pill {
       background: var(--red); color: var(--white); border: 2px solid var(--red);
       padding: 0.45rem 1.35rem; font-family: 'Boogaloo', cursive;
@@ -537,49 +474,14 @@
 </form>
 
 <!-- ─── NAV ─── -->
-<nav id="cs-nav">
-  <div class="nav-left">
-    <a href="/" class="nav-logo">
-      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-        <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-        <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-        <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-        <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-        <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-        <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-        <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      </svg>
-      Caspian Shift
-    </a>
-    <a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Beta</span></a>
-  </div>
-  <div class="nav-right">
-    <a href="/#contact" class="btn-pill">Get in Touch</a>
-  </div>
-</nav>
+<!-- Nav mounted by /assets/chrome.js -->
+<div data-cs-nav></div>
 
 <!-- App root — pages mount/unmount here -->
 <main id="cs-app" role="main"></main>
 
-<!-- ─── FOOTER ─── -->
-<footer>
-  <a href="/" class="nav-logo footer-logo">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="#17BEBB" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="2" fill="#17BEBB"/>
-      <polygon points="12,3 10.5,12 13.5,12" fill="#17BEBB"/>
-      <polygon points="12,21 13.5,12 10.5,12" fill="#FC7A1E"/>
-      <line x1="12" y1="2" x2="12" y2="4.5" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="12" y1="19.5" x2="12" y2="22" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="2" y1="12" x2="4.5" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-      <line x1="19.5" y1="12" x2="22" y2="12" stroke="#17BEBB" stroke-width="1.2"/>
-    </svg>
-    Caspian Shift
-  </a>
-  <span class="footer-copy">© 2026 Caspian Shift. All rights reserved.</span>
-  <a href="/#contact" class="footer-link">Get in touch</a>
-</footer>
+<!-- Footer mounted by /assets/chrome.js -->
+<div data-cs-footer></div>
 
 <script src="/assets/testimonials.js"></script>
 <script>
@@ -1878,10 +1780,10 @@ function CardFundingPath(section, results) {
   const grantShell        = accentShell('var(--cream)',  'rgba(250,240,202,.04)');
   const grantTag          = accentTag('var(--cream)',  'var(--bg)');
   const dividerStyle = 'margin-top:auto;padding-top:1.1rem;display:flex;flex-direction:column;gap:.6rem;align-self:stretch;';
-  const chipStyle = 'display:inline-block;font-family:\'Nunito\',sans-serif;font-size:.68rem;letter-spacing:.04em;padding:.18rem .55rem;background:rgba(250,240,202,.06);border:1px solid rgba(250,240,202,.18);color:rgba(250,240,202,.72);';
+  const chipStyle = 'display:inline-block;font-family:\'Nunito\',sans-serif;font-size:.68rem;letter-spacing:.04em;padding:.18rem .55rem;background:rgba(250,240,202,.06);border:1px solid rgba(250,240,202,.18);color:rgba(255,255,255,.72);';
   const headlineStyle = "font-family:'Boogaloo',cursive;font-size:1.4rem;color:#fff;letter-spacing:.02em;line-height:1.2;";
-  const eyebrowStyle = "font-family:'Boogaloo',cursive;font-size:.7rem;color:rgba(250,240,202,.5);letter-spacing:.14em;text-transform:uppercase;";
-  const statStyle = "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#FAF0CA;letter-spacing:.02em;line-height:1.2;text-align:center;";
+  const eyebrowStyle = "font-family:'Boogaloo',cursive;font-size:.7rem;color:rgba(255,255,255,.5);letter-spacing:.14em;text-transform:uppercase;";
+  const statStyle = "font-family:'Boogaloo',cursive;font-size:1.2rem;color:#fff;letter-spacing:.02em;line-height:1.2;text-align:center;";
 
   // Application Cadence → human phrase. Falls back to the raw value if unknown.
   function cadencePhrase(c) {
@@ -1906,7 +1808,7 @@ function CardFundingPath(section, results) {
         h('div', { style: statStyle }, fmtRevenueShort(p.totalRevenue) + ' revenue'),
         h('div', { style: statStyle }, fmtCommas(p.releasedGames) + ' game' + (p.releasedGames === 1 ? '' : 's') + ' released'),
         p.pitchLink
-          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: p.pitchLink, target: '_blank', rel: 'noopener noreferrer' }, 'Pitch link →')
+          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: p.pitchLink, target: '_blank', rel: 'noopener noreferrer' }, 'Pitch link')
           : null
       )
     );
@@ -1927,7 +1829,7 @@ function CardFundingPath(section, results) {
         h('div', { style: statStyle }, fmtRevenueShort(cf.raisedAmount) + ' raised'),
         h('div', { style: statStyle }, fmtCommas(cf.backers) + ' backer' + (cf.backers === 1 ? '' : 's')),
         cf.campaignUrl
-          ? h('a', { class: 'cs-about-cta red', style: 'border:none;align-self:center;', href: cf.campaignUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Campaign link →')
+          ? h('a', { class: 'cs-about-cta red', style: 'border:none;align-self:center;', href: cf.campaignUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Campaign link')
           : null
       )
     );
@@ -1950,7 +1852,7 @@ function CardFundingPath(section, results) {
           ? h('div', { style: statStyle }, cadencePhrase(g.applicationCadence))
           : null,
         g.link
-          ? h('a', { class: 'cs-about-cta cream', style: 'border:none;align-self:center;', href: g.link, target: '_blank', rel: 'noopener noreferrer' }, 'Grant link →')
+          ? h('a', { class: 'cs-about-cta cream', style: 'border:none;align-self:center;', href: g.link, target: '_blank', rel: 'noopener noreferrer' }, 'Grant link')
           : null
       )
     );
@@ -1975,14 +1877,14 @@ function CardFundingPath(section, results) {
     const items = (fp.items || []).slice(0, 3);
     tiles = items.length
       ? items.map(publisherTile)
-      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(250,240,202,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No publisher matched yet'));
+      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No publisher matched yet'));
   } else if (fp.kind === 'grant') {
     tiles = (fp.items || []).slice(0, 3).map(grantTile);
   } else if (fp.kind === 'crowdfunding') {
     const items = (fp.items || []).slice(0, 3);
     tiles = items.length
       ? items.map(crowdfundingTile)
-      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(250,240,202,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No campaign matched yet'));
+      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No campaign matched yet'));
   } else {
     tiles = [0, 1, 2].map(placeholderTile);
   }
@@ -2129,23 +2031,6 @@ function PageResults() {
       name: 'Vanille', role: 'Co-founder', accent: 'orange', avatar: AVATAR_VANILLE,
       copy: vanilleCopy,
     })),
-    // Shared with index.html via /assets/testimonials.js — single source of truth
-    // for the three studio cards, rendered here directly under Vanille's note.
-    // margin-bottom matches the 3.5rem rhythm used by .cs-card / .cs-about-card
-    // so the gap above (from Vanille's margin-bottom) and below (to CardTeamJoint)
-    // both come out to 3.5rem like every other section.
-    typeof window.renderCsTestimonials === 'function'
-      ? withReveal(h('div', { style: 'margin-bottom:3.5rem;' }, window.renderCsTestimonials()))
-      : null,
-    withReveal(CardTeamJoint({
-      eyebrow: 'Get in touch',
-      accent: 'teal',
-      copy: [
-        `We offer the kind of business support a publisher would, without the constraints.`,
-        h('span', { style: 'display:block;margin-top:.6rem;' },
-          `Either you need help to secure your funding, support on your Marketing or a hand for your content creation, we'll help you shift course.`),
-      ],
-    })),
     // Frictionless contact: just email + submit. The hidden static form near
     // <body> registers this name with Netlify at build time. Hidden inputs
     // carry `game` and `notionPageId` so the lead lands with context.
@@ -2154,7 +2039,7 @@ function PageResults() {
       method: 'POST',
       'data-netlify': 'true',
       'netlify-honeypot': 'bot-field',
-      style: 'max-width:520px;margin:0 auto 3.5rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:stretch;',
+      style: 'max-width:520px;margin:-2rem auto 3.5rem;',
       onsubmit: async (e) => {
         e.preventDefault();
         const form = e.currentTarget;
@@ -2164,7 +2049,7 @@ function PageResults() {
           await fetch('/', { method: 'POST', body: new FormData(form) });
         } catch (_) { /* fall through to success-style ack — Netlify queues retries */ }
         const ack = h('div', {
-          style: 'max-width:520px;margin:0 auto 3.5rem;text-align:center;padding:1.25rem 1rem;border:2px solid var(--teal);background:rgba(23,190,187,.04);'
+          style: 'max-width:520px;margin:-2rem auto 3.5rem;text-align:center;padding:1.25rem 1rem;border:2px solid var(--teal);background:rgba(23,190,187,.04);'
         },
           h('div', { style: "font-family:'Boogaloo',cursive;color:var(--teal);font-size:1.2rem;margin-bottom:.3rem;letter-spacing:.02em;" }, 'Message received!'),
           h('div', { style: "font-family:'Nunito',sans-serif;font-size:.92rem;color:rgba(250,240,202,.75);" }, "We'll be in touch shortly."),
@@ -2177,17 +2062,37 @@ function PageResults() {
         h('label', null, "Don't fill this out: ", h('input', { name: 'bot-field' }))),
       h('input', { type: 'hidden', name: 'game', value: gameLabel }),
       h('input', { type: 'hidden', name: 'notionPageId', value: state.notionPageId || '' }),
-      h('input', {
-        type: 'email', name: 'email', required: true,
-        placeholder: 'hello@studio.com',
-        class: 'cs-input',
-        style: 'flex:1 1 240px;',
-      }),
-      h('button', {
-        type: 'submit', class: 'btn-pill',
-        style: 'padding:.65rem 1.6rem;font-size:1rem;flex-shrink:0;',
-      }, 'Get in touch'),
+      h('label', { class: 'cs-label', for: 'funding-contact-email' }, 'Your Email'),
+      h('div', { style: 'display:flex;gap:.6rem;flex-wrap:wrap;align-items:stretch;' },
+        h('input', {
+          type: 'email', id: 'funding-contact-email', name: 'email', required: true,
+          placeholder: 'hello@studio.com',
+          class: 'cs-input',
+          style: 'flex:1 1 240px;',
+        }),
+        h('button', {
+          type: 'submit', class: 'btn-pill',
+          style: 'padding:.65rem 1.6rem;font-size:1rem;flex-shrink:0;',
+        }, 'Get in touch'),
+      ),
     )),
+    withReveal(CardTeamJoint({
+      eyebrow: 'Get in touch',
+      accent: 'teal',
+      copy: [
+        `We offer the kind of business support a publisher would, without the constraints.`,
+        h('span', { style: 'display:block;margin-top:.6rem;' },
+          `Either you need help to secure your funding, support on your Marketing or a hand for your content creation, we'll help you shift course.`),
+      ],
+    })),
+    // Shared with index.html via /assets/testimonials.js — single source of truth
+    // for the three studio cards, rendered here directly under Vanille's note.
+    // margin-bottom matches the 3.5rem rhythm used by .cs-card / .cs-about-card
+    // so the gap above (from Vanille's margin-bottom) and below (to CardTeamJoint)
+    // both come out to 3.5rem like every other section.
+    typeof window.renderCsTestimonials === 'function'
+      ? withReveal(h('div', { style: 'margin-bottom:3.5rem;' }, window.renderCsTestimonials()))
+      : null,
   );
 }
 
@@ -2228,11 +2133,7 @@ function render() {
 }
 
 // ────────────────── BOOT ──────────────────
-window.addEventListener('scroll', () => {
-  const nav = document.getElementById('cs-nav');
-  if (!nav) return;
-  if (window.scrollY > 20) nav.classList.add('scrolled'); else nav.classList.remove('scrolled');
-}, { passive: true });
+// Nav scroll-shadow listener lives in /assets/chrome.js so both pages stay in sync.
 
 document.addEventListener('DOMContentLoaded', () => {
   loadState();
@@ -2248,7 +2149,11 @@ async function loadGenres() {
   const res = await getJSON('/api/genres');
   if (!res.ok || !res.body || !Array.isArray(res.body.genres) || res.body.genres.length === 0) return;
   GENRES = res.body.genres;
-  render();
+  // Only re-render if the genres list is actually on screen. On the landing
+  // page the picker isn't mounted, so a re-render would just replay the hero's
+  // fade-in animation — visible as a double-trigger in production where the
+  // /api/genres call resolves successfully.
+  if (state.page === 'wizard') render();
 }
 
 // Expose a small handle for debugging
