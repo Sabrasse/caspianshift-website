@@ -82,6 +82,17 @@ nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
   background: transparent;
   color: var(--teal);
 }
+/* Orange variant — used by the Creator Matcher nav entry so its Tool pill
+   reads as the matcher's accent rather than the site-wide teal. */
+.nav-link-tag-orange {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+.nav-link:hover .nav-link-tag-orange,
+.nav-link.active .nav-link-tag-orange {
+  background: transparent;
+  color: var(--orange);
+}
 
 @media (max-width: 720px) {
   .nav-left, .nav-right { gap: 0.9rem; }

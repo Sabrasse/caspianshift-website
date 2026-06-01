@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Creator Matcher · Caspian Shift</title>
+<meta name="description" content="Free tool: surface the content creators and media most likely to cover your game, matched by genre." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/chrome.css" />
+<link rel="stylesheet" href="/assets/contact.css" />
+
+<style>
+  :root {
+    --bg:     #0D0112;
+    --teal:   #17BEBB;
+    --orange: #FC7A1E;
+    --red:    #D52941;
+    --cream:  #FAF0CA;
+    --white:  #FFFFFF;
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--cream);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  main { line-height: 1.65; }
+
+  /* ─── Shared primitives (kept in sync with funding.html) ─── */
+  .btn-pill {
+    background: var(--red); color: var(--white); border: 2px solid var(--red);
+    padding: 0.45rem 1.35rem; font-family: 'Boogaloo', cursive;
+    font-size: 1rem; letter-spacing: 0.04em; cursor: pointer;
+    text-decoration: none; border-radius: 999px;
+    transition: background .18s, color .18s; display: inline-block;
+  }
+  .btn-pill:hover { background: transparent; color: var(--red); }
+
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity .65s ease, transform .65s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+  /* Landing animation primitives — copied from funding.html so the hero
+     matches pixel-for-pixel. */
+  .fade-in { opacity: 0; animation: fade-in .8s ease forwards; }
+  .fade-in.d1 { animation-delay: .1s; }
+  .fade-in.d2 { animation-delay: .25s; }
+  .fade-in.d3 { animation-delay: .45s; }
+  .fade-in.d4 { animation-delay: .65s; }
+  @keyframes fade-in { to { opacity: 1; } }
+  .star-layer { position: absolute; border-radius: 50%; animation: twinkle 4s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+  @keyframes wave-drift { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .wave-wrap { position: absolute; bottom: 0; width: 200%; height: 100%; }
+  .wave-1 { animation: wave-drift 9s linear infinite; opacity: .55; }
+  .wave-2 { animation: wave-drift 14s linear infinite reverse; opacity: .3; }
+  @media (prefers-reduced-motion: reduce) {
+    .fade-in { opacity: 1; animation: none; }
+    .star-layer, .wave-wrap, .wave-1, .wave-2 { animation: none !important; }
+  }
+
+  /* ─── K/V avatars for the shared contact partial ─── */
+  .cs-about-avatar {
+    width: 66px; height: 66px; border-radius: 50%;
+    border: 3px solid var(--teal); background-color: rgba(23,190,187,.12);
+    background-size: cover; background-position: center; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Boogaloo', cursive; font-size: 1.7rem; color: var(--teal);
+  }
+  .cs-about-avatar.orange { border-color: var(--orange); background-color: rgba(252,122,30,.1); color: var(--orange); }
+  .cs-about-avatars { display: flex; justify-content: center; flex-shrink: 0; margin: 0 0 .8rem; }
+  .cs-about-avatars .cs-about-avatar + .cs-about-avatar { margin-left: -1.1rem; }
+  .cs-about-role {
+    font-family: 'Boogaloo', cursive; font-size: .82rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--teal); margin-bottom: .8rem;
+  }
+  #contact .cs-about-role { color: var(--cream); text-align: center; margin: 0 0 2rem; }
+  #contact .cs-about-avatars .cs-about-avatar { color: transparent; }
+
+  /* ─── Matcher layout ─── */
+  .cm-section { max-width: 1180px; margin: 0 auto; padding: 6rem 2rem 4rem; position: relative; }
+  .cm-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 1.6rem;
+    align-items: stretch;
+    margin-top: 3rem;
+  }
+  .cm-results-col { display: flex; flex-direction: column; }
+  @media (max-width: 880px) {
+    .cm-grid { grid-template-columns: 1fr; }
+    .cm-section { padding: 6rem 1rem 3rem; }
+  }
+
+  /* Form panel — mirrors the funding wizard card */
+  .cm-form {
+    box-sizing: border-box;
+    background: rgba(23,190,187,.03);
+    border: 3px solid var(--teal);
+    box-shadow: 6px 6px 0 var(--teal);
+    padding: 2rem 1.75rem;
+  }
+  .cm-form h2 {
+    font-family: 'Boogaloo', cursive; font-size: 1.5rem;
+    color: var(--white); letter-spacing: 0.02em; margin-bottom: 0.35rem;
+  }
+  .cm-form-sub {
+    font-family: 'Nunito', sans-serif; font-size: 0.86rem;
+    color: rgba(250,240,202,.6); margin: 0 0 1.3rem; line-height: 1.55;
+  }
+  .cm-field { margin-bottom: 1.1rem; }
+  .cm-field:last-of-type { margin-bottom: 1.4rem; }
+  .cm-label {
+    display: flex; align-items: baseline; gap: 0.4rem;
+    font-family: 'Boogaloo', cursive; font-size: 0.82rem;
+    color: var(--white); letter-spacing: 0.14em; text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+  .cm-label-req { color: var(--red); letter-spacing: 0; }
+  .cm-label-opt { color: rgba(250,240,202,.4); letter-spacing: 0.08em; font-size: 0.7rem; }
+  .cm-input {
+    width: 100%; box-sizing: border-box;
+    background: rgba(250,240,202,.04);
+    border: 2px solid rgba(23,190,187,.35);
+    color: var(--cream);
+    padding: 0.7rem 0.9rem;
+    font-family: 'Nunito', sans-serif; font-size: 0.95rem;
+    outline: none; border-radius: 0;
+    transition: border-color .2s, background .2s;
+  }
+  .cm-input::placeholder { color: rgba(250,240,202,.3); }
+  .cm-input:focus { border-color: var(--teal); background: rgba(23,190,187,.07); }
+  .cm-input.invalid { border-color: var(--red); }
+  .cm-hint { font-family: 'Nunito', sans-serif; font-size: 0.74rem; color: rgba(250,240,202,.4); margin-top: 0.35rem; }
+  .cm-error { color: var(--red); font-size: 0.74rem; margin-top: 0.3rem; font-family: 'Nunito', sans-serif; }
+
+  /* Results panel */
+  .cm-results {
+    box-sizing: border-box;
+    background: rgba(23,190,187,.03);
+    min-height: 420px;
+    display: flex; flex-direction: column;
+    flex: 1;
+  }
+  .cm-results-pad { flex: 1; padding: 1.3rem; }
+  .cm-results-center {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Loader / scan animation */
+  .cm-spin { animation: cm-spin 1.2s linear infinite; transform-origin: 50% 50%; }
+  @keyframes cm-spin { to { transform: rotate(360deg); } }
+  .cm-scan-ring-2 { animation: cm-pulse 1.4s ease-out infinite; }
+  @keyframes cm-pulse { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.5); opacity: 0; } }
+
+  .cm-empty { padding: 3rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.4rem; }
+  .cm-empty p { font-family: 'Nunito', sans-serif; font-size: 0.98rem; color: rgba(250,240,202,.6); max-width: 300px; line-height: 1.6; }
+
+  .cm-scan { padding: 2.5rem 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.6rem; }
+  .cm-scan-steps { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 0.7rem; }
+  .cm-scan-step { display: flex; align-items: center; gap: 0.7rem; opacity: 0.3; transition: opacity .3s; }
+  .cm-scan-step.live, .cm-scan-step.done { opacity: 1; }
+  .cm-scan-tick {
+    width: 14px; height: 14px; flex-shrink: 0;
+    border: 2px solid var(--red);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cm-scan-step.done .cm-scan-tick { background: var(--red); color: var(--bg); font-weight: 900; font-size: 10px; line-height: 1; }
+  .cm-scan-step-label {
+    font-family: 'Nunito', sans-serif; font-size: 0.92rem; font-weight: 600;
+    color: rgba(250,240,202,.5);
+  }
+  .cm-scan-step.live .cm-scan-step-label,
+  .cm-scan-step.done .cm-scan-step-label { color: var(--cream); }
+
+  /* Creator cards — same UX as the funding-path tiles:
+     neutral border + shadow at rest, accent border + shadow on hover,
+     whole card clickable, ❯ link flips white → accent on hover. */
+  .cm-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.1rem;
+  }
+  .cm-card {
+    position: relative;
+    background: rgba(250,240,202,.03);
+    border: 2.5px solid rgba(250,240,202,.16);
+    box-shadow: 6px 6px 0 rgba(250,240,202,.16);
+    padding: 1.4rem 1.3rem 1.2rem;
+    display: flex; flex-direction: column; gap: 1rem;
+    text-decoration: none; color: inherit;
+    transition: transform .15s, box-shadow .15s, border-color .15s;
+    animation: cm-rise .5s ease both;
+  }
+  @keyframes cm-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  .cm-card.youtuber:hover,
+  .cm-card.youtuber:focus-within {
+    transform: translate(-3px, -3px);
+    box-shadow: 9px 9px 0 var(--red);
+    border-color: var(--red);
+  }
+  .cm-card-ribbon {
+    position: absolute; top: -1px; right: 1rem;
+    background: var(--red); color: var(--white);
+    font-family: 'Boogaloo', cursive; font-size: 0.72rem; letter-spacing: 0.06em;
+    padding: 0.15rem 0.6rem; text-transform: uppercase;
+  }
+  .cm-card-head { display: flex; align-items: center; gap: 0.85rem; }
+  .cm-avatar { flex-shrink: 0; background: var(--bg); border: 2px solid var(--red); display: block; }
+  .cm-card-id { min-width: 0; flex: 1; }
+  .cm-card-name {
+    font-family: 'Boogaloo', cursive; font-size: 1.3rem;
+    color: var(--white); letter-spacing: 0.02em; line-height: 1.1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .cm-card-platform {
+    font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 700;
+    color: var(--red); margin-top: 0.15rem;
+  }
+  .cm-card-stats { display: flex; flex-direction: column; gap: 0.45rem; margin-top: auto; }
+  .cm-card-audience { font-family: 'Boogaloo', cursive; font-size: 1.45rem; color: var(--cream); line-height: 1; }
+  .cm-card-audience-label {
+    font-family: 'Nunito', sans-serif; font-size: 0.7rem;
+    color: rgba(250,240,202,.45); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 0.15rem;
+  }
+  .cm-card-cta {
+    display: inline-block; align-self: flex-start;
+    margin-top: .25rem;
+    font-family: 'Boogaloo', cursive; font-size: .92rem; letter-spacing: .04em;
+    color: var(--white);
+    text-decoration: underline; text-underline-offset: 4px;
+    transition: color .18s ease;
+  }
+  .cm-card.youtuber:hover .cm-card-cta,
+  .cm-card.youtuber:focus-within .cm-card-cta { color: var(--red); }
+
+  /* ─── Genres multi-select (mirrors funding's MultiSelectSearch) ─── */
+  /* Styles live in assets/contact.css under .cs-mss; reuse those. */
+</style>
+</head>
+<body>
+
+<div data-cs-nav></div>
+
+<main id="cm-app" role="main"></main>
+
+<div data-cs-footer></div>
+
+<script src="/assets/chrome.js" defer></script>
+<script src="/assets/avatars.js" defer></script>
+<script src="/assets/contact.js" defer></script>
+
+<script>
+(function () {
+  'use strict';
+
+  // ────────────────────────────────────────────────────────────────
+  // h() — tiny element factory. Mirrors the helper in funding.html.
+  // ────────────────────────────────────────────────────────────────
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    if (attrs && typeof attrs === 'object' && !(attrs instanceof Node) && !Array.isArray(attrs)) {
+      for (const k in attrs) {
+        const v = attrs[k];
+        if (v == null || v === false) continue;
+        if (k === 'style') {
+          if (typeof v === 'string') el.style.cssText = v;
+          else Object.assign(el.style, v);
+        } else if (k === 'class' || k === 'className') {
+          el.className = v;
+        } else if (k === 'html') {
+          el.innerHTML = v;
+        } else if (k.startsWith('on') && typeof v === 'function') {
+          el.addEventListener(k.slice(2).toLowerCase(), v);
+        } else if (k === 'checked' || k === 'disabled' || k === 'selected') {
+          if (v) el.setAttribute(k, '');
+        } else {
+          el.setAttribute(k, v);
+        }
+      }
+    } else if (attrs != null) {
+      children.unshift(attrs);
+    }
+    appendChildren(el, children);
+    return el;
+  }
+  function appendChildren(el, kids) {
+    for (const c of kids) {
+      if (c == null || c === false || c === true) continue;
+      if (Array.isArray(c)) appendChildren(el, c);
+      else if (c instanceof Node) el.appendChild(c);
+      else el.appendChild(document.createTextNode(String(c)));
+    }
+  }
+  function withReveal(node) {
+    if (Array.isArray(node)) return node.map(withReveal);
+    if (node && node.classList) node.classList.add('reveal');
+    return node;
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Data — vocabulary mirrors the funding tool's Genres list.
+  // ────────────────────────────────────────────────────────────────
+  let GENRES = [
+    'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Puzzle',
+    'Platformer', 'Horror', 'Visual Novel', 'Narrative', 'Fighting',
+    'Shooter', 'Racing', 'Sports', 'Roguelike', 'Tower Defense',
+    'Management', 'Turn-Based', 'Dungeon Crawler', 'Detective', 'Cozy',
+    'Building', 'Metroidvania', 'Survival',
+  ];
+
+  // Mock creators — used when /api/match-creators returns nothing (mock mode,
+  // file://, or before Notion is populated). All tagged YouTuber per spec.
+  const MOCK_CREATORS = [
+    { name: 'PixelHaven',      type: 'YouTuber', genres: ['Roguelike','Turn-Based','Action'],     audience: 1240000, channelUrl: 'https://youtube.com/@pixelhaven' },
+    { name: 'CozyCorner Mei',  type: 'YouTuber', genres: ['Cozy','Simulation','Adventure'],       audience: 540000,  channelUrl: 'https://youtube.com/@cozycornermei' },
+    { name: 'SpeedGremlin',    type: 'YouTuber', genres: ['Platformer','Action','Metroidvania'],  audience: 690000,  channelUrl: 'https://youtube.com/@speedgremlin' },
+    { name: 'GrimReview',      type: 'YouTuber', genres: ['RPG','Action','Horror'],               audience: 410000,  channelUrl: 'https://youtube.com/@grimreview' },
+    { name: 'MapMaker Jo',     type: 'YouTuber', genres: ['Building','Management','Strategy'],    audience: 158000,  channelUrl: 'https://youtube.com/@mapmakerjo' },
+    { name: 'CritFail',        type: 'YouTuber', genres: ['RPG','Strategy','Turn-Based'],         audience: 880000,  channelUrl: 'https://youtube.com/@critfail' },
+    { name: 'Slow Mornings',   type: 'YouTuber', genres: ['Cozy','Puzzle','Adventure'],           audience: 210000,  channelUrl: 'https://youtube.com/@slowmornings' },
+    { name: 'RogueLikeRyan',   type: 'YouTuber', genres: ['Roguelike','Action','Metroidvania'],   audience: 333000,  channelUrl: 'https://youtube.com/@roguelikeryan' },
+  ];
+
+  const PLATFORM_LABEL = { YouTuber: 'YouTube' };
+
+  // ────────────────────────────────────────────────────────────────
+  // Helpers
+  // ────────────────────────────────────────────────────────────────
+  function fmtAudience(n) {
+    if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
+    if (n >= 1000) return Math.round(n / 1000) + 'K';
+    return String(n || 0);
+  }
+  // Deterministic 5x5 symmetric "pixel identicon" — used for the card avatar
+  // when no real thumbnail is available.
+  function avatarCells(seedStr) {
+    let seed = 0;
+    const s = String(seedStr || '');
+    for (let i = 0; i < s.length; i++) seed = (seed * 31 + s.charCodeAt(i)) & 0x7fffffff;
+    seed = (seed * 2654435761) & 0x7fffffff;
+    const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const cells = [];
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 3; x++) {
+        if (rand() > 0.5) {
+          cells.push({ x, y });
+          if (x < 2) cells.push({ x: 4 - x, y });
+        }
+      }
+    }
+    return cells;
+  }
+  // Local fallback matcher — only used in mock mode. Same shape as the backend
+  // (filter by overlapping genres, sort by overlap then audience).
+  function matchLocal(genres, limit) {
+    const set = new Set(genres || []);
+    const overlap = (c) => c.genres.filter(g => set.has(g)).length;
+    let pool = MOCK_CREATORS.filter(c => overlap(c) > 0);
+    if (pool.length < limit) {
+      const extra = MOCK_CREATORS.filter(c => !pool.includes(c))
+        .sort((a, b) => b.audience - a.audience);
+      pool = pool.concat(extra);
+    }
+    return pool
+      .map(c => ({ ...c, _m: overlap(c) }))
+      .sort((a, b) => (b._m - a._m) || (b.audience - a.audience))
+      .slice(0, limit)
+      .map(({ _m, ...rest }) => rest);
+  }
+
+  async function fetchMatchedCreators(form) {
+    try {
+      const res = await fetch('/api/match-creators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameName:    form.gameName,
+          genres:      form.genre,
+          similarGame: form.similarGame || '',
+        }),
+      });
+      if (!res.ok) return null;
+      const body = await res.json();
+      const list = Array.isArray(body && body.creators) ? body.creators : [];
+      return list;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // MultiSelectSearch — ported from funding.html's Step-1 Genre picker.
+  // Re-uses the .cs-mss-* styles from assets/contact.css.
+  // ────────────────────────────────────────────────────────────────
+  function mountMultiSelectSearch(host, opts) {
+    const options = opts.options || [];
+    const placeholder = opts.placeholder || 'Search…';
+    const onChange = opts.onChange || function () {};
+    let selected = (opts.value || []).slice();
+    let open = false;
+    let filter = '';
+    let highlighted = 0;
+    let inputEl;
+    let menuEl;
+
+    function filteredOptions() {
+      const f = filter.trim().toLowerCase();
+      const sel = new Set(selected);
+      return options.filter(o => !sel.has(o) && (!f || o.toLowerCase().includes(f)));
+    }
+    function addChip(o) {
+      selected = selected.concat([o]);
+      filter = ''; highlighted = 0; open = true;
+      onChange(selected.slice());
+      render();
+      if (inputEl) inputEl.focus();
+    }
+    function removeChip(o) {
+      selected = selected.filter(v => v !== o);
+      highlighted = 0;
+      onChange(selected.slice());
+      render();
+      if (inputEl) inputEl.focus();
+    }
+
+    function buildField() {
+      const f = document.createElement('div');
+      f.className = 'cs-mss-field' + (open ? ' open' : '');
+      selected.forEach(o => {
+        const chip = document.createElement('span');
+        chip.className = 'cs-mss-chip';
+        const label = document.createElement('span');
+        label.textContent = o;
+        chip.appendChild(label);
+        const x = document.createElement('button');
+        x.type = 'button'; x.className = 'cs-mss-x'; x.tabIndex = -1; x.textContent = '×';
+        x.addEventListener('mousedown', (e) => e.preventDefault());
+        x.addEventListener('click', (e) => { e.stopPropagation(); removeChip(o); });
+        chip.appendChild(x);
+        f.appendChild(chip);
+      });
+      inputEl = document.createElement('input');
+      inputEl.type = 'text';
+      inputEl.className = 'cs-mss-input';
+      inputEl.autocomplete = 'off';
+      inputEl.placeholder = selected.length ? '' : placeholder;
+      inputEl.value = filter;
+      inputEl.addEventListener('focus', () => { if (!open) { open = true; f.classList.add('open'); renderMenu(); } });
+      inputEl.addEventListener('input', (e) => {
+        filter = e.target.value; highlighted = 0; open = true; f.classList.add('open');
+        renderMenu();
+      });
+      inputEl.addEventListener('keydown', (e) => {
+        const opts = filteredOptions();
+        if (e.key === 'Backspace' && !filter && selected.length) {
+          e.preventDefault(); removeChip(selected[selected.length - 1]);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (!open) { open = true; f.classList.add('open'); renderMenu(); return; }
+          highlighted = Math.min(opts.length - 1, highlighted + 1); renderMenu();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          highlighted = Math.max(0, highlighted - 1); renderMenu();
+        } else if (e.key === 'Enter') {
+          if (open && opts[highlighted]) { e.preventDefault(); addChip(opts[highlighted]); }
+        } else if (e.key === 'Escape') {
+          open = false; f.classList.remove('open'); renderMenu();
+        }
+      });
+      f.appendChild(inputEl);
+      f.addEventListener('mousedown', (e) => {
+        if (e.target === f) { e.preventDefault(); if (inputEl) inputEl.focus(); }
+      });
+      return f;
+    }
+    function buildMenu() {
+      const opts = filteredOptions();
+      const m = document.createElement('div');
+      m.className = 'cs-mss-menu';
+      if (!opts.length) {
+        const empty = document.createElement('div');
+        empty.className = 'cs-mss-empty';
+        empty.textContent = filter ? 'No matches' : 'All options selected';
+        m.appendChild(empty);
+        return m;
+      }
+      opts.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'cs-mss-option' + (i === highlighted ? ' active' : '');
+        b.textContent = o;
+        b.addEventListener('mousedown', (e) => e.preventDefault());
+        b.addEventListener('click', () => addChip(o));
+        m.appendChild(b);
+      });
+      return m;
+    }
+    function renderMenu() {
+      if (menuEl) { menuEl.remove(); menuEl = null; }
+      if (open) { menuEl = buildMenu(); host.appendChild(menuEl); }
+    }
+    function render() {
+      host.innerHTML = '';
+      menuEl = null;
+      host.appendChild(buildField());
+      renderMenu();
+    }
+    render();
+    document.addEventListener('mousedown', (e) => {
+      if (!host.isConnected) return;
+      if (open && !host.contains(e.target)) {
+        open = false;
+        const f = host.querySelector('.cs-mss-field');
+        if (f) f.classList.remove('open');
+        renderMenu();
+      }
+    });
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // State
+  // ────────────────────────────────────────────────────────────────
+  const state = {
+    page: 'landing',                            // landing | matcher
+    form: { gameName: '', genre: [], similarGame: '' },
+    errors: {},
+    status: 'idle',                             // idle | scanning | results
+    results: [],
+  };
+
+  // ────────────────────────────────────────────────────────────────
+  // PAGE: LANDING — same hero treatment as funding.html
+  // ────────────────────────────────────────────────────────────────
+  function PageLanding() {
+    const stars = [];
+    for (let i = 0; i < 60; i++) {
+      const sz = i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1;
+      stars.push(h('div', { class: 'star-layer', style: {
+        width: sz + 'px', height: sz + 'px',
+        left: ((i * 137.5) % 100) + '%',
+        top:  ((i * 97.3)  % 100) + '%',
+        background: '#FAF0CA',
+        animationDelay: ((i * 0.13) % 4) + 's',
+        opacity: 0.4,
+      }}));
+    }
+    return h('section', {
+      style: 'min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7rem 1.5rem 5rem;position:relative;overflow:hidden;'
+    },
+      h('div', { style: {
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 50% 25%, rgba(23,190,187,.14) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(252,122,30,.08) 0%, transparent 50%)',
+      }}),
+      h('div', { style: 'position:absolute;inset:0;pointer-events:none;' }, stars),
+      h('div', { style: 'position:relative;z-index:2;max-width:820px;' },
+        // Pixel treasure-map icon — copied from index.html's Marketing & PR card.
+        h('div', { class: 'fade-in d1', style: 'margin-bottom:1.5rem;', html: `
+          <svg width="80" height="80" viewBox="0 0 24 24" shape-rendering="crispEdges" aria-hidden="true">
+            <rect x="4" y="3" width="16" height="18" fill="#FAF0CA"/>
+            <rect x="4" y="3" width="2" height="18" fill="#D4C89A"/>
+            <rect x="18" y="3" width="2" height="18" fill="#D4C89A"/>
+            <rect x="3" y="3" width="18" height="2" fill="#D4C89A"/>
+            <rect x="4" y="2" width="16" height="1" fill="#FAF0CA"/>
+            <rect x="3" y="19" width="18" height="2" fill="#D4C89A"/>
+            <rect x="4" y="21" width="16" height="1" fill="#FAF0CA"/>
+            <rect x="6"  y="16" width="2" height="2" fill="#17BEBB"/>
+            <rect x="8"  y="14" width="2" height="2" fill="#17BEBB"/>
+            <rect x="10" y="12" width="2" height="2" fill="#17BEBB"/>
+            <rect x="12" y="10" width="2" height="2" fill="#17BEBB"/>
+            <rect x="14" y="8"  width="2" height="2" fill="#17BEBB"/>
+            <rect x="6"  y="16" width="3" height="3" fill="#17BEBB"/>
+            <rect x="15" y="6" width="2" height="2" fill="#D52941"/>
+            <rect x="17" y="8" width="2" height="2" fill="#D52941"/>
+            <rect x="17" y="6" width="2" height="2" fill="#D52941"/>
+            <rect x="15" y="8" width="2" height="2" fill="#D52941"/>
+            <rect x="8" y="17" width="8" height="1" fill="#D4C89A"/>
+            <rect x="8" y="19" width="6" height="1" fill="#D4C89A"/>
+          </svg>`
+        }),
+        h('h1', { class: 'fade-in d2',
+          style: "font-family:'Boogaloo',cursive;font-size:clamp(2.4rem,7vw,4.5rem);line-height:1.05;color:#fff;margin-bottom:1.5rem;letter-spacing:0.02em;",
+          html: 'Who will <span style="color:#FC7A1E;">cover your game?</span><br><span style="color:#17BEBB;">Find out in 30 seconds.</span>'
+        }),
+        h('p', { class: 'fade-in d3',
+          style: "font-family:'Nunito',sans-serif;font-size:clamp(.95rem,2.2vw,1.12rem);color:rgba(250,240,202,.78);line-height:1.75;max-width:540px;margin:0 auto 2.5rem;font-weight:600;"
+        }, 'Content creator and media most likely to promote your game.'),
+        h('button', { class: 'btn-pill fade-in d4',
+          style: 'padding:0.85rem 2.5rem;font-size:1.2rem;',
+          onclick: () => { state.page = 'matcher'; render(); window.scrollTo(0,0); }
+        }, 'Find my creators')
+      ),
+      // Two-layer animated wave footer — copied from funding.html.
+      h('div', { style: 'position:absolute;bottom:0;left:0;right:0;height:130px;pointer-events:none;' },
+        h('div', { class: 'wave-wrap wave-1',
+          html: '<svg viewBox="0 0 1440 130" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="M0,65 C240,110 480,20 720,65 C960,110 1200,20 1440,65 L1440,130 L0,130 Z" fill="rgba(23,190,187,0.25)"/></svg>'
+        }),
+        h('div', { class: 'wave-wrap wave-2',
+          html: '<svg viewBox="0 0 1440 130" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="M0,45 C360,100 720,10 1080,55 C1260,75 1380,35 1440,45 L1440,130 L0,130 Z" fill="rgba(23,190,187,0.15)"/></svg>'
+        })
+      )
+    );
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Matcher form + results
+  // ────────────────────────────────────────────────────────────────
+  function FormPanel(onSubmit) {
+    const errs = state.errors || {};
+    const genreMount = h('div', { class: 'cs-mss' });
+
+    const form = h('form', { class: 'cm-form', onsubmit: (e) => { e.preventDefault(); onSubmit(); } },
+      h('h2', null, 'Your game'),
+      h('p', { class: 'cm-form-sub' }, 'Two fields to get matches. A similar game sharpens them.'),
+
+      h('div', { class: 'cm-field' },
+        h('label', { class: 'cm-label' }, 'Game name ', h('span', { class: 'cm-label-req' }, '*')),
+        h('input', {
+          class: 'cm-input' + (errs.gameName ? ' invalid' : ''),
+          type: 'text', value: state.form.gameName,
+          placeholder: 'Hollow Tide',
+          oninput: (e) => { state.form.gameName = e.target.value; },
+        }),
+        errs.gameName ? h('div', { class: 'cm-error' }, "Tell us the game's name.") : null
+      ),
+
+      h('div', { class: 'cm-field' },
+        h('label', { class: 'cm-label' }, 'Genre ', h('span', { class: 'cm-label-req' }, '*')),
+        genreMount,
+        h('div', { class: 'cm-hint' }, 'Search and pick all that apply.'),
+        errs.genre ? h('div', { class: 'cm-error' }, 'Pick at least one genre to match against.') : null
+      ),
+
+      h('div', { class: 'cm-field' },
+        h('label', { class: 'cm-label' }, 'Similar game ', h('span', { class: 'cm-label-opt' }, 'optional')),
+        h('input', {
+          class: 'cm-input', type: 'text', value: state.form.similarGame,
+          placeholder: 'A game like yours, e.g. Hades',
+          oninput: (e) => { state.form.similarGame = e.target.value; },
+        })
+      ),
+
+      h('button', { type: 'submit', class: 'btn-pill', style: 'margin-top:0.5rem;' }, 'Search')
+    );
+
+    // Mount the multi-select after the field is in the DOM.
+    setTimeout(() => mountMultiSelectSearch(genreMount, {
+      value: state.form.genre,
+      options: GENRES,
+      placeholder: 'Search genres…',
+      onChange: (v) => { state.form.genre = v; },
+    }), 0);
+
+    return form;
+  }
+
+  function LoaderRadar(size) {
+    const s = size || 64;
+    return h('div', { style: 'position:relative;width:' + s + 'px;height:' + s + 'px;' },
+      h('div', { class: 'cm-scan-ring',   style: 'position:absolute;inset:0;border:3px solid var(--red);opacity:.25;' }),
+      h('div', { class: 'cm-scan-ring cm-scan-ring-2', style: 'position:absolute;inset:0;border:3px solid var(--red);' }),
+      h('div', { class: 'cm-spin', style: 'position:absolute;inset:0;',
+        html:
+          '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" shape-rendering="crispEdges">' +
+          '<rect x="11" y="4" width="2" height="8" fill="#D52941"/>' +
+          '<rect x="12" y="5" width="2" height="6" fill="#D52941"/>' +
+          '<rect x="11" y="11" width="2" height="2" fill="#fff"/>' +
+          '</svg>'
+      })
+    );
+  }
+  function EmptyState() {
+    return h('div', { class: 'cm-empty' },
+      LoaderRadar(64),
+      h('p', null, 'Your matched creators will show up here.')
+    );
+  }
+  function ScanState(hasSimilar) {
+    const steps = [
+      'Reading your game profile',
+      'Querying the creator database by genre',
+      hasSimilar ? 'Cross-referencing similar games' : null,
+      'Ranking matches by reach & fit',
+    ].filter(Boolean);
+    // The scan animation runs purely client-side as a UX heartbeat while the
+    // /api/match-creators round-trip resolves.
+    const wrap = h('div', { class: 'cm-scan' }, LoaderRadar(72));
+    const list = h('div', { class: 'cm-scan-steps' });
+    wrap.appendChild(list);
+    steps.forEach((s, i) => {
+      const row = h('div', { class: 'cm-scan-step', 'data-idx': String(i) },
+        h('span', { class: 'cm-scan-tick' }),
+        h('span', { class: 'cm-scan-step-label' }, s)
+      );
+      list.appendChild(row);
+    });
+    // Animate step progression.
+    let active = 0;
+    const tick = () => {
+      list.querySelectorAll('.cm-scan-step').forEach((row, idx) => {
+        row.classList.remove('live', 'done');
+        if (idx < active) row.classList.add('done');
+        else if (idx === active) row.classList.add('live');
+      });
+      const tickIcons = list.querySelectorAll('.cm-scan-step.done .cm-scan-tick');
+      tickIcons.forEach(t => { if (!t.textContent) t.textContent = '✓'; });
+      if (active <= steps.length) {
+        active++;
+        setTimeout(tick, 520);
+      }
+    };
+    tick();
+    return wrap;
+  }
+  function CreatorCard(creator, index) {
+    const type = creator.type || 'YouTuber';
+    const variantClass = type.toLowerCase();
+    const cells = avatarCells(creator.name + '|' + index);
+    const av = '<svg width="52" height="52" viewBox="0 0 5 5" shape-rendering="crispEdges" style="display:block;">'
+      + cells.map(c => '<rect x="' + c.x + '" y="' + c.y + '" width="1" height="1" fill="#D52941" opacity="' + (0.55 + ((c.x + c.y) % 3) * 0.15) + '"/>').join('')
+      + '</svg>';
+
+    const inner = [
+      h('span', { class: 'cm-card-ribbon' }, type),
+      h('div', { class: 'cm-card-head' },
+        h('div', { class: 'cm-avatar', html: av }),
+        h('div', { class: 'cm-card-id' },
+          h('div', { class: 'cm-card-name', title: creator.name }, creator.name || 'Untitled'),
+          h('div', { class: 'cm-card-platform' }, PLATFORM_LABEL[type] || type)
+        )
+      ),
+      h('div', { class: 'cm-card-stats' },
+        h('div', { class: 'cm-card-audience' }, fmtAudience(creator.audience)),
+        h('div', { class: 'cm-card-audience-label' }, 'audience'),
+        creator.channelUrl ? h('span', { class: 'cm-card-cta' }, '❯ Visit channel') : null
+      ),
+    ];
+
+    const url = creator.channelUrl;
+    if (url) {
+      return h('a', {
+        class: 'cm-card ' + variantClass, href: url,
+        target: '_blank', rel: 'noopener noreferrer',
+        style: 'animation-delay:' + (index * 90) + 'ms;',
+      }, inner);
+    }
+    return h('div', {
+      class: 'cm-card ' + variantClass,
+      style: 'animation-delay:' + (index * 90) + 'ms;',
+    }, inner);
+  }
+  function ResultsPanel() {
+    const inner = (function () {
+      if (state.status === 'idle')     return h('div', { class: 'cm-results-center' }, EmptyState());
+      if (state.status === 'scanning') return h('div', { class: 'cm-results-center' },
+        ScanState(!!(state.form.similarGame || '').trim())
+      );
+      const grid = h('div', { class: 'cm-cards-grid' });
+      state.results.forEach((c, i) => grid.appendChild(CreatorCard(c, i)));
+      if (!state.results.length) {
+        grid.appendChild(h('p', { style: 'color:rgba(250,240,202,.55);font-family:Nunito,sans-serif;font-style:italic;' },
+          'No creators matched yet for these genres. Try widening the selection.'));
+      }
+      return h('div', { class: 'cm-results-pad' }, grid);
+    })();
+    return h('div', { class: 'cm-results' }, inner);
+  }
+
+  function PageMatcher() {
+    const section = h('section', { class: 'cm-section' });
+    const grid = h('div', { class: 'cm-grid' });
+    const formCol = h('div', { class: 'cm-form-col' });
+    const resultsCol = h('div', { class: 'cm-results-col' });
+
+    formCol.appendChild(FormPanel(submitSearch));
+    resultsCol.appendChild(ResultsPanel());
+    grid.appendChild(formCol);
+    grid.appendChild(resultsCol);
+    section.appendChild(grid);
+    return section;
+  }
+
+  // Re-render only the results panel — preserves the form's open dropdown / focus.
+  function renderResultsOnly() {
+    const resultsCol = document.querySelector('.cm-results-col');
+    if (!resultsCol) { render(); return; }
+    resultsCol.innerHTML = '';
+    resultsCol.appendChild(ResultsPanel());
+    observeReveals(document.getElementById('cm-app'));
+  }
+
+  async function submitSearch() {
+    const errs = {};
+    if (!state.form.gameName.trim()) errs.gameName = 'Required';
+    if (!state.form.genre.length)    errs.genre = 'Required';
+    state.errors = errs;
+    if (Object.keys(errs).length) { render(); return; }
+
+    state.status = 'scanning';
+    state.results = [];
+    renderResultsOnly();
+
+    // Run the API call and the scan UX in parallel; show results after at
+    // least one full step cycle so the animation never feels skipped.
+    const minWait = new Promise(r => setTimeout(r, 520 * 3 + 350));
+    const apiResult = fetchMatchedCreators(state.form);
+    const [creators] = await Promise.all([apiResult, minWait]);
+
+    const list = (creators && creators.length) ? creators : matchLocal(state.form.genre, 6);
+    state.results = list;
+    state.status = 'results';
+    renderResultsOnly();
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Reveal observer (shared contact partial relies on .reveal too)
+  // ────────────────────────────────────────────────────────────────
+  let _revealObs;
+  function getRevealObserver() {
+    if (_revealObs) return _revealObs;
+    _revealObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          _revealObs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    return _revealObs;
+  }
+  function observeReveals(root) {
+    if (!root) return;
+    const obs = getRevealObserver();
+    root.querySelectorAll('.reveal:not(.visible)').forEach(el => obs.observe(el));
+  }
+
+  // ────────────────────────────────────────────────────────────────
+  // Render
+  // ────────────────────────────────────────────────────────────────
+  function render() {
+    const root = document.getElementById('cm-app');
+    if (!root) return;
+    root.innerHTML = '';
+    let page;
+    if (state.page === 'landing') page = PageLanding();
+    else                          page = PageMatcher();
+    root.appendChild(page);
+    if (state.page === 'matcher' && typeof window.renderCsContact === 'function') {
+      root.appendChild(window.renderCsContact({ avatars: window.CS_AVATARS || {} }));
+    }
+    observeReveals(root);
+  }
+
+  // Hydrate genres from /api/genres if available (mirrors funding.html).
+  async function hydrateGenres() {
+    try {
+      const res = await fetch('/api/genres');
+      if (!res.ok) return;
+      const body = await res.json();
+      if (body && Array.isArray(body.genres) && body.genres.length) {
+        GENRES = body.genres;
+      }
+    } catch (_) { /* ignore — keep local default list */ }
+  }
+
+  // Boot
+  hydrateGenres();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', render);
+  } else {
+    render();
+  }
+})();
+</script>
+
+</body>
+</html>

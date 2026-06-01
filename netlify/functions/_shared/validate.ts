@@ -32,6 +32,12 @@ export const ResultsQuerySchema = z.object({
   notionPageId: z.string().min(1),
 });
 
+export const MatchCreatorsSchema = z.object({
+  gameName: z.string().min(1, "Game name is required").max(280),
+  genres: z.array(z.string().min(1)).min(1, "Pick at least one genre").max(10),
+  similarGame: z.union([z.string().max(280), z.literal("")]).optional(),
+});
+
 /** Build a 400 JSON response from a ZodError. */
 export function zodError(err: unknown): { statusCode: number; body: string; headers: Record<string, string> } {
   const issues = (err && typeof err === "object" && "issues" in (err as any) && Array.isArray((err as any).issues))

@@ -36,7 +36,7 @@ results (GET) ─→ reads the Notion row, runs deterministic budget + revenue m
 - `http.ts` — response helpers + per-IP `rateLimit` Map.
 
 ### Notion DB schema (must exist)
-- **Game Case Studies** — main submissions DB. Columns referenced: `Game Name` (title), `Studio Name`, `Status`, `Genres` (**relation → Genres DB**), `Developers`, `Country` (relation → Countries DB), `Release Date`, `Funding Type` (**multi-select**), `Dev Time (months)`, `Dev and QA Budget`, `Art Budget`, `Music Budget`, `Localization Budget`, `Marketing Budget`, `Overhead Budget`, `Pre-Release Budget`, `Source Type`. New rows get `Source Type=CS Pilot`.
+- **Game Case Studies** — main submissions DB. Columns referenced: `Game Name` (title), `Studio Name`, `Status`, `Genres` (**relation → Genres DB**), `Developers`, `Country` (relation → Countries DB), `Release Date`, `Funding Type` (**multi-select**), `Dev Time (months)`, `Dev and QA Budget`, `Art Budget`, `Music Budget`, `Localization Budget`, `Marketing Budget`, `Overhead Budget`, `Pre-Release Budget`, `Source Type`. New rows get `Source Type=Funding Analysis` (matcher submissions get `Source Type=Matcher`).
 - **Genres** — shared relation target for Game Case Studies / Publishers / Crowdfunding. `notion.ts` caches a name↔page-id map at module scope (mirrors the Countries cache); writes resolve user-typed names → page ids before PATCH, reads resolve page ids → names. Names that don't exist in the DB are dropped with a warning rather than auto-created.
 
 ### Mock-mode invariant
