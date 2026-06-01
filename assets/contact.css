@@ -1,0 +1,123 @@
+/* Contact section — shared by index.html and funding.html.
+   Avatar / role / btn-pill / reveal primitives are still defined per page;
+   this file owns the section's outer chrome (scoped to #contact so funding
+   doesn't have to import index's global .section-wrap) and the form widgets. */
+
+/* Outer chrome — mirrors index's global .section-wrap so funding gets the same
+   max-width, padding, and top divider without needing the global rule. */
+#contact {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 6rem 2rem;
+  border-top: 1px solid rgba(250,240,202,.12);
+}
+#contact .section-label {
+  display: inline-block;
+  color: var(--cream);
+  font-family: 'Boogaloo', cursive;
+  font-size: .82rem; letter-spacing: .22em;
+  text-transform: uppercase;
+  margin-bottom: .6rem;
+}
+#contact .section-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--white);
+  line-height: 1.08;
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.contact-form { max-width: 560px; margin: 0 auto; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { margin-bottom: 1.5rem; }
+.form-group label {
+  display: block;
+  font-family: 'Boogaloo', cursive;
+  font-size: .85rem;
+  color: var(--white);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: .35rem;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  background: rgba(250,240,202,.04);
+  border: 2px solid rgba(23,190,187,.35);
+  color: var(--cream);
+  padding: .75rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-size: .95rem;
+  outline: none;
+  transition: border-color .2s, background .2s;
+  border-radius: 0;
+}
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: rgba(250,240,202,.3); }
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--teal); background: rgba(23,190,187,.07); }
+.form-group select option { background: #0D0112; }
+.form-group textarea { resize: vertical; min-height: 120px; }
+
+/* Multi-select search (chips inside input) — shared look with /funding step 2. */
+.cs-mss { position: relative; }
+.cs-mss-field {
+  width: 100%; box-sizing: border-box;
+  background: rgba(250,240,202,.04);
+  border: 2px solid rgba(23,190,187,.35);
+  padding: 0.4rem 0.5rem;
+  display: flex; flex-wrap: wrap; gap: 0.35rem;
+  align-items: center; cursor: text;
+  min-height: 2.85rem;
+}
+.cs-mss-field.open { border-color: var(--teal); }
+.cs-mss-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.5);
+  color: var(--cream);
+  padding: 0.18rem 0.4rem 0.18rem 0.55rem;
+  font-family: 'Nunito', sans-serif; font-size: 0.8rem;
+}
+.cs-mss-x {
+  background: transparent; border: none; color: var(--cream);
+  cursor: pointer; padding: 0 0.1rem;
+  font-size: 1rem; line-height: 1;
+  font-family: 'Nunito', sans-serif;
+}
+.cs-mss-x:hover { color: var(--white); }
+input.cs-mss-input,
+input.cs-mss-input:focus {
+  flex: 1; min-width: 8rem;
+  background: transparent; border: none; outline: none;
+  color: var(--cream);
+  font-family: 'Nunito', sans-serif; font-size: 0.95rem;
+  padding: 0.3rem 0.25rem;
+}
+input.cs-mss-input::placeholder { color: rgba(250,240,202,.4); }
+.cs-mss-menu {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #15041C; border: 2px solid var(--teal);
+  max-height: 260px; overflow-y: auto; z-index: 50;
+  box-shadow: 4px 4px 0 rgba(23,190,187,.25);
+}
+.cs-mss-option {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: none;
+  border-left: 3px solid transparent;
+  color: var(--white); padding: 0.55rem 0.85rem;
+  font-family: 'Nunito', sans-serif; font-size: 0.9rem;
+  cursor: pointer; transition: background 0.12s;
+}
+.cs-mss-option:hover, .cs-mss-option.active {
+  background: rgba(23,190,187,.08);
+  border-left-color: var(--teal);
+}
+.cs-mss-empty {
+  padding: 0.6rem 0.85rem;
+  color: rgba(250,240,202,.45);
+  font-family: 'Nunito', sans-serif; font-size: 0.85rem;
+  font-style: italic;
+}

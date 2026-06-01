@@ -121,6 +121,7 @@ export interface GrantCard {
 
 export interface CrowdfundingCard {
   name: string;
+  country: string;                 // Resolved from the Country relation to the Countries DB
   genres: string[];
   raisedAmount: number;            // USD
   backers: number;
