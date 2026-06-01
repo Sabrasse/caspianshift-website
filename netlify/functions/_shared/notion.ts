@@ -254,6 +254,7 @@ const PUB = {
 // Genres relation prop is resolved at runtime via findRelationPropName.
 const CROWD = {
   Name:         "Game Name",
+  Country:      "Country",          // relation → Countries DB (mirrors PUB.Country)
   RaisedAmount: "Raised Amount",    // number, USD
   Backers:      "Backers",          // number
   CampaignUrl:  "Campaign URL",     // url
@@ -550,9 +551,12 @@ function readGameName(p: any): string {
 
 function rowToCrowdfundingCard(page: any, genresProp: string | null): CrowdfundingCard {
   const p = page.properties || {};
+  const countryRel = (p[CROWD.Country]?.relation || []) as Array<{ id: string }>;
+  const firstCountryId = countryRel[0]?.id || "";
   const genreRel = (genresProp ? (p[genresProp]?.relation || []) : []) as Array<{ id: string }>;
   return {
     name:         readGameName(p) || "Untitled",
+    country:      firstCountryId ? (_countryById?.get(firstCountryId) || "") : "",
     genres:       genreRel.map(r => _genreById?.get(r.id) || "").filter(Boolean),
     raisedAmount: typeof p[CROWD.RaisedAmount]?.number === "number" ? p[CROWD.RaisedAmount].number : 0,
     backers:      typeof p[CROWD.Backers]?.number === "number" ? p[CROWD.Backers].number : 0,
@@ -565,6 +569,7 @@ export async function queryCrowdfunding(opts: {
 }): Promise<CrowdfundingCard[]> {
   const c = client();
   if (!c) return [];
+  await ensureCountryMaps(c);
   await ensureGenreMaps(c);
   const genresProp = await findRelationPropName(c, NOTION_CROWDFUNDING_DB_ID, NOTION_GENRE_DB_ID);
   const sorts = [{ property: CROWD.RaisedAmount, direction: "descending" as const }];

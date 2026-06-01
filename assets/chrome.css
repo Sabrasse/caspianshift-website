@@ -60,9 +60,9 @@ nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
 .nav-logo.active,
 .nav-link.active { color: var(--cream); }
 .nav-link-tag {
-  background: var(--red);
-  color: var(--white);
-  border: 1px solid var(--red);
+  background: var(--teal);
+  color: var(--bg);
+  border: 1px solid var(--teal);
   font-size: 0.62rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -80,7 +80,7 @@ nav.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
 .nav-link:hover .nav-link-tag,
 .nav-link.active .nav-link-tag {
   background: transparent;
-  color: var(--red);
+  color: var(--teal);
 }
 
 @media (max-width: 720px) {

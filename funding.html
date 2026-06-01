@@ -21,7 +21,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/assets/chrome.css">
+  <link rel="stylesheet" href="/assets/contact.css">
   <script defer src="/assets/chrome.js"></script>
+  <script defer src="/assets/contact.js"></script>
   <style>
     :root {
       --bg:     #0D0112;
@@ -277,15 +279,16 @@
     }
     .cs-stepind-bar.active { background: var(--teal); }
 
-    /* Cards (results) */
+    /* Cards (results) — neutral cream border + box-shadow, matching the
+       index.html service-card / t-card defaults. */
     .cs-card {
-      background: rgba(23,190,187,.03);
-      border: 3px solid var(--teal);
-      box-shadow: 6px 6px 0 var(--teal);
+      background: rgba(250,240,202,.03);
+      border: 2.5px solid rgba(250,240,202,.16);
+      box-shadow: 6px 6px 0 rgba(250,240,202,.16);
       position: relative; margin-bottom: 3.5rem;
     }
-    .cs-card.orange { border-color: var(--orange); box-shadow: 6px 6px 0 var(--orange); background: rgba(252,122,30,.03); }
-    .cs-card.red    { border: none;                box-shadow: none;                    background: transparent; }
+    .cs-card.reveal.visible { margin-top: 3rem; }
+    .cs-card.red    { border: none; box-shadow: none; background: transparent; }
     .cs-card-tag {
       position: absolute; top: -1px; right: 1.5rem;
       background: var(--teal); color: var(--bg);
@@ -298,9 +301,17 @@
     /* Team voice cards — interleave human commentary between the data sections. Mirrors the
        index.html about-card styling so the marketing site and results page share the look. */
     .cs-about-card {
-      display: flex; flex-direction: column; align-items: center;
-      text-align: center;
       padding: 0 0.25rem; margin: 0 auto 3.5rem; max-width: 720px;
+    }
+    /* Horizontal avatar+text row — mirrors index.html .about-card. */
+    .cs-about-row { display: flex; gap: 1.25rem; align-items: flex-start; }
+    .cs-about-info { flex: 1; min-width: 0; }
+    /* Side-by-side Keyvan / Vanille pair. .grid-2's existing 720px media query
+       collapses this to one column, at which point each card needs its rhythm back. */
+    .cs-about-card-pair .cs-about-card { margin-bottom: 0; max-width: 28rem; margin-left: auto; margin-right: auto; }
+    @media (max-width: 720px) {
+      .cs-about-card-pair { margin-bottom: 0 !important; }
+      .cs-about-card-pair .cs-about-card { margin-bottom: 3.5rem; }
     }
     .cs-about-avatar {
       width: 66px; height: 66px;
@@ -311,20 +322,20 @@
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       font-family: 'Boogaloo', cursive; font-size: 1.7rem; color: var(--teal);
-      margin-bottom: .8rem;
     }
     .cs-about-avatar.orange { border-color: var(--orange); background-color: rgba(252,122,30,.1); color: var(--orange); }
-    /* Joint signature card — two avatars overlapping for the closing K+V slot. */
-    .cs-about-avatars { display: flex; flex-shrink: 0; margin-bottom: .8rem; }
+    /* Joint signature card — two avatars overlapping for the closing K+V slot.
+       justify-content:center matches index.html so the shared contact partial
+       (assets/contact.js) renders centered on both pages. */
+    .cs-about-avatars { display: flex; justify-content: center; flex-shrink: 0; margin: 0 0 .8rem; }
     .cs-about-avatars .cs-about-avatar + .cs-about-avatar { margin-left: -1.1rem; }
-    .cs-about-avatars .cs-about-avatar { margin-bottom: 0; }
-    .cs-about-eyebrow {
-      font-family: 'Boogaloo', cursive;
-      font-size: .78rem; letter-spacing: .18em;
-      text-transform: uppercase; color: var(--teal);
-      display: block; margin-bottom: .8rem;
-    }
-    .cs-about-eyebrow.orange { color: var(--orange); }
+    /* The shared contact partial (assets/contact.js) renders inside #contact and
+       reuses .cs-about-role / .cs-about-avatar — both of which funding repurposes
+       for the team byline (left-aligned, accent-colored). Re-apply the index
+       contact-section styling, scoped to #contact, so the partial renders the
+       same on both pages without affecting CardTeam above. */
+    #contact .cs-about-role { color: var(--cream); text-align: center; margin: 0 0 2rem; }
+    #contact .cs-about-avatars .cs-about-avatar { color: transparent; }
     .cs-about-card h3 {
       font-family: 'Boogaloo', cursive;
       font-size: 1.4rem; color: var(--white); margin: 0 0 .2rem;
@@ -336,43 +347,15 @@
       margin-bottom: .8rem;
     }
     .cs-about-role.orange { color: var(--orange); }
+    .cs-about-byline { display: flex; align-items: baseline; gap: .55rem; margin-top: .9rem; flex-wrap: wrap; }
+    .cs-about-byline h3 { font-size: 1rem; margin: 0; line-height: 1; }
+    .cs-about-byline .cs-about-role { font-size: .82rem; margin: 0; line-height: 1; }
     .cs-about-quote {
       max-width: 40rem;
       color: var(--white); font-size: .95rem; line-height: 1.68;
       font-style: italic;
       margin: 0; padding: .1rem 0;
     }
-    .cs-about-cta {
-      display: inline-block;
-      margin-top: .9rem;
-      font-family: 'Boogaloo', cursive;
-      font-size: .92rem; letter-spacing: .04em;
-      color: var(--teal); text-decoration: none;
-      border-bottom: 1px solid rgba(23,190,187,.35);
-      padding-bottom: .1rem;
-      transition: color 0.15s, border-color 0.15s;
-    }
-    .cs-about-cta:hover { color: var(--white); border-bottom-color: var(--white); }
-    .cs-about-cta.orange { color: var(--orange); border-bottom-color: rgba(252,122,30,.35); }
-    .cs-about-cta.orange:hover { color: var(--white); border-bottom-color: var(--white); }
-    .cs-about-cta.red    { color: var(--red);    border-bottom-color: rgba(213,41,65,.35); }
-    .cs-about-cta.red:hover    { color: var(--white); border-bottom-color: var(--white); }
-    .cs-about-cta.cream  { color: var(--cream);  border-bottom-color: rgba(250,240,202,.35); }
-    .cs-about-cta.cream:hover  { color: var(--white); border-bottom-color: var(--white); }
-
-    /* What's-next mini cards (link cards) — reused for Caspian Shift recommendation cards */
-    .cs-link-card {
-      border: 3px solid var(--teal); background: rgba(23,190,187,.03);
-      padding: 1.5rem 1.25rem; position: relative; text-decoration: none;
-      box-shadow: 6px 6px 0 var(--teal);
-      transition: transform 0.15s, box-shadow 0.15s;
-      display: block;
-    }
-    .cs-link-card:hover { transform: translate(-3px,-3px); box-shadow: 9px 9px 0 var(--teal); }
-    .cs-link-card.orange { border-color: var(--orange); box-shadow: 6px 6px 0 var(--orange); background: rgba(252,122,30,.03); }
-    .cs-link-card.orange:hover { box-shadow: 9px 9px 0 var(--orange); }
-    .cs-link-card.red    { border-color: var(--red);    box-shadow: 6px 6px 0 var(--red);    background: rgba(213,41,65,.03); }
-    .cs-link-card.red:hover    { box-shadow: 9px 9px 0 var(--red); }
 
     /* Mobile tweaks */
     @media (max-width: 720px) {
@@ -386,6 +369,44 @@
       .cs-caspian-grid { grid-template-columns: 1fr !important; }
       .cs-fp-grid { grid-template-columns: 1fr !important; }
     }
+    /* Funding-path tile hover — mirrors the .service-card hover on index.html.
+       Default border/background/shadow live here (not in inline styles) so the
+       hover rules can override the border-color and box-shadow. */
+    .cs-fp-tile {
+      border: 2.5px solid rgba(250,240,202,.16);
+      background: rgba(250,240,202,.03);
+      box-shadow: 6px 6px 0 rgba(250,240,202,.16);
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+    .cs-fp-tile:hover { transform: translate(-3px, -3px); }
+    .cs-fp-tile.publisher:hover    { box-shadow: 9px 9px 0 var(--teal);   border-color: var(--teal); }
+    .cs-fp-tile.crowdfunding:hover { box-shadow: 9px 9px 0 var(--red);    border-color: var(--red); }
+    .cs-fp-tile.grant:hover        { box-shadow: 9px 9px 0 var(--cream);  border-color: var(--cream); }
+    /* When a tile has a destination URL the whole card becomes the link.
+       Mirrors the index .service-card funding variant: underlined CTA below
+       content, default white, swaps to the tile's accent on hover. */
+    a.cs-fp-tile {
+      text-decoration: none;
+      color: inherit;
+    }
+    .cs-fp-cta {
+      display: inline-block;
+      align-self: center;
+      font-family: 'Boogaloo', cursive;
+      font-size: .92rem;
+      letter-spacing: .04em;
+      color: var(--white);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      transition: color .18s ease;
+    }
+    a.cs-fp-tile.publisher:hover .cs-fp-cta,
+    a.cs-fp-tile.publisher:focus-within .cs-fp-cta { color: var(--teal); }
+    a.cs-fp-tile.crowdfunding:hover .cs-fp-cta,
+    a.cs-fp-tile.crowdfunding:focus-within .cs-fp-cta { color: var(--red); }
+    a.cs-fp-tile.grant:hover .cs-fp-cta,
+    a.cs-fp-tile.grant:focus-within .cs-fp-cta { color: var(--cream); }
+
     /* Funding Path · pitch link CTA — fills with the card's red on hover. */
     /* Budget Revised table — collapse to stacked layout on narrow viewports. */
     @media (max-width: 640px) {
@@ -411,67 +432,9 @@
       .cs-budget-subrow .cs-budget-label { grid-column: 1 / -1 !important; }
     }
 
-    /* ─── TESTIMONIALS (mirrored from index.html so the shared
-           /assets/testimonials.js renderer produces identical cards here) ─── */
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
-      gap: 2.5rem;
-    }
-    .t-card {
-      background: rgba(250,240,202,.03);
-      border: 2.5px solid var(--teal);
-      padding: 1.75rem;
-      transition: border-color .2s;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-    .t-card.orange   { border-color: var(--orange); }
-    .t-card.level-3  { border-color: var(--red); }
-    .t-author { margin-top: auto; }
-    .t-bigquote {
-      font-family: 'Boogaloo', cursive;
-      font-size: 3rem;
-      color: var(--teal);
-      line-height: .7;
-      margin-bottom: .5rem;
-    }
-    .t-bigquote.orange   { color: var(--orange); }
-    .t-bigquote.level-3  { color: var(--red); }
-    .t-text {
-      color: var(--white);
-      font-size: .97rem;
-      line-height: 1.68;
-      font-style: italic;
-      margin-bottom: 1.2rem;
-    }
-    .t-author { font-family: 'Boogaloo', cursive; color: var(--white); font-size: 1rem; }
-    .t-game   { font-size: .78rem; color: rgba(250,240,202,.45); margin-bottom: .55rem; }
-    .t-badge {
-      position: absolute;
-      top: -1px; right: 1.5rem;
-      background: var(--teal);
-      color: var(--bg);
-      font-family: 'Boogaloo', cursive;
-      font-size: .78rem;
-      padding: .2rem .8rem;
-      letter-spacing: .05em;
-    }
-    .t-badge.orange  { background: var(--orange); color: var(--bg); }
-    .t-badge.level-3 { background: var(--red);    color: var(--white); }
   </style>
 </head>
 <body>
-
-<!-- ─── Hidden static form (Netlify scans this at build time so the JS-rendered
-       email form below works). Field names must match what the dynamic form posts. -->
-<form name="funding-contact" data-netlify="true" netlify-honeypot="bot-field" hidden>
-  <input type="email" name="email" />
-  <input type="text"  name="game" />
-  <input type="text"  name="notionPageId" />
-  <input type="text"  name="bot-field" />
-</form>
 
 <!-- ─── NAV ─── -->
 <!-- Nav mounted by /assets/chrome.js -->
@@ -482,8 +445,6 @@
 
 <!-- Footer mounted by /assets/chrome.js -->
 <div data-cs-footer></div>
-
-<script src="/assets/testimonials.js"></script>
 <script>
 'use strict';
 /* ─────────────────────────────────────────────────────────────────────
@@ -836,9 +797,9 @@ const MOCK_PUBLISHERS = [
 
 // Mock crowdfunding — 3 deterministic campaigns for file:// / no-backend runs.
 const MOCK_CROWDFUNDING = [
-  { name: 'Sunset Harbor',  genres: ['Adventure','Cozy'],     raisedAmount: 320000, backers: 8400, campaignUrl: 'https://example.com/sunset-harbor' },
-  { name: 'Iron Crown',     genres: ['RPG','Strategy'],       raisedAmount: 215000, backers: 5200, campaignUrl: 'https://example.com/iron-crown' },
-  { name: 'Paper Skylines', genres: ['Simulation','Puzzle'],  raisedAmount: 145000, backers: 3100, campaignUrl: null },
+  { name: 'Sunset Harbor',  country: 'United States', genres: ['Adventure','Cozy'],     raisedAmount: 320000, backers: 8400, campaignUrl: 'https://example.com/sunset-harbor' },
+  { name: 'Iron Crown',     country: 'Germany',       genres: ['RPG','Strategy'],       raisedAmount: 215000, backers: 5200, campaignUrl: 'https://example.com/iron-crown' },
+  { name: 'Paper Skylines', country: 'Japan',         genres: ['Simulation','Puzzle'],  raisedAmount: 145000, backers: 3100, campaignUrl: null },
 ];
 
 // Mock grants — tagged with the user's country at build time so the mock honors the
@@ -1689,7 +1650,6 @@ function CardBudget(results) {
     h('div', { class: 'cs-budget-divider', style: dividerStyle(dividerRevDet) })
   );
   return h('div', { class: 'cs-card' },
-    h('span', { class: 'cs-card-tag' }, 'Budget Revised'),
     title,
     legend,
     tableArea
@@ -1752,32 +1712,26 @@ function fmtRevenueShort(n) {
 function CardFundingPath(section, results) {
   const fp = section || { kind: 'self' };
 
-  const gameLabel = ((results.game_name || '') + '').trim() || 'your game';
-  const subtitleByKind = {
-    publisher:    `Publishers matching ${gameLabel}`,
-    grant:        `Grants matching ${gameLabel}`,
-    crowdfunding: `Crowdfunding campaigns matching ${gameLabel}`,
-    self:         'Funding the project yourself',
-  };
-  const subtitle = subtitleByKind[fp.kind] || subtitleByKind.self;
-  const ordinal = (i) => i === 0 ? '1st' : i === 1 ? '2nd' : i === 2 ? '3rd' : `${i + 1}th`;
-
-  // Neutral tile shell — lets the red card frame carry the section accent.
-  // align-self:stretch on the divider keeps it full-width even when the parent
-  // centers its children (used for the publisher / grant variants).
-  const tileShell = 'border:1px solid rgba(250,240,202,.18);background:rgba(250,240,202,.02);padding:1.6rem 1.3rem 1.4rem;display:flex;flex-direction:column;gap:.85rem;min-height:230px;';
+  // Layout-only tile shell. Variant tiles (.cs-fp-tile.*) get their border /
+  // background / box-shadow from CSS so :hover rules can override them; the
+  // placeholder + fallback tiles below add their own neutral border/background
+  // inline since they don't carry the .cs-fp-tile class.
+  const tileShell = 'padding:1.6rem 1.3rem 1.4rem;display:flex;flex-direction:column;gap:.85rem;min-height:230px;';
+  const inertTileVisuals = 'border:1px solid rgba(250,240,202,.18);background:rgba(250,240,202,.02);';
   // Each funding-path tile type gets its own accent so publisher / crowdfunding / grant
   // read as distinct sections while still using the existing palette (orange / teal / cream).
-  // The outer card keeps the red frame; tile colors are picked to avoid colliding with it.
-  const accentShell = (color, tint) =>
-    tileShell + `border:3px solid ${color};box-shadow:6px 6px 0 ${color};background:${tint};position:relative;align-items:center;text-align:center;`;
+  // Variant tile shell — layout only. Border / background / shadow defaults
+  // come from the .cs-fp-tile CSS rule so :hover can swap border-color and
+  // box-shadow to the accent color.
+  const neutralShell =
+    tileShell + 'position:relative;align-items:center;text-align:center;';
   const accentTag = (bg, fg) =>
     `position:absolute;top:-1px;right:1rem;background:${bg};color:${fg};font-family:'Boogaloo',cursive;font-size:.7rem;padding:.15rem .55rem;letter-spacing:.05em;line-height:1.4;`;
-  const publisherShell    = accentShell('var(--orange)', 'rgba(252,122,30,.04)');
-  const publisherTag      = accentTag('var(--orange)', '#fff');
-  const crowdfundingShell = accentShell('var(--red)',    'rgba(213,41,65,.04)');
+  const publisherShell    = neutralShell;
+  const publisherTag      = accentTag('var(--teal)',   'var(--bg)');
+  const crowdfundingShell = neutralShell;
   const crowdfundingTag   = accentTag('var(--red)',    '#fff');
-  const grantShell        = accentShell('var(--cream)',  'rgba(250,240,202,.04)');
+  const grantShell        = neutralShell;
   const grantTag          = accentTag('var(--cream)',  'var(--bg)');
   const dividerStyle = 'margin-top:auto;padding-top:1.1rem;display:flex;flex-direction:column;gap:.6rem;align-self:stretch;';
   const chipStyle = 'display:inline-block;font-family:\'Nunito\',sans-serif;font-size:.68rem;letter-spacing:.04em;padding:.18rem .55rem;background:rgba(250,240,202,.06);border:1px solid rgba(250,240,202,.18);color:rgba(255,255,255,.72);';
@@ -1796,8 +1750,11 @@ function CardFundingPath(section, results) {
   }
 
   function publisherTile(p, i) {
-    return h('div', { style: publisherShell },
-      h('span', { style: publisherTag }, ordinal(i)),
+    const tag = p.pitchLink ? 'a' : 'div';
+    const attrs = { class: 'cs-fp-tile publisher', style: publisherShell };
+    if (p.pitchLink) { attrs.href = p.pitchLink; attrs.target = '_blank'; attrs.rel = 'noopener noreferrer'; }
+    return h(tag, attrs,
+      h('span', { style: publisherTag }, 'Publisher'),
       h('div', { style: headlineStyle }, p.name),
       p.country ? h('div', { style: eyebrowStyle }, p.country) : null,
       (p.genres && p.genres.length)
@@ -1808,7 +1765,7 @@ function CardFundingPath(section, results) {
         h('div', { style: statStyle }, fmtRevenueShort(p.totalRevenue) + ' revenue'),
         h('div', { style: statStyle }, fmtCommas(p.releasedGames) + ' game' + (p.releasedGames === 1 ? '' : 's') + ' released'),
         p.pitchLink
-          ? h('a', { class: 'cs-about-cta orange', style: 'border:none;align-self:center;', href: p.pitchLink, target: '_blank', rel: 'noopener noreferrer' }, 'Pitch link')
+          ? h('span', { class: 'cs-fp-cta' }, '❯ Pitch link')
           : null
       )
     );
@@ -1818,9 +1775,13 @@ function CardFundingPath(section, results) {
   // two stat lines / external CTA), with Raised Amount + Backers as the stats and the
   // Campaign URL as the link-out.
   function crowdfundingTile(cf, i) {
-    return h('div', { style: crowdfundingShell },
-      h('span', { style: crowdfundingTag }, ordinal(i)),
+    const tag = cf.campaignUrl ? 'a' : 'div';
+    const attrs = { class: 'cs-fp-tile crowdfunding', style: crowdfundingShell };
+    if (cf.campaignUrl) { attrs.href = cf.campaignUrl; attrs.target = '_blank'; attrs.rel = 'noopener noreferrer'; }
+    return h(tag, attrs,
+      h('span', { style: crowdfundingTag }, 'Crowdfunding'),
       h('div', { style: headlineStyle }, cf.name),
+      cf.country ? h('div', { style: eyebrowStyle }, cf.country) : null,
       (cf.genres && cf.genres.length)
         ? h('div', { style: 'display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;margin-top:.25rem;' },
             cf.genres.slice(0, 3).map(g => h('span', { style: chipStyle }, g)))
@@ -1829,7 +1790,7 @@ function CardFundingPath(section, results) {
         h('div', { style: statStyle }, fmtRevenueShort(cf.raisedAmount) + ' raised'),
         h('div', { style: statStyle }, fmtCommas(cf.backers) + ' backer' + (cf.backers === 1 ? '' : 's')),
         cf.campaignUrl
-          ? h('a', { class: 'cs-about-cta red', style: 'border:none;align-self:center;', href: cf.campaignUrl, target: '_blank', rel: 'noopener noreferrer' }, 'Campaign link')
+          ? h('span', { class: 'cs-fp-cta' }, '❯ Campaign link')
           : null
       )
     );
@@ -1839,8 +1800,11 @@ function CardFundingPath(section, results) {
   // stat lines / CTA), but with one stat line (Application Cadence) since grants don't
   // have a revenue/release-count equivalent.
   function grantTile(g, i) {
-    return h('div', { style: grantShell },
-      h('span', { style: grantTag }, ordinal(i)),
+    const tag = g.link ? 'a' : 'div';
+    const attrs = { class: 'cs-fp-tile grant', style: grantShell };
+    if (g.link) { attrs.href = g.link; attrs.target = '_blank'; attrs.rel = 'noopener noreferrer'; }
+    return h(tag, attrs,
+      h('span', { style: grantTag }, 'Grant'),
       h('div', { style: headlineStyle }, g.name),
       g.country ? h('div', { style: eyebrowStyle }, g.country) : null,
       g.type
@@ -1852,7 +1816,7 @@ function CardFundingPath(section, results) {
           ? h('div', { style: statStyle }, cadencePhrase(g.applicationCadence))
           : null,
         g.link
-          ? h('a', { class: 'cs-about-cta cream', style: 'border:none;align-self:center;', href: g.link, target: '_blank', rel: 'noopener noreferrer' }, 'Grant link')
+          ? h('span', { class: 'cs-fp-cta' }, '❯ Grant link')
           : null
       )
     );
@@ -1862,7 +1826,7 @@ function CardFundingPath(section, results) {
   // the layout proportions are right before real copy lands. Reads as intentional
   // placeholder, not a render bug.
   function placeholderTile(i) {
-    return h('div', { style: tileShell },
+    return h('div', { style: tileShell + inertTileVisuals },
       h('span', { style: 'display:inline-block;font-family:\'Boogaloo\',cursive;font-size:.68rem;letter-spacing:.1em;padding:.2rem .55rem;background:var(--orange);color:#fff;text-transform:uppercase;align-self:flex-start;' }, 'Coming soon'),
       h('div', { style: "font-family:'Boogaloo',cursive;font-size:1.2rem;color:rgba(255,255,255,.55);letter-spacing:.02em;line-height:1.2;" }, 'Tile ' + (i + 1)),
       h('div', { style: "font-family:'Nunito',sans-serif;font-size:.82rem;color:rgba(250,240,202,.4);line-height:1.55;font-style:italic;" }, 'Copy for this card is being finalized.'),
@@ -1877,21 +1841,20 @@ function CardFundingPath(section, results) {
     const items = (fp.items || []).slice(0, 3);
     tiles = items.length
       ? items.map(publisherTile)
-      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No publisher matched yet'));
+      : [0, 1, 2].map(() => h('div', { style: tileShell + inertTileVisuals + 'align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No publisher matched yet'));
   } else if (fp.kind === 'grant') {
     tiles = (fp.items || []).slice(0, 3).map(grantTile);
   } else if (fp.kind === 'crowdfunding') {
     const items = (fp.items || []).slice(0, 3);
     tiles = items.length
       ? items.map(crowdfundingTile)
-      : [0, 1, 2].map(() => h('div', { style: tileShell + 'align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No campaign matched yet'));
+      : [0, 1, 2].map(() => h('div', { style: tileShell + inertTileVisuals + 'align-items:center;justify-content:center;text-align:center;color:rgba(255,255,255,.4);font-family:Nunito,sans-serif;font-size:.85rem;font-style:italic;' }, 'No campaign matched yet'));
   } else {
     tiles = [0, 1, 2].map(placeholderTile);
   }
 
   return h('div', { class: 'cs-card red' },
     h('div', { class: 'cs-card-inner', style: 'padding:1.5rem 0 2rem;' },
-      h('h3', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.3rem,2.8vw,1.8rem);color:#fff;letter-spacing:.02em;margin:0 0 2.5rem;line-height:1.2;" }, subtitle),
       h('div', { class: 'cs-fp-grid', style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:4rem;' }, tiles)
     )
   );
@@ -1900,73 +1863,43 @@ function CardFundingPath(section, results) {
 // Team voice card — centered column stack, used between data sections to alternate hard
 // numbers with human commentary. `accent` is 'teal' (default) or 'orange'.
 // The avatar div carries the initial as transparent text so it shows if the bg image fails.
-function CardTeam({ name, role, accent, avatar, copy, eyebrow, ctaLabel }) {
+function CardTeam({ name, role, accent, avatar, copy }) {
   const isOrange = accent === 'orange';
   const o = isOrange ? ' orange' : '';
   return h('div', { class: 'cs-about-card' },
-    eyebrow ? h('span', { class: 'cs-about-eyebrow' + o }, eyebrow) : null,
-    h('div', {
-      class: 'cs-about-avatar' + o,
-      style: `background-image:url('${avatar}');color:transparent;`
-    }, name[0]),
-    h('h3', null, name),
-    h('div', { class: 'cs-about-role' + o }, role),
-    h('p', { class: 'cs-about-quote' + o }, copy),
-    ctaLabel ? h('a', { class: 'cs-about-cta' + o, href: '/#contact' }, ctaLabel) : null
-  );
-}
-
-// Joint signature card — two avatars overlapping, used for the closing slot so we don't repeat
-// a single face across the page. Same accent applies to both avatars and the CTA.
-function CardTeamJoint({ accent, copy, eyebrow, ctaLabel }) {
-  const isOrange = accent === 'orange';
-  const o = isOrange ? ' orange' : '';
-  return h('div', { class: 'cs-about-card' },
-    eyebrow ? h('span', { class: 'cs-about-eyebrow' + o, style: 'color:var(--red);' }, eyebrow) : null,
-    h('div', { class: 'cs-about-avatars' },
+    h('div', { class: 'cs-about-row' },
       h('div', {
         class: 'cs-about-avatar' + o,
-        style: `background-image:url('${AVATAR_KEYVAN}');color:transparent;`
-      }, 'K'),
-      h('div', {
-        class: 'cs-about-avatar' + o,
-        style: `background-image:url('${AVATAR_VANILLE}');color:transparent;`
-      }, 'V')
-    ),
-    h('h3', null, 'Keyvan & Vanille'),
-    h('div', { class: 'cs-about-role' + o, style: 'color:var(--red);' }, 'Co-founders'),
-    h('p', { class: 'cs-about-quote' + o }, copy),
-    ctaLabel ? h('a', { class: 'cs-about-cta' + o, href: '/#contact' }, ctaLabel) : null
+        style: `background-image:url('${avatar}');color:transparent;`
+      }, name[0]),
+      h('div', { class: 'cs-about-info' },
+        h('p', { class: 'cs-about-quote' }, copy),
+        h('div', { class: 'cs-about-byline' },
+          h('h3', null, name),
+          h('div', { class: 'cs-about-role' + o }, role),
+        ),
+      )
+    )
   );
 }
 
 function PageResults() {
   const r = state.results || buildLocalResults();
   state.results = r;
-  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  // Pitch line variables — fall back gracefully so the sentence still reads if a field is missing.
-  const genres = (r.genre || []).slice(0, 2);
-  const genreLabel = genres.length === 2 ? `${genres[0]} and ${genres[1]}` : (genres[0] || 'indie');
-  const revisedBudgetLabel = fmt(r.budget && r.budget.total_usd ? r.budget.total_usd : 0);
-  const countryLabel = r.studio_country || 'your country';
   const gameLabel = ((r.game_name || '') + '').trim() || 'your game';
-  // Pick Keyvan's copy by funding path: Publisher > Crowdfunding > Grant > Self-Funded.
-  // Vanille's copy below also branches on this variant.
+  // Funding-path label for Keyvan's second sentence: single selected path → its
+  // noun, anything else (multi-select or self-only) → generic "funding paths".
   const fundingSet = new Set(r.funding_type || []);
-  const keyvanVariant =
-      fundingSet.has('Publisher')    ? 'publisher'
-    : fundingSet.has('Crowdfunding') ? 'crowdfunding'
-    : fundingSet.has('Grant')        ? 'grant'
-    :                                  'self';
-  // Funding-path label for the testimonial: single path → its noun, multiple → "funding paths".
-  const pathNounByVariant = {
-    publisher:    'publishers',
-    crowdfunding: 'crowdfunding campaigns',
-    grant:        'grants',
-    self:         'funding paths',
-  };
-  const fundingPathLabel = fundingSet.size > 1 ? 'funding paths' : pathNounByVariant[keyvanVariant];
-  const keyvanCopy = [
+  const fundingPathLabel =
+      fundingSet.size > 1                ? 'funding paths'
+    : fundingSet.has('Publisher')        ? 'publishers'
+    : fundingSet.has('Crowdfunding')     ? 'crowdfunding campaigns'
+    : fundingSet.has('Grant')            ? 'grants'
+    :                                      'funding paths';
+  // Build a fresh copy array per call: the spans inside are DOM Nodes and Nodes
+  // can only live under one parent. Sharing one array between renders would
+  // move the spans on the second appendChild, dropping content from the first.
+  const buildKeyvanCopy = () => [
     `Congrats! Having a coherent budget is the first step on your funding path journey.`,
     h('span', { style: 'display:block;margin-top:.6rem;' },
       `Take a look below, we've shortlisted a few relevant `,
@@ -1976,123 +1909,46 @@ function PageResults() {
       `.`,
     ),
   ];
-  // Vanille's copy — same dominant-path priority as Keyvan (publisher > crowdfunding
-  // > grant > self). Publisher / Crowdfunding / Grant get the 3-line "you did the
-  // hard part / now the grind / we help" shape, each with its own task-grind list.
-  // Self-funded keeps a two-paragraph shape with gameName tinted cream in para 2 to
-  // mirror the budget callout in Keyvan's card.
-  const vanilleTaskList = {
-    publisher:    `All you have to do now is make a pitch deck, contact publishers, make a first meeting, make a second meeting, wait, wait more, update your vertical slice, wait even more, and start back.`,
-    crowdfunding: `All you have to do now is build a community, make a trailer, design tier rewards, set up your campaign page, launch, post daily updates, answer every backer, ship physical rewards, push the delivery date, and start back.`,
-    grant:        `All you have to do now is find eligible grants, read the guidelines, write the application, gather supporting documents, wait, wait more, get rejected, find another grant, wait even more, and start back.`,
-  };
-  const vanilleSelfCopy = {
-    para1: `Self-funding means every month you don't ship is a month off your own runway.`,
-    para2Before: `Whether that works comes down to one number: how many copies the game actually moves, here's what a revenue scenario would look like for `,
-    para2After: `.`,
-  };
-  let vanilleCopy;
-  if (vanilleTaskList[keyvanVariant]) {
-    vanilleCopy = [
-      vanilleTaskList[keyvanVariant],
-      h('span', { style: 'display:block;margin-top:.6rem;' },
-        `Wait that's a lot, but we're here to give you a hand.`,
-      ),
-    ];
-  } else {
-    vanilleCopy = [
-      vanilleSelfCopy.para1,
-      h('span', { style: 'display:block;margin-top:.6rem;' },
-        vanilleSelfCopy.para2Before,
-        h('span', { style: 'color:var(--white);' }, gameLabel),
-        vanilleSelfCopy.para2After,
-      ),
-    ];
-  }
+  const buildVanilleCopy = () => [
+    `Either you're considering a publisher, a grant or a crowdfunding campaign : prepare yourself.`,
+    h('span', { style: 'display:block;margin-top:.6rem;' },
+      `Build your pitchdeck, simulate your revenue and anticipate critical questions.`,
+    ),
+  ];
+  // Self-funded paths don't render a tile section; we filter them out here so
+  // the divider above the section can also be skipped when nothing remains.
+  const fundingPathSections = (r.funding_paths || [])
+    .filter(s => s.kind !== 'self')
+    .map(s => CardFundingPath(s, r));
   return h('section', { class: 'cs-results', style: 'max-width:1100px;margin:0 auto;padding:6rem 2rem 4rem;' },
-    withReveal(h('div', { style: 'margin-bottom:1.5rem;' },
-      h('h1', { style: "font-family:'Boogaloo',cursive;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08;color:#fff;letter-spacing:0.02em;margin-bottom:0.5rem;" },
-        r.game_name || 'Your game'),
-      h('div', { style: "font-family:'Nunito',sans-serif;font-size:0.88rem;color:rgba(250,240,202,.5);display:flex;gap:1rem;flex-wrap:wrap;" },
-        h('span', null, 'Caspian Shift'),
-        h('span', null, '·'),
-        h('span', null, today)
-      )
-    )),
     withReveal(CardBudget(r)),
-    withReveal(CardTeam({
-      eyebrow: 'On your budget',
-      name: 'Keyvan', role: 'Co-founder', accent: 'teal', avatar: AVATAR_KEYVAN,
-      copy: keyvanCopy,
-    })),
-    withReveal((r.funding_paths || []).map(s => CardFundingPath(s, r))),
-    withReveal(CardTeam({
-      eyebrow: 'On your funding paths',
-      name: 'Vanille', role: 'Co-founder', accent: 'orange', avatar: AVATAR_VANILLE,
-      copy: vanilleCopy,
-    })),
-    // Frictionless contact: just email + submit. The hidden static form near
-    // <body> registers this name with Netlify at build time. Hidden inputs
-    // carry `game` and `notionPageId` so the lead lands with context.
-    withReveal(h('form', {
-      name: 'funding-contact',
-      method: 'POST',
-      'data-netlify': 'true',
-      'netlify-honeypot': 'bot-field',
-      style: 'max-width:520px;margin:-2rem auto 3.5rem;',
-      onsubmit: async (e) => {
-        e.preventDefault();
-        const form = e.currentTarget;
-        const submitBtn = form.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
-        try {
-          await fetch('/', { method: 'POST', body: new FormData(form) });
-        } catch (_) { /* fall through to success-style ack — Netlify queues retries */ }
-        const ack = h('div', {
-          style: 'max-width:520px;margin:-2rem auto 3.5rem;text-align:center;padding:1.25rem 1rem;border:2px solid var(--teal);background:rgba(23,190,187,.04);'
-        },
-          h('div', { style: "font-family:'Boogaloo',cursive;color:var(--teal);font-size:1.2rem;margin-bottom:.3rem;letter-spacing:.02em;" }, 'Message received!'),
-          h('div', { style: "font-family:'Nunito',sans-serif;font-size:.92rem;color:rgba(250,240,202,.75);" }, "We'll be in touch shortly."),
-        );
-        form.replaceWith(ack);
-      },
+    withReveal(h('div', {
+      class: 'grid-2 cs-about-card-pair',
+      style: 'display:grid;grid-template-columns:1fr 1fr;gap:6rem;align-items:start;margin-bottom:3.5rem;',
     },
-      h('input', { type: 'hidden', name: 'form-name', value: 'funding-contact' }),
-      h('p', { style: 'display:none;' },
-        h('label', null, "Don't fill this out: ", h('input', { name: 'bot-field' }))),
-      h('input', { type: 'hidden', name: 'game', value: gameLabel }),
-      h('input', { type: 'hidden', name: 'notionPageId', value: state.notionPageId || '' }),
-      h('label', { class: 'cs-label', for: 'funding-contact-email' }, 'Your Email'),
-      h('div', { style: 'display:flex;gap:.6rem;flex-wrap:wrap;align-items:stretch;' },
-        h('input', {
-          type: 'email', id: 'funding-contact-email', name: 'email', required: true,
-          placeholder: 'hello@studio.com',
-          class: 'cs-input',
-          style: 'flex:1 1 240px;',
-        }),
-        h('button', {
-          type: 'submit', class: 'btn-pill',
-          style: 'padding:.65rem 1.6rem;font-size:1rem;flex-shrink:0;',
-        }, 'Get in touch'),
-      ),
+      CardTeam({
+        name: 'Keyvan', role: 'Co-founder', accent: 'teal', avatar: AVATAR_KEYVAN,
+        copy: buildKeyvanCopy(),
+      }),
+      CardTeam({
+        name: 'Vanille', role: 'Co-founder', accent: 'orange', avatar: AVATAR_VANILLE,
+        copy: buildVanilleCopy(),
+      }),
     )),
-    withReveal(CardTeamJoint({
-      eyebrow: 'Get in touch',
-      accent: 'teal',
-      copy: [
-        `We offer the kind of business support a publisher would, without the constraints.`,
-        h('span', { style: 'display:block;margin-top:.6rem;' },
-          `Either you need help to secure your funding, support on your Marketing or a hand for your content creation, we'll help you shift course.`),
-      ],
-    })),
-    // Shared with index.html via /assets/testimonials.js — single source of truth
-    // for the three studio cards, rendered here directly under Vanille's note.
-    // margin-bottom matches the 3.5rem rhythm used by .cs-card / .cs-about-card
-    // so the gap above (from Vanille's margin-bottom) and below (to CardTeamJoint)
-    // both come out to 3.5rem like every other section.
-    typeof window.renderCsTestimonials === 'function'
-      ? withReveal(h('div', { style: 'margin-bottom:3.5rem;' }, window.renderCsTestimonials()))
+    // Visual divider above the funding-path section — mirrors the top border
+    // on the contact partial (assets/contact.css #contact). Only rendered when
+    // there's at least one non-self funding path to display.
+    fundingPathSections.length
+      ? withReveal(h('div', { style: 'max-width:1100px;margin:0 auto 4rem;border-top:1px solid rgba(250,240,202,.12);' }))
       : null,
+    withReveal(fundingPathSections),
+    // Shared contact section (label, title, K+V avatars, role, paragraph, form).
+    // Carries `game` and `notionPageId` as hidden inputs so the submission lands
+    // with full context in the `contact` Netlify form (registered on index.html).
+    withReveal(window.renderCsContact({
+      hiddenFields: { game: gameLabel, notionPageId: state.notionPageId || '' },
+      avatars: { keyvan: AVATAR_KEYVAN, vanille: AVATAR_VANILLE },
+    })),
   );
 }
 
