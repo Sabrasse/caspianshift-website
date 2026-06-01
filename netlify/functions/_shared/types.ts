@@ -128,6 +128,25 @@ export interface CrowdfundingCard {
   campaignUrl: string | null;
 }
 
+// Creator & Media Database card. Powers the Creator Matcher tool (/matcher).
+// Only the YouTuber type is populated today; other types may be added later.
+export interface CreatorCard {
+  name: string;
+  type: string;                    // "YouTuber" today; future: Streamer | Writer | Podcast | TikTok
+  genres: string[];
+  audience: number;                // subscriber / follower count
+  channelUrl: string | null;
+}
+
+// POST /api/match-creators — fields collected by the Creator Matcher form.
+// Backend uses genres for filtering; gameName + similarGame are captured for
+// logging today and for future similar-game boost (n8n workflow, separate).
+export interface MatchCreatorsBody {
+  gameName: string;
+  genres: string[];
+  similarGame?: string;
+}
+
 export type FundingPathSection =
   | { kind: "publisher"; items: PublisherCard[] }
   | { kind: "grant"; items: GrantCard[] }

@@ -27,6 +27,7 @@
       + '<div class="nav-left">'
       +   '<a href="/" class="nav-logo">' + COMPASS_SVG + 'Caspian Shift</a>'
       +   '<a href="/funding" class="nav-link">Funding Analysis<span class="nav-link-tag">Tool</span></a>'
+      +   '<a href="/matcher" class="nav-link">Creator Matcher<span class="nav-link-tag nav-link-tag-orange">Tool</span></a>'
       + '</div>'
       + '<div class="nav-right">'
       +   '<a href="/#contact" class="btn-pill">Get in Touch</a>'

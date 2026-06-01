@@ -11,7 +11,7 @@ import { Client } from "@notionhq/client";
 import type {
   Step1Body, Step2Body, Step3Body,
   NotionRow, GameStatus, FundingType,
-  PublisherCard, GrantCard, CrowdfundingCard, BudgetBucket,
+  PublisherCard, GrantCard, CrowdfundingCard, CreatorCard, BudgetBucket,
 } from "./types";
 
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
@@ -19,6 +19,7 @@ const NOTION_DB_ID = process.env.NOTION_DB_ID || "34abb949947480b2b326c2fe922f38
 const NOTION_PUBLISHER_DB_ID = process.env.NOTION_PUBLISHER_DB_ID || "325bb949947480c88dbbcb4216d897be";
 const NOTION_GRANT_DB_ID = process.env.NOTION_GRANT_DB_ID || "325bb94994748004ad8ee4b6046f72cd";
 const NOTION_CROWDFUNDING_DB_ID = process.env.NOTION_CROWDFUNDING_DB_ID || "325bb94994748051918ec544fbf138df";
+const NOTION_CREATORS_DB_ID = process.env.NOTION_CREATORS_DB_ID || "92c549e1d1f049a595d007abf6d651d6";
 const NOTION_COUNTRY_DB_ID = process.env.NOTION_COUNTRY_DB_ID || "360bb949947480b0aa44fffa53e67e8a";
 const NOTION_GENRE_DB_ID = process.env.NOTION_GENRE_DB_ID || "805403bd7be34a859cfee44634dec9ff";
 
@@ -299,7 +300,7 @@ export async function createStep1Row(body: Step1Body): Promise<{ notionPageId: s
       [P.GameName]:    { title:       [{ text: { content: body.gameName } }] },
       [P.Status]:      { select:      { name: body.status } },
       [P.ReleaseDate]: { date:        { start: body.releaseDate.length === 7 ? body.releaseDate + "-01" : body.releaseDate } },
-      [P.SourceType]:  { select:      { name: "CS Pilot" } },
+      [P.SourceType]:  { select:      { name: "Funding Analysis" } },
     };
     if (genreProp) properties[genreProp] = { relation: genreRelations };
     const page = await c.pages.create({
@@ -606,4 +607,146 @@ export async function queryCrowdfunding(opts: {
     }
   }
   return out.slice(0, 3);
+}
+
+// ─── Creators query (Creator Matcher tool — /matcher) ────────────────────
+// Property names on the "Creator & Media Database" — must match exactly.
+// Genres relation prop is resolved at runtime via findRelationPropName.
+const CREATORS = {
+  Name:       "Name",
+  Type:       "Type",          // select: YouTuber (only value populated today)
+  Audience:   "Audience",      // number — subscribers / followers
+  ChannelUrl: "Channel URL",   // url
+};
+
+function readCreatorName(p: any): string {
+  const named = p[CREATORS.Name];
+  const fromNamed = named?.title?.[0]?.plain_text || named?.rich_text?.[0]?.plain_text || "";
+  if (fromNamed) return fromNamed;
+  for (const k of Object.keys(p)) {
+    if (p[k]?.type === "title") return p[k]?.title?.[0]?.plain_text || "";
+  }
+  return "";
+}
+
+function rowToCreatorCard(page: any, genresProp: string | null): CreatorCard {
+  const p = page.properties || {};
+  const genreRel = (genresProp ? (p[genresProp]?.relation || []) : []) as Array<{ id: string }>;
+  return {
+    name:       readCreatorName(p) || "Untitled",
+    type:       p[CREATORS.Type]?.select?.name || "YouTuber",
+    genres:     genreRel.map(r => _genreById?.get(r.id) || "").filter(Boolean),
+    audience:   typeof p[CREATORS.Audience]?.number === "number" ? p[CREATORS.Audience].number : 0,
+    channelUrl: p[CREATORS.ChannelUrl]?.url || null,
+  };
+}
+
+// Fallback chain: genre-only → unfiltered top results. Sorted by Audience desc
+// so the most-followed creators surface first. `limit` is capped at 12 to mirror
+// the Tweaks-panel ceiling in the design.
+export async function queryCreators(opts: {
+  genrePageIds?: string[];
+  limit?: number;
+}): Promise<CreatorCard[]> {
+  const c = client();
+  if (!c) return [];
+  await ensureGenreMaps(c);
+  const limit = Math.min(Math.max(opts.limit ?? 6, 1), 12);
+  const genresProp = await findRelationPropName(c, NOTION_CREATORS_DB_ID, NOTION_GENRE_DB_ID);
+  const sorts = [{ property: CREATORS.Audience, direction: "descending" as const }];
+
+  const passes: Array<{ genrePageIds?: string[] }> = [
+    { genrePageIds: opts.genrePageIds },
+    {},
+  ];
+
+  const seen = new Set<string>();
+  const out: CreatorCard[] = [];
+
+  for (const pass of passes) {
+    if (out.length >= limit) break;
+    const filter = (genresProp && pass.genrePageIds && pass.genrePageIds.length)
+      ? { or: pass.genrePageIds.map(id => ({ property: genresProp, relation: { contains: id } })) }
+      : undefined;
+    try {
+      const res: any = await c.databases.query({
+        database_id: NOTION_CREATORS_DB_ID,
+        ...(filter ? { filter } : {}),
+        sorts,
+        page_size: Math.max(limit * 2, 10),
+      });
+      for (const page of (res.results || [])) {
+        if (out.length >= limit) break;
+        if (seen.has(page.id)) continue;
+        seen.add(page.id);
+        out.push(rowToCreatorCard(page, genresProp));
+      }
+    } catch (e: any) {
+      console.error("[notion] queryCreators pass failed", e?.message || e);
+    }
+  }
+  return out.slice(0, limit);
+}
+
+// ─── Matcher: write submissions back into Game Case Studies ─────────────
+// Each /api/match-creators call lands at least one row in the same DB the
+// funding tool writes to (NOTION_DB_ID). When `similarGame` is set, a second
+// row is created with that name and the same genres so the comparable title
+// enters the pipeline as its own reference entry. Both rows are tagged
+// Source Type="Matcher" so they can be filtered apart from "CS Pilot" funding
+// submissions in the Notion view.
+export async function createMatcherRows(opts: {
+  gameName: string;
+  genrePageIds: string[];
+  similarGame?: string;
+}): Promise<{ ok: boolean; pageIds: string[] }> {
+  const c = client();
+  if (!c) {
+    console.warn("[notion] NOTION_API_KEY not set — no matcher row created");
+    return { ok: false, pageIds: [] };
+  }
+  const genreProp = await findRelationPropName(c, NOTION_DB_ID, NOTION_GENRE_DB_ID);
+  const genreRelations = opts.genrePageIds.map(id => ({ id }));
+  const names: string[] = [];
+  const primary = (opts.gameName || "").trim();
+  if (primary) names.push(primary);
+  const similar = (opts.similarGame || "").trim();
+  if (similar) names.push(similar);
+
+  const pageIds: string[] = [];
+  for (const name of names) {
+    try {
+      const properties: any = {
+        [P.GameName]:   { title: [{ text: { content: name } }] },
+        [P.SourceType]: { select: { name: "Matcher" } },
+      };
+      if (genreProp) properties[genreProp] = { relation: genreRelations };
+      const page = await c.pages.create({
+        parent: { database_id: NOTION_DB_ID },
+        properties,
+      });
+      pageIds.push(page.id);
+    } catch (e: any) {
+      console.error(`[notion] createMatcherRows failed for "${name}"`, e?.message || e);
+    }
+  }
+  return { ok: pageIds.length > 0, pageIds };
+}
+
+/** Resolve a list of user-typed genre names to Notion page ids. Names that
+ *  don't exist in the Genres DB are dropped with a warning. Mirrors the
+ *  pattern used inside the wizard patches. */
+export async function genrePageIdsFromNames(names: string[]): Promise<string[]> {
+  const c = client();
+  if (!c) return [];
+  await ensureGenreMaps(c);
+  const out: string[] = [];
+  for (const raw of names || []) {
+    const name = (raw || "").trim();
+    if (!name) continue;
+    const id = _genreByName?.get(name.toLowerCase());
+    if (id) out.push(id);
+    else console.warn(`[notion] genrePageIdsFromNames: "${name}" not found in Genres DB — skipped`);
+  }
+  return out;
 }

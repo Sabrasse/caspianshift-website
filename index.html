@@ -251,6 +251,10 @@
     a.service-card:focus-within .service-cta {
       color: var(--teal);
     }
+    a.service-card.card-orange:hover .service-cta,
+    a.service-card.card-orange:focus-within .service-cta {
+      color: var(--orange);
+    }
 
     /* ─── TESTIMONIALS ─── */
     .testimonials-grid {
@@ -490,7 +494,8 @@
       <span class="service-cta">❯ Try our Funding Analysis Tool</span>
     </a>
 
-    <div class="service-card card-orange reveal">
+    <a href="/matcher" class="service-card card-orange reveal">
+      <div class="service-content">
       <span class="service-tag">Marketing &amp; PR</span>
       <div class="service-icon">
         <svg width="64" height="64" viewBox="0 0 24 24" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
@@ -523,7 +528,9 @@
       </div>
       <h3>Marketing &amp; PR</h3>
       <p><span style="color:var(--white);display:block;margin-bottom:.5rem;">We provide a hands-on support.</span>Either you're planning a Kickstarter campaign or need a boost for your release, we'll help you run the right strategy to promote your game.</p>
-    </div>
+      </div>
+      <span class="service-cta">❯ Try our Creator Matcher Tool</span>
+    </a>
 
     <div class="service-card card-red reveal">
       <span class="service-tag">Content Creation</span>

@@ -19,6 +19,16 @@
   to = "/funding.html"
   status = 200
 
+[[redirects]]
+  from = "/matcher"
+  to = "/creator-matcher.html"
+  status = 200
+
+[[redirects]]
+  from = "/matcher/"
+  to = "/creator-matcher.html"
+  status = 200
+
 # ── API routing ─────────────────────────────────────────────────
 [[redirects]]
   from = "/api/*"
