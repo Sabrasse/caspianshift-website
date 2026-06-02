@@ -1948,6 +1948,11 @@ function PageResults() {
     withReveal(window.renderCsContact({
       hiddenFields: { game: gameLabel, notionPageId: state.notionPageId || '' },
       avatars: { keyvan: AVATAR_KEYVAN, vanille: AVATAR_VANILLE },
+      copy: {
+        title: 'Ready to fund this for real?',
+        introLead: 'We help studios secure their funding, ',
+        introEmphasis: 'without giving up control.',
+      },
     })),
   );
 }
