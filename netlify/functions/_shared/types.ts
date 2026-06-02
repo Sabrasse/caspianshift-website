@@ -129,12 +129,17 @@ export interface CrowdfundingCard {
 }
 
 // Creator & Media Database card. Powers the Creator Matcher tool (/matcher).
-// Only the YouTuber type is populated today; other types may be added later.
+// `platform` comes from the Channel column ("YouTube" today); `format` from
+// Content Format ("Let's Play", "Streamer", "Long-form review"); `audience`
+// is a select tier (not a count) — the DB carries Low / Medium / High.
+export type AudienceTier = "Low" | "Medium" | "High";
+
 export interface CreatorCard {
   name: string;
-  type: string;                    // "YouTuber" today; future: Streamer | Writer | Podcast | TikTok
+  platform: string;
+  format: string | null;
   genres: string[];
-  audience: number;                // subscriber / follower count
+  audience: AudienceTier;
   channelUrl: string | null;
 }
 

@@ -11,7 +11,7 @@ import { Client } from "@notionhq/client";
 import type {
   Step1Body, Step2Body, Step3Body,
   NotionRow, GameStatus, FundingType,
-  PublisherCard, GrantCard, CrowdfundingCard, CreatorCard, BudgetBucket,
+  PublisherCard, GrantCard, CrowdfundingCard, CreatorCard, AudienceTier, BudgetBucket,
 } from "./types";
 
 const NOTION_API_KEY = process.env.NOTION_API_KEY;
@@ -613,10 +613,11 @@ export async function queryCrowdfunding(opts: {
 // Property names on the "Creator & Media Database" — must match exactly.
 // Genres relation prop is resolved at runtime via findRelationPropName.
 const CREATORS = {
-  Name:       "Name",
-  Type:       "Type",          // select: YouTuber (only value populated today)
-  Audience:   "Audience",      // number — subscribers / followers
-  ChannelUrl: "Channel URL",   // url
+  Name:          "Name",
+  Channel:       "Channel",         // select: platform (e.g. YouTube)
+  ContentFormat: "Content Format",  // select: Let's Play / Streamer / Long-form review
+  Audience:      "Audience",        // select tier: Low / Medium / High
+  ChannelUrl:    "Channel URL",     // url
 };
 
 function readCreatorName(p: any): string {
@@ -629,21 +630,49 @@ function readCreatorName(p: any): string {
   return "";
 }
 
+function readAudienceTier(p: any): AudienceTier {
+  const raw = p[CREATORS.Audience]?.select?.name;
+  if (raw === "Low" || raw === "Medium" || raw === "High") return raw;
+  return "Medium";
+}
+
 function rowToCreatorCard(page: any, genresProp: string | null): CreatorCard {
   const p = page.properties || {};
   const genreRel = (genresProp ? (p[genresProp]?.relation || []) : []) as Array<{ id: string }>;
   return {
     name:       readCreatorName(p) || "Untitled",
-    type:       p[CREATORS.Type]?.select?.name || "YouTuber",
+    platform:   p[CREATORS.Channel]?.select?.name || "YouTube",
+    format:     p[CREATORS.ContentFormat]?.select?.name || null,
     genres:     genreRel.map(r => _genreById?.get(r.id) || "").filter(Boolean),
-    audience:   typeof p[CREATORS.Audience]?.number === "number" ? p[CREATORS.Audience].number : 0,
+    audience:   readAudienceTier(p),
     channelUrl: p[CREATORS.ChannelUrl]?.url || null,
   };
 }
 
-// Fallback chain: genre-only → unfiltered top results. Sorted by Audience desc
-// so the most-followed creators surface first. `limit` is capped at 12 to mirror
-// the Tweaks-panel ceiling in the design.
+// Round-robin pull from High → Medium → Low so the final grid mixes reach with
+// attainability instead of stacking the loudest creators. Buckets that run dry
+// are skipped; if all are dry we exit early.
+function balanceByTier(pool: CreatorCard[], limit: number): CreatorCard[] {
+  const buckets: Record<AudienceTier, CreatorCard[]> = { High: [], Medium: [], Low: [] };
+  for (const c of pool) buckets[c.audience].push(c);
+  const order: AudienceTier[] = ["High", "Medium", "Low"];
+  const out: CreatorCard[] = [];
+  while (out.length < limit) {
+    let took = false;
+    for (const tier of order) {
+      if (out.length >= limit) break;
+      const next = buckets[tier].shift();
+      if (next) { out.push(next); took = true; }
+    }
+    if (!took) break;
+  }
+  return out;
+}
+
+// Fallback chain: genre-filtered query → unfiltered top-up. Audience is a
+// Notion select (Low/Medium/High), which can't be sorted by business order
+// server-side, so we pull a wider pool and balance tiers in `balanceByTier`.
+// `limit` is capped at 12 to mirror the Tweaks-panel ceiling in the design.
 export async function queryCreators(opts: {
   genrePageIds?: string[];
   limit?: number;
@@ -653,7 +682,6 @@ export async function queryCreators(opts: {
   await ensureGenreMaps(c);
   const limit = Math.min(Math.max(opts.limit ?? 6, 1), 12);
   const genresProp = await findRelationPropName(c, NOTION_CREATORS_DB_ID, NOTION_GENRE_DB_ID);
-  const sorts = [{ property: CREATORS.Audience, direction: "descending" as const }];
 
   const passes: Array<{ genrePageIds?: string[] }> = [
     { genrePageIds: opts.genrePageIds },
@@ -661,10 +689,11 @@ export async function queryCreators(opts: {
   ];
 
   const seen = new Set<string>();
-  const out: CreatorCard[] = [];
+  const pool: CreatorCard[] = [];
+  const poolCap = Math.max(limit * 6, 30);
 
   for (const pass of passes) {
-    if (out.length >= limit) break;
+    if (pool.length >= poolCap) break;
     const filter = (genresProp && pass.genrePageIds && pass.genrePageIds.length)
       ? { or: pass.genrePageIds.map(id => ({ property: genresProp, relation: { contains: id } })) }
       : undefined;
@@ -672,20 +701,18 @@ export async function queryCreators(opts: {
       const res: any = await c.databases.query({
         database_id: NOTION_CREATORS_DB_ID,
         ...(filter ? { filter } : {}),
-        sorts,
-        page_size: Math.max(limit * 2, 10),
+        page_size: 50,
       });
       for (const page of (res.results || [])) {
-        if (out.length >= limit) break;
         if (seen.has(page.id)) continue;
         seen.add(page.id);
-        out.push(rowToCreatorCard(page, genresProp));
+        pool.push(rowToCreatorCard(page, genresProp));
       }
     } catch (e: any) {
       console.error("[notion] queryCreators pass failed", e?.message || e);
     }
   }
-  return out.slice(0, limit);
+  return balanceByTier(pool, limit);
 }
 
 // ─── Matcher: write submissions back into Game Case Studies ─────────────

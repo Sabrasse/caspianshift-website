@@ -171,13 +171,17 @@
     opts = opts || {};
     const hiddenFields = opts.hiddenFields || {};
     const avatars = opts.avatars || {};
+    const copy = opts.copy || {};
+    const title = copy.title || 'Ready to shift course?';
+    const introLead = copy.introLead || 'We offer the kind of business support a publisher would, ';
+    const introEmphasis = copy.introEmphasis || 'without the constraints.';
 
     const avatarKeyvanStyle = avatars.keyvan ? `background-image:url('${avatars.keyvan}');` : null;
     const avatarVanilleStyle = avatars.vanille ? `background-image:url('${avatars.vanille}');` : null;
 
     const root = h('div', { class: 'section-wrap', id: 'contact' },
       h('span', { class: 'section-label', style: 'display:block;text-align:center;' }, 'Get in touch'),
-      h('h2', { class: 'section-title reveal' }, 'Ready to shift course?'),
+      h('h2', { class: 'section-title reveal' }, title),
       h('div', { class: 'cs-about-avatars reveal', 'aria-hidden': 'true' },
         h('div', {
           class: 'cs-about-avatar',
@@ -195,8 +199,8 @@
         class: 'cs-contact-placeholder reveal',
         style: 'text-align:center;max-width:560px;margin:0 auto 2rem;color:var(--white);font-size:.95rem;line-height:1.6;',
       },
-        'We offer the kind of business support a publisher would, ',
-        h('span', { style: 'color:var(--cream);' }, 'without the constraints.'),
+        introLead,
+        h('span', { style: 'color:var(--cream);' }, introEmphasis),
       ),
     );
 

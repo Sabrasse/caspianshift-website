@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Creator Matcher · Caspian Shift</title>
+<title>Creator Matcher</title>
 <meta name="description" content="Free tool: surface the content creators and media most likely to cover your game, matched by genre." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg viewBox='0 0 32 32' xmlns='http://www.w3.org/2000/svg'><rect width='32' height='32' rx='6' fill='%230D0112'/><text x='16' y='22' font-family='Georgia,serif' font-size='16' font-weight='bold' text-anchor='middle' fill='%2317BEBB'>CS</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -30,6 +31,11 @@
     overflow-x: hidden;
   }
   main { line-height: 1.65; }
+  h1, h2, h3, h4 {
+    font-family: 'Boogaloo', cursive;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+  }
 
   /* ─── Shared primitives (kept in sync with funding.html) ─── */
   .btn-pill {
@@ -108,10 +114,6 @@
   .cm-form h2 {
     font-family: 'Boogaloo', cursive; font-size: 1.5rem;
     color: var(--white); letter-spacing: 0.02em; margin-bottom: 0.35rem;
-  }
-  .cm-form-sub {
-    font-family: 'Nunito', sans-serif; font-size: 0.86rem;
-    color: rgba(250,240,202,.6); margin: 0 0 1.3rem; line-height: 1.55;
   }
   .cm-field { margin-bottom: 1.1rem; }
   .cm-field:last-of-type { margin-bottom: 1.4rem; }
@@ -315,27 +317,40 @@
   ];
 
   // Mock creators — used when /api/match-creators returns nothing (mock mode,
-  // file://, or before Notion is populated). All tagged YouTuber per spec.
+  // file://, or before Notion is populated). Shape mirrors the backend
+  // CreatorCard: audience is a tier (Low/Medium/High), platform comes from the
+  // Channel column, format from Content Format.
   const MOCK_CREATORS = [
-    { name: 'PixelHaven',      type: 'YouTuber', genres: ['Roguelike','Turn-Based','Action'],     audience: 1240000, channelUrl: 'https://youtube.com/@pixelhaven' },
-    { name: 'CozyCorner Mei',  type: 'YouTuber', genres: ['Cozy','Simulation','Adventure'],       audience: 540000,  channelUrl: 'https://youtube.com/@cozycornermei' },
-    { name: 'SpeedGremlin',    type: 'YouTuber', genres: ['Platformer','Action','Metroidvania'],  audience: 690000,  channelUrl: 'https://youtube.com/@speedgremlin' },
-    { name: 'GrimReview',      type: 'YouTuber', genres: ['RPG','Action','Horror'],               audience: 410000,  channelUrl: 'https://youtube.com/@grimreview' },
-    { name: 'MapMaker Jo',     type: 'YouTuber', genres: ['Building','Management','Strategy'],    audience: 158000,  channelUrl: 'https://youtube.com/@mapmakerjo' },
-    { name: 'CritFail',        type: 'YouTuber', genres: ['RPG','Strategy','Turn-Based'],         audience: 880000,  channelUrl: 'https://youtube.com/@critfail' },
-    { name: 'Slow Mornings',   type: 'YouTuber', genres: ['Cozy','Puzzle','Adventure'],           audience: 210000,  channelUrl: 'https://youtube.com/@slowmornings' },
-    { name: 'RogueLikeRyan',   type: 'YouTuber', genres: ['Roguelike','Action','Metroidvania'],   audience: 333000,  channelUrl: 'https://youtube.com/@roguelikeryan' },
+    { name: 'PixelHaven',     platform: 'YouTube', format: "Let's Play",      genres: ['Roguelike','Turn-Based','Action'],    audience: 'High',   channelUrl: 'https://youtube.com/@pixelhaven' },
+    { name: 'CozyCorner Mei', platform: 'YouTube', format: 'Streamer',         genres: ['Cozy','Simulation','Adventure'],      audience: 'Medium', channelUrl: 'https://youtube.com/@cozycornermei' },
+    { name: 'SpeedGremlin',   platform: 'YouTube', format: "Let's Play",      genres: ['Platformer','Action','Metroidvania'], audience: 'Medium', channelUrl: 'https://youtube.com/@speedgremlin' },
+    { name: 'GrimReview',     platform: 'YouTube', format: 'Long-form review', genres: ['RPG','Action','Horror'],              audience: 'Medium', channelUrl: 'https://youtube.com/@grimreview' },
+    { name: 'MapMaker Jo',    platform: 'YouTube', format: 'Streamer',         genres: ['Building','Management','Strategy'],   audience: 'Low',    channelUrl: 'https://youtube.com/@mapmakerjo' },
+    { name: 'CritFail',       platform: 'YouTube', format: 'Long-form review', genres: ['RPG','Strategy','Turn-Based'],        audience: 'High',   channelUrl: 'https://youtube.com/@critfail' },
+    { name: 'Slow Mornings',  platform: 'YouTube', format: 'Streamer',         genres: ['Cozy','Puzzle','Adventure'],          audience: 'Low',    channelUrl: 'https://youtube.com/@slowmornings' },
+    { name: 'RogueLikeRyan',  platform: 'YouTube', format: "Let's Play",      genres: ['Roguelike','Action','Metroidvania'],  audience: 'Low',    channelUrl: 'https://youtube.com/@roguelikeryan' },
   ];
-
-  const PLATFORM_LABEL = { YouTuber: 'YouTube' };
 
   // ────────────────────────────────────────────────────────────────
   // Helpers
   // ────────────────────────────────────────────────────────────────
-  function fmtAudience(n) {
-    if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
-    if (n >= 1000) return Math.round(n / 1000) + 'K';
-    return String(n || 0);
+  // Round-robin pull from High → Medium → Low so the grid mixes reach with
+  // attainability. Mirrors `balanceByTier` in netlify/functions/_shared/notion.ts.
+  function balanceByTier(pool, limit) {
+    const buckets = { High: [], Medium: [], Low: [] };
+    for (const c of pool) (buckets[c.audience] || buckets.Medium).push(c);
+    const order = ['High', 'Medium', 'Low'];
+    const out = [];
+    while (out.length < limit) {
+      let took = false;
+      for (const tier of order) {
+        if (out.length >= limit) break;
+        const next = buckets[tier].shift();
+        if (next) { out.push(next); took = true; }
+      }
+      if (!took) break;
+    }
+    return out;
   }
   // Deterministic 5x5 symmetric "pixel identicon" — used for the card avatar
   // when no real thumbnail is available.
@@ -356,22 +371,18 @@
     }
     return cells;
   }
-  // Local fallback matcher — only used in mock mode. Same shape as the backend
-  // (filter by overlapping genres, sort by overlap then audience).
+  // Local fallback matcher — only used in mock mode. Mirrors the backend:
+  // filter by overlapping genres, top up with non-matches if too few, then
+  // balance the final picks across High/Medium/Low tiers.
   function matchLocal(genres, limit) {
     const set = new Set(genres || []);
     const overlap = (c) => c.genres.filter(g => set.has(g)).length;
     let pool = MOCK_CREATORS.filter(c => overlap(c) > 0);
     if (pool.length < limit) {
-      const extra = MOCK_CREATORS.filter(c => !pool.includes(c))
-        .sort((a, b) => b.audience - a.audience);
+      const extra = MOCK_CREATORS.filter(c => !pool.includes(c));
       pool = pool.concat(extra);
     }
-    return pool
-      .map(c => ({ ...c, _m: overlap(c) }))
-      .sort((a, b) => (b._m - a._m) || (b.audience - a.audience))
-      .slice(0, limit)
-      .map(({ _m, ...rest }) => rest);
+    return balanceByTier(pool, limit);
   }
 
   async function fetchMatchedCreators(form) {
@@ -616,7 +627,6 @@
 
     const form = h('form', { class: 'cm-form', onsubmit: (e) => { e.preventDefault(); onSubmit(); } },
       h('h2', null, 'Your game'),
-      h('p', { class: 'cm-form-sub' }, 'Two fields to get matches. A similar game sharpens them.'),
 
       h('div', { class: 'cm-field' },
         h('label', { class: 'cm-label' }, 'Game name ', h('span', { class: 'cm-label-req' }, '*')),
@@ -718,24 +728,28 @@
     return wrap;
   }
   function CreatorCard(creator, index) {
-    const type = creator.type || 'YouTuber';
-    const variantClass = type.toLowerCase();
+    const platform = creator.platform || 'YouTube';
+    const format = creator.format || 'Content Creator';
+    const tier = creator.audience || 'Medium';
+    // .youtuber kept as the styling hook for the hover/border treatment — the
+    // CSS rules at .cm-card.youtuber are platform-agnostic in practice.
+    const variantClass = 'youtuber';
     const cells = avatarCells(creator.name + '|' + index);
     const av = '<svg width="52" height="52" viewBox="0 0 5 5" shape-rendering="crispEdges" style="display:block;">'
       + cells.map(c => '<rect x="' + c.x + '" y="' + c.y + '" width="1" height="1" fill="#D52941" opacity="' + (0.55 + ((c.x + c.y) % 3) * 0.15) + '"/>').join('')
       + '</svg>';
 
     const inner = [
-      h('span', { class: 'cm-card-ribbon' }, type),
+      h('span', { class: 'cm-card-ribbon' }, format),
       h('div', { class: 'cm-card-head' },
         h('div', { class: 'cm-avatar', html: av }),
         h('div', { class: 'cm-card-id' },
           h('div', { class: 'cm-card-name', title: creator.name }, creator.name || 'Untitled'),
-          h('div', { class: 'cm-card-platform' }, PLATFORM_LABEL[type] || type)
+          h('div', { class: 'cm-card-platform' }, platform)
         )
       ),
       h('div', { class: 'cm-card-stats' },
-        h('div', { class: 'cm-card-audience' }, fmtAudience(creator.audience)),
+        h('div', { class: 'cm-card-audience' }, tier.toUpperCase()),
         h('div', { class: 'cm-card-audience-label' }, 'audience'),
         creator.channelUrl ? h('span', { class: 'cm-card-cta' }, '❯ Visit channel') : null
       ),
@@ -851,7 +865,14 @@
     else                          page = PageMatcher();
     root.appendChild(page);
     if (state.page === 'matcher' && typeof window.renderCsContact === 'function') {
-      root.appendChild(window.renderCsContact({ avatars: window.CS_AVATARS || {} }));
+      root.appendChild(window.renderCsContact({
+        avatars: window.CS_AVATARS || {},
+        copy: {
+          title: 'Want help reaching these creators?',
+          introLead: 'We run creator and PR campaigns end-to-end, ',
+          introEmphasis: 'so you can stay focused on the game.',
+        },
+      }));
     }
     observeReveals(root);
   }
