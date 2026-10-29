@@ -46,10 +46,20 @@ a{color:#104B55}a:hover{color:#DE5328}
 .game-card:hover img{filter:brightness(1.08)}
 .game-card:focus-visible{outline:3px solid #32A7AC;outline-offset:4px}
 .step-path{position:absolute;left:16.667%;width:66.667%;top:47px;height:80px;overflow:visible;pointer-events:none;z-index:0}
-.step-reveal{stroke-dasharray:1 1;stroke-dashoffset:0;animation:stepDraw 6s ease-in-out infinite}
-@keyframes stepDraw{0%{stroke-dashoffset:1}45%,85%{stroke-dashoffset:0}100%{stroke-dashoffset:-1}}
-@media (max-width:900px){.step-path{display:none}}
-@media (prefers-reduced-motion:reduce){.step-reveal{animation:none;stroke-dashoffset:0}}
+.step-reveal{stroke-dasharray:1 1;stroke-dashoffset:0;animation:stepDraw 7s linear infinite}
+@keyframes stepDraw{0%{stroke-dashoffset:1}35%,86%{stroke-dashoffset:0}87%,100%{stroke-dashoffset:1}}
+.step-path{animation:stepFade 7s ease-in-out infinite}
+@keyframes stepFade{0%,72%{opacity:1}85%,100%{opacity:0}}
+.step-reveal{animation-timing-function:linear}
+.step-orb{transition:none}
+.step-orb-1{animation:orb1 7s linear infinite}
+.step-orb-2{animation:orb2 7s linear infinite}
+.step-orb-3{animation:orb3 7s linear infinite}
+@keyframes orb1{0%,72%{background:#FD651A}85%,100%{background:#32A7AC}}
+@keyframes orb2{0%,16.5%{background:#32A7AC}17.5%,72%{background:#FD651A}85%,100%{background:#32A7AC}}
+@keyframes orb3{0%,34%{background:#32A7AC}35%,72%{background:#FD651A}85%,100%{background:#32A7AC}}
+@media (max-width:900px){.step-path{display:none}.step-orb{animation:none}}
+@media (prefers-reduced-motion:reduce){.step-reveal,.step-path{animation:none;stroke-dashoffset:0}.step-orb{animation:none}}
 .social{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:9999px;color:#104B55;transition:color .2s ease,background .2s ease}
 .social:hover{color:#DE5328;background:#E3FBFF}
 .social svg{width:20px;height:20px}
@@ -107,24 +117,24 @@ a{color:#104B55}a:hover{color:#DE5328}
     <section aria-labelledby="how" style="margin-bottom: 3.5rem;">
       <h2 id="how" style="margin: 0 0 3rem; font-family: 'Patrick Hand', cursive; font-weight: 400; font-size: clamp(2.4rem, 5vw, 3.6rem); line-height: 1; letter-spacing: -1.6px; color: #DE5328;">What you get</h2>
       <div style="position: relative; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 3rem 2.5rem;">
-        <svg class="step-path" aria-hidden="true" viewBox="0 -10 1000 80" preserveAspectRatio="none"><defs><mask id="stepDraw" maskUnits="userSpaceOnUse" x="-20" y="-40" width="1040" height="140"><path class="step-reveal" d="M 0 30 C 160 -6 340 66 500 30 C 660 -6 840 66 1000 30" fill="none" stroke="#fff" stroke-width="60" pathLength="1"></path></mask></defs><path d="M 0 30 C 160 -6 340 66 500 30 C 660 -6 840 66 1000 30" fill="none" stroke="#32A7AC" stroke-width="2.5" stroke-dasharray="11 9" vector-effect="non-scaling-stroke" mask="url(#stepDraw)"></path></svg>
+        <svg class="step-path" aria-hidden="true" viewBox="0 -10 1000 80" preserveAspectRatio="none"><defs><mask id="stepDraw" maskUnits="userSpaceOnUse" x="-20" y="-40" width="1040" height="140"><path class="step-reveal" d="M 0 30 C 160 -6 340 66 500 30 C 660 -6 840 66 1000 30" fill="none" stroke="#fff" stroke-width="60" pathLength="1"></path></mask></defs><path d="M 0 30 C 160 -6 340 66 500 30 C 660 -6 840 66 1000 30" fill="none" stroke="#FD651A" stroke-width="2.5" stroke-dasharray="11 9" vector-effect="non-scaling-stroke" mask="url(#stepDraw)"></path></svg>
         <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.1rem;">
           <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; color: #10141A;">Weeks 1–2</span>
-          <div style="position: relative; z-index: 1; width: 96px; height: 96px; border-radius: 50%; background: #32A7AC; box-shadow: inset 0 0 32px 0 rgba(255,255,255,0.267); display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', cursive; font-size: 3.2rem; line-height: 1; color: #FAFAF9;">1</div>
+          <div class="step-orb step-orb-1" style="position: relative; z-index: 1; width: 96px; height: 96px; border-radius: 50%; background: #32A7AC; box-shadow: inset 0 0 32px 0 rgba(255,255,255,0.267); display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', cursive; font-size: 3.2rem; line-height: 1; color: #FAFAF9;">1</div>
           <div style="font-size: 1.55rem; line-height: 1.1; color: #10141A;">Know why visitors don't wishlist</div>
           <div style="font-size: 1.25rem; line-height: 1.2; font-weight: 700; color: #FD651A; max-width: 348px;">A benchmark vs. 3 similar games</div>
           <div style="font-family: 'Roboto', system-ui, sans-serif; font-size: 1.05rem; line-height: 1.5; color: #10141A; max-width: 300px;">We put your capsule, trailer, screenshots and Steam page next to similar games and show you what works and doesn't.</div>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.1rem;">
           <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; color: #10141A;">Weeks 3–4</span>
-          <div style="position: relative; z-index: 1; width: 96px; height: 96px; border-radius: 50%; background: #32A7AC; box-shadow: inset 0 0 32px 0 rgba(255,255,255,0.267); display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', cursive; font-size: 3.2rem; line-height: 1; color: #FAFAF9;">2</div>
+          <div class="step-orb step-orb-2" style="position: relative; z-index: 1; width: 96px; height: 96px; border-radius: 50%; background: #32A7AC; box-shadow: inset 0 0 32px 0 rgba(255,255,255,0.267); display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', cursive; font-size: 3.2rem; line-height: 1; color: #FAFAF9;">2</div>
           <div style="font-size: 1.55rem; line-height: 1.1; color: #10141A;">Fix what matters first</div>
           <div style="font-size: 1.25rem; line-height: 1.2; font-weight: 700; color: #FD651A;">A ranked fix list &amp; 3 peer reviews</div>
           <div style="font-family: 'Roboto', system-ui, sans-serif; font-size: 1.05rem; line-height: 1.5; color: #10141A; max-width: 300px;">We give you a shortlist of changes ranked by impact, and review each one before it goes live.</div>
         </div>
         <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.1rem;">
           <span style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; color: #10141A;">Weeks 5–6</span>
-          <div style="position: relative; z-index: 1; width: 96px; height: 96px; border-radius: 50%; background: #32A7AC; box-shadow: inset 0 0 32px 0 rgba(255,255,255,0.267); display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', cursive; font-size: 3.2rem; line-height: 1; color: #FAFAF9;">3</div>
+          <div class="step-orb step-orb-3" style="position: relative; z-index: 1; width: 96px; height: 96px; border-radius: 50%; background: #32A7AC; box-shadow: inset 0 0 32px 0 rgba(255,255,255,0.267); display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', cursive; font-size: 3.2rem; line-height: 1; color: #FAFAF9;">3</div>
           <div style="font-size: 1.55rem; line-height: 1.1; color: #10141A;">See what moved</div>
           <div style="font-size: 1.25rem; line-height: 1.2; font-weight: 700; color: #FD651A;">A wishlist dashboard you keep</div>
           <div style="font-family: 'Roboto', system-ui, sans-serif; font-size: 1.05rem; line-height: 1.5; color: #10141A; max-width: 300px;">We connect your Steam data to a dashboard you keep, so you see which change moved your wishlists over time.</div>
