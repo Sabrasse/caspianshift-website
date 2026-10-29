@@ -50,6 +50,11 @@ a{color:#104B55}a:hover{color:#DE5328}
 .social svg{width:20px;height:20px}
 .beam{position:absolute;left:0;top:0;width:600px;height:400px;overflow:visible;pointer-events:none;z-index:0}
 @media (max-width:900px){.beam{display:none}}
+@keyframes beamFlicker{0%,82%{opacity:1}84%{opacity:.15}86%{opacity:1}88%{opacity:0}93%{opacity:0}96%,100%{opacity:1}}
+@keyframes glowFlicker{0%,82%{box-shadow:0 0 36px 8px rgba(250,240,202,.35)}84%{box-shadow:0 0 36px 8px rgba(250,240,202,.05)}86%{box-shadow:0 0 36px 8px rgba(250,240,202,.35)}88%,93%{box-shadow:0 0 0 0 rgba(250,240,202,0)}96%,100%{box-shadow:0 0 36px 8px rgba(250,240,202,.35)}}
+.beam{animation:beamFlicker 5s ease-in-out infinite}
+#register .btn{animation:glowFlicker 5s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.beam,#register .btn{animation:none}}
 </style>
 </head>
 <body>
