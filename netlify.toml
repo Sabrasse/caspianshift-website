@@ -29,6 +29,16 @@
   to = "/creator-matcher.html"
   status = 200
 
+[[redirects]]
+  from = "/steam-page-accelerator"
+  to = "/steam-page-accelerator.html"
+  status = 200
+
+[[redirects]]
+  from = "/steam-page-accelerator/"
+  to = "/steam-page-accelerator.html"
+  status = 200
+
 # ── API routing ─────────────────────────────────────────────────
 [[redirects]]
   from = "/api/*"
