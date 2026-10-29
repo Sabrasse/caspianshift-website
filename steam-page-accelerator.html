@@ -193,7 +193,7 @@ a{color:#104B55}a:hover{color:#DE5328}
       <p style="margin: 3rem 0 6rem; text-align: center; font-family: 'Roboto', system-ui, sans-serif; font-size: 1.15rem; line-height: 1.5; color: #104B55;"><b>Want a second opinion?</b> We'll introduce you to any of these studios.</p>
     </section>
 
-    <section id="register" style="position: relative; background: #104B55; border-radius: 72px 88px 64px 84px; padding: clamp(2rem, 5vw, 4rem); display: flex; flex-wrap: wrap; gap: 2.5rem;">
+    <section id="register" style="position: relative; background: #104B55; border-radius: 72px 88px 64px 84px; padding: clamp(2rem, 5vw, 4rem) clamp(2rem, 5vw, 4rem) clamp(1.75rem, 4vw, 2.75rem); display: flex; flex-wrap: wrap; gap: 2.5rem;">
       <svg class="beam" aria-hidden="true" viewBox="0 0 600 400" width="600" height="400"><defs><linearGradient id="beamFill" gradientUnits="userSpaceOnUse" x1="99" y1="2" x2="443" y2="281"><stop offset="0" stop-color="#FAF0CA" stop-opacity="0.6"></stop><stop offset="1" stop-color="#FAF0CA" stop-opacity="0.22"></stop></linearGradient><filter id="beamSoft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.5"></feGaussianBlur></filter></defs><polygon points="107,-7 91,11 410,320 476,242" fill="url(#beamFill)" filter="url(#beamSoft)"></polygon></svg>
       <img src="/assets/steam-page-accelerator/submarine.png" alt="" aria-hidden="true" style="position: absolute; left: -34px; top: -74px; width: 150px; height: auto; max-width: none; z-index: 2; pointer-events: none;">
       <div style="position: relative; z-index: 1; flex: 1 1 280px; min-width: 0;">
@@ -204,7 +204,8 @@ a{color:#104B55}a:hover{color:#DE5328}
       <div style="position: relative; z-index: 1; flex: 999 1 420px; min-width: 0;">
           <div id="apply-success" role="status" hidden style="background: #FAFAF9; border-radius: 40px 48px 36px 44px; padding: 2rem;">
             <div style="font-family: 'Patrick Hand', cursive; font-size: 2.4rem; line-height: 1; color: #104B55;">Application received!</div>
-            <p style="margin: 0.75rem 0 0; font-family: 'Roboto', system-ui, sans-serif; font-size: 1.05rem; line-height: 1.5; color: #10141A;">We read every application and will email you before the 2027 cohort opens.</p>
+            <p style="margin: 0.75rem 0 0; font-family: 'Roboto', system-ui, sans-serif; font-size: 1.05rem; line-height: 1.5; color: #10141A;">We read every application and will email you before the 2027 cohort opens. Meanwhile, come say hi on our Discord.</p>
+            <a href="https://discord.gg/WJJpv3TKB9" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 10px; min-height: 48px; box-sizing: border-box; margin-top: 1.25rem; padding: 0.55rem 1.6rem; background: #104B55; color: #FAFAF9; border-radius: 9999px; font-family: 'Patrick Hand', cursive; font-size: 1.35rem; text-decoration: none;"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"></path></svg>Join our Discord</a>
           </div>
         
           <form id="apply-form" name="steam-page-accelerator" method="POST" action="/steam-page-accelerator?applied=1" data-netlify="true" netlify-honeypot="company-website" style="display: flex; flex-direction: column; gap: 1.1rem;">
@@ -229,6 +230,7 @@ a{color:#104B55}a:hover{color:#DE5328}
             <div>
               <button class="btn" type="submit" style="box-shadow: 0 0 36px 8px rgba(250,240,202,0.35);">Apply</button>
             </div>
+            <p style="margin: -0.35rem 0 0; font-family: 'Roboto', system-ui, sans-serif; font-size: 0.98rem; line-height: 1.5; color: #E3FBFF;">Questions first? <a href="https://discord.gg/WJJpv3TKB9" target="_blank" rel="noopener" style="color: #FAF0CA; font-weight: 700;">Ask us on Discord</a></p>
           </form>
         
       </div>
