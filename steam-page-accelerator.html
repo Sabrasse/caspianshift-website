@@ -71,6 +71,18 @@ a{color:#104B55}a:hover{color:#DE5328}
 #register .btn{animation:glowFlicker 5s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.beam,#register .btn{animation:none}}
 </style>
+<script>
+// GoatCounter: count each visit with its ?src= (the canonical link would drop it otherwise).
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var src = (params.get('src') || params.get('utm_source') || '').slice(0, 60);
+  window.goatcounter = {
+    path: '/steam-page-accelerator' + (src ? '?src=' + encodeURIComponent(src) : ''),
+    no_onload: params.get('applied') === '1'
+  };
+})();
+</script>
+<script data-goatcounter="https://caspianshift.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 <div id="top" style="min-height: 100vh; background: #FAFAF9; color: #10141A; font-family: 'Roboto Condensed', 'Roboto', system-ui, sans-serif;">
@@ -262,10 +274,30 @@ a{color:#104B55}a:hover{color:#DE5328}
   var src = params.get('src') || params.get('utm_source');
   if (src) document.getElementById('apply-source').value = src.slice(0, 60);
 
+  // Funnel events in GoatCounter: apply-click, form-start, form-submit (each suffixed with the source).
+  function track(name) {
+    if (window.goatcounter && window.goatcounter.count) {
+      window.goatcounter.count({ path: name + ':' + (src || 'direct'), title: name, event: true });
+    }
+  }
+
   var form = document.getElementById('apply-form');
   var done = document.getElementById('apply-success');
   function showDone() { form.hidden = true; done.hidden = false; }
-  if (params.get('applied') === '1') showDone();
+  if (params.get('applied') === '1') {
+    showDone();
+    window.addEventListener('load', function () { track('form-submit'); });
+  }
+
+  document.querySelectorAll('a[href="#register"]').forEach(function (a) {
+    a.addEventListener('click', function () { track('apply-click'); });
+  });
+  var started = false;
+  form.addEventListener('focusin', function () {
+    if (started) return;
+    started = true;
+    track('form-start');
+  });
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -277,6 +309,7 @@ a{color:#104B55}a:hover{color:#DE5328}
       body: new URLSearchParams(new FormData(form)).toString()
     }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
+      track('form-submit');
       showDone();
     }).catch(function () {
       btn.disabled = false;
